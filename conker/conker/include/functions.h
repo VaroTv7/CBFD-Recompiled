@@ -804,7 +804,7 @@ void func_15149368();
 void func_15149394();
 void func_151493E4();
 void func_15149434(struct260 *arg0, s32 arg1, u8 arg2);
-s32  func_15149490();
+s32  func_15149490(s32 arg0, struct260 *arg1, s16 arg2);
 void func_151494E0(s32 arg0, u8 arg1);
 void func_15149514();
 void func_15165F70();

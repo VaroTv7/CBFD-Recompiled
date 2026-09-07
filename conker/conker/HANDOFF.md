@@ -3788,3 +3788,52 @@ not a quick-fix target.
 Rebuilt clean after both Category A fixes (0 `cfe: Error`, 0 `Signal
 11`, only the expected `.ok` sha1sum mismatch) — `us` version
 confirmed via `rm -rf build && make -j$(nproc) -k`.
+
+## Session log — Category A continued: function-pointer-table parameter types (2026-09-07, later still)
+
+Followed up on the `func_15149490` lead flagged above. Its body calls
+through `D_8008A670[idx](arg0, arg1, arg2)`, and that table is declared
+`extern s32 (*D_8008A670[])(s32, struct260*, s16)` in `variables.h` —
+3rd param `s16`, but `func_15149490`'s own `arg2` was `s32`. Diff
+confirmed it: current did an explicit truncate+sign-extend dance
+(`sll a2,a3,0x10` / `sra t6,a2,0x10`) right before the indirect call
+that target doesn't do at all — target's `arg2` register just flows
+through unchanged, meaning it's already the right width at the call
+site. Narrowed to `s16`; isolated score dropped 610→400 (same file's
+Category B drift, see above, eats into full match here too, same as
+`func_15149434`).
+
+Generalized the search: grepped `variables.h` for every function-
+pointer-table declaration with a narrower-than-`s32` parameter type
+(`s8`/`u8`/`s16`/`u16`) and cross-checked each against its caller(s).
+Found a third: `D_80089F60` declared `(s32, s32, u8)`, called from
+`func_1513CF9C` (`src/game_169510.c`) with `arg2` still `s32`. Fixed
+the same way. This one's isolated diff score is dominated by a huge,
+unrelated block of totally mismatched target-only content (16785/17900
+— nowhere near the small-wrapper-sized scores above), almost certainly
+another instance of Category B (or a separate, unrelated large
+mismatch) rather than anything this type fix could visibly move — but
+the fix itself is unambiguously correct per the table's own declared
+signature, has zero external callers to risk breaking, and cost
+nothing to apply, so it went in anyway. Did not chase this function's
+underlying mismatch further — out of scope for a type-narrowing pass.
+
+All three fixes (`func_151494E0`, `func_15149434`, `func_15149490`,
+`func_1513CF9C`) went through the same pipeline
+(`restore_promotion_safe_signatures.py` then
+`fix_cross_file_arg_counts.py`) and a full clean rebuild — 0
+`cfe: Error`, 0 `Signal 11`, 0 CRLF regressions, `build/conker.us.elf`
+and `.bin` both produced.
+
+**Pattern worth remembering for next time**: whenever a small
+"forwarding wrapper" function calls through a declared function-
+pointer-table (`extern RET (*NAME[])(...)` in `variables.h`), check
+that the wrapper's own parameter types match the table's declared
+parameter types exactly. A wrapper mismatched only in width (its
+param wider than the table expects) reliably shows up in the diff as
+spurious truncate/mask/sign-extend instructions around the indirect
+call that the target doesn't have — worth grepping `variables.h` for
+narrow-typed function-pointer tables and checking every one's
+caller(s) systematically rather than one at a time from a score list,
+since this project apparently has several such tables and it's cheap
+to check them all in one pass.

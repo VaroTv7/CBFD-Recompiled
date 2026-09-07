@@ -217,7 +217,7 @@ void func_1513CBA4(struct210 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513CBF0.s")
 
-void func_1513CF9C(s32 arg0, s32 arg1, s32 arg2) {
+void func_1513CF9C(s32 arg0, s32 arg1, u8 arg2) {
     D_80089F60[0](arg0, arg1, arg2);
 }
 

@@ -111,7 +111,7 @@ void func_15149434(struct260 *arg0, s32 arg1, u8 arg2) {
     }
 }
 
-s32 func_15149490(s32 arg0, struct260 *arg1, s32 arg2) {
+s32 func_15149490(s32 arg0, struct260 *arg1, s16 arg2) {
     s32 idx = arg1->unk12;
     if (idx != -1) {
         arg0 = D_8008A670[idx](arg0, arg1, arg2);
