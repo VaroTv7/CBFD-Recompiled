@@ -2008,7 +2008,7 @@ void func_151BD7F4(void *arg0) {
 
     sp18 = arg0;
     sp1C = (*(s32 *)((char *)(arg0) + 0x3B));
-    func_151494E0(&sp18, 0x3B, arg0);
+    func_151494E0(&sp18, 0x3B);
 }
 
 void func_151BD828(void *arg0, s32 arg1, s32 arg2) {

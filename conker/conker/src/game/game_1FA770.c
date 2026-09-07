@@ -182,7 +182,7 @@ void func_151CD35C(s32 arg0) {
 
     if ((arg0 >= 0) && (arg0 < 4)) {
         sp1C = arg0;
-        func_151494E0(&sp1C, 0x17, arg0);
+        func_151494E0(&sp1C, 0x17);
     }
 }
 
@@ -191,7 +191,7 @@ void func_151CD394(s32 arg0) {
 
     if ((arg0 >= 0) && (arg0 < 4)) {
         sp1C = arg0;
-        func_151494E0(&sp1C, 0x18, arg0);
+        func_151494E0(&sp1C, 0x18);
     }
 }
 
@@ -1643,7 +1643,7 @@ void func_151D0024(void *arg0) {
 
     sp18 = arg0;
     sp1C = (*(s32 *)((char *)(arg0) + 0x3B));
-    func_151494E0((s32 *) &sp18, 0x18, (s32) arg0);
+    func_151494E0((s32 *) &sp18, 0x18);
 }
 
 void func_151D0058(void *arg0, s32 arg1, s32 arg2, s32 arg3) {

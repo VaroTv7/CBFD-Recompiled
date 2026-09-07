@@ -99,7 +99,7 @@ void func_151493E4(struct260 *arg0) {
     D_8008A7B0[idx](arg0);
 }
 
-void func_15149434(struct260 *arg0, s32 arg1, s32 arg2) {
+void func_15149434(struct260 *arg0, s32 arg1, u8 arg2) {
     s32 idx = arg0->unk13;
 
     if ((idx < 0) || (idx >= 74)) {
@@ -119,7 +119,7 @@ s32 func_15149490(s32 arg0, struct260 *arg1, s32 arg2) {
     return arg0;
 }
 
-void func_151494E0(s32 arg0, s32 arg1) {
+void func_151494E0(s32 arg0, u8 arg1) {
     func_15169260(&D_800A5770, 2, arg0, arg1);
 }
 

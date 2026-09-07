@@ -816,7 +816,7 @@ void func_150F884C(s32 arg0, s32 arg1) {
     s32 sp18;
 
     sp18 = arg1;
-    func_151494E0(&sp18, 0x3F, arg1);
+    func_151494E0(&sp18, 0x3F);
 }
 
 void func_150F887C(void *arg0, void *arg1, s32 arg2) {
@@ -1226,7 +1226,7 @@ void func_150F9720(s32 arg0) {
     sp18 = &sp20;
     sp1C = temp_v0;
     sp24 = *temp_v0;
-    func_151494E0(&sp20, 0x42, temp_a2);
+    func_151494E0(&sp20, 0x42);
     sp24 = (*(s32 *)((char *)(sp1C) + 0x1));
     func_151494E0(sp18, 0x42);
 }

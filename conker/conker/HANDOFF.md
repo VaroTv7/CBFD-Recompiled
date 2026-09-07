@@ -3720,3 +3720,71 @@ side-by-side — we're behind only on `init` specifically, and ahead
 overall, on `game`, and substantially ahead on `debugger`. Worth
 revisiting `init` specifically if closing that one gap matters, but
 there's no broad "catching up" work implied by this comparison.
+
+## Session log — resuming matching investigation, two categories found (2026-09-07, later still)
+
+With the build restored, resumed the closest-to-matching triage:
+reran `score_funcs.py` against `touched_funcs.txt` (576 functions),
+sorted `func_scores.csv` ascending. Investigating the top candidates
+turned up **two distinct categories**, one safely fixable, one not:
+
+**Category A — narrowed parameter type missing its mask (fixed, safe).**
+`func_151494E0` (`src/game/done/game_1765E0.c`) is a thin wrapper:
+`func_151494E0(s32 arg0, s32 arg1) { func_15169260(&D_800A5770, 2,
+arg0, arg1); }`. Diffing showed target masking the second argument
+(`andi a3,a1,0xff`) before the forwarded call — ours just moved it
+unmasked (`move a3,a1`). Every call site passes a small hex constant
+(max seen ~0x57), confirming `arg1` should be `u8`, not `s32`. Fixed
+by narrowing the parameter, then running the existing pipeline
+(`restore_promotion_safe_signatures.py` — auto-restores a strict
+`functions.h` prototype for promotion-risky types instead of the
+relaxed K&R form; `fix_cross_file_arg_counts.py` — needed here because
+two call sites, `game_124260.c:29` and `game_1FA770.c:1646`, were
+passing a stray *third* argument that the relaxed prototype had let
+through silently; confirmed via the diff that target's asm only ever
+reads 2 params, so trimming the excess arg — not adding a real 3rd
+parameter — was correct). Isolated score dropped 1306→478 with no
+build regressions. Found and fixed the same category in a sibling
+function, `func_15149434` (same file) — target's indirect jump-table
+call (`D_8008A8D8[idx](arg0, arg1, arg2)`) masks its 3rd argument in
+the branch-delay slot after `jalr` (`andi a2,a3,0xff`); `arg2` needed
+the same `s32`→`u8` fix. `func_15149490` in the same file scored
+610/1600 and looks like a same-category candidate too but wasn't
+chased this round — worth checking first next time before diving into
+harder cases.
+
+**Category B — cascading size drift, root cause upstream, explicitly
+NOT fixed (too risky to guess).** Several of the lowest (closest-to-
+matching) scores shared a suspicious shape: current has extra
+instructions — often a full `addiu sp,sp,-0x18` frame + a spurious
+`jal 50ada20` (`random_u32`) call — right at a function's declared
+start, with target's equivalent content only appearing later, address-
+shifted. First read as "N individual functions each got a wrong extra
+call inserted." That reading was WRONG. Checked the functions
+*preceding* the affected cluster in `game_2062D0.c`
+(`func_151D8E20`/`E6C`/`EB0`/`EBC`) and found **none of them are
+byte-perfect either** (scores 800/1100, 800/900, 870/1100, 710/800) —
+including the very first function in the file. That means the
+diff tool's displayed "target" addresses for everything downstream are
+not independently trustworthy once drift has already started upstream
+of the comparison window; the "extra insertion at every function
+boundary" symptom is the SAME accumulating drift being re-detected at
+each new function, not N separate bugs. Root cause is somewhere
+*before* `game_2062D0.c`'s first function (or in whatever precedes it
+in link order) — genuinely unknown without a dedicated ground-up
+investigation. Same symptom independently reproduced in
+`src/game/done/game_1765E0.c` (`func_151493E4` and, after its own
+type fix, `func_15149434` still show it) — this is clearly a
+widespread pattern, not confined to one file. **Do not attempt
+speculative fixes here** (e.g. inventing a plausible-looking "missing
+function" to fill the address gap) without first verifying the true
+divergence point via ground-truth means (independent of this specific
+diff tool's relative-addressing display, which is unreliable once
+upstream drift exists) — a wrong guess would silently corrupt working
+code with invented semantics. Flagging as a real, sizeable category
+for a future session with dedicated time to root-cause it properly,
+not a quick-fix target.
+
+Rebuilt clean after both Category A fixes (0 `cfe: Error`, 0 `Signal
+11`, only the expected `.ok` sha1sum mismatch) — `us` version
+confirmed via `rm -rf build && make -j$(nproc) -k`.

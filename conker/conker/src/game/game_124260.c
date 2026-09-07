@@ -26,7 +26,7 @@ void func_150F6DB0(void *arg0) {
 
     sp18 = arg0;
     sp1C = (*(s32 *)((char *)(arg0) + 0x3B));
-    func_151494E0(&sp18, 0x3E, arg0);
+    func_151494E0(&sp18, 0x3E);
 }
 
 void *func_150F6DE4(void *arg0) {
