@@ -1,0 +1,7 @@
+D_8002BA44 = 0x8002BA44;
+
+random_u32 = 0x1FFF0000;
+random_float = 0x1FFF0010;
+gCurrentObject = 0x80200020;
+gCurrentObjectIndex = 0x80200024;
+gObjects = 0x80200100;
