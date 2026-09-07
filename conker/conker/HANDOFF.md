@@ -4262,3 +4262,59 @@ of investigation — the only two remaining issues are documented
 instruction-scheduling nuances, not undiscovered bugs, and both
 resisted direct fix attempts already. Worth moving to a different
 file next time rather than continuing to poke at these two.
+
+## Session log — important correction: func_10017E4C was never actually broken (2026-09-07, later still)
+
+Re-verified `func_10017E4C`/`func_10017DF0` (flagged two rounds ago as
+"func_10008A94's real blocker — a massive, structurally different
+implementation") using the discipline established since then
+(`find_drift.py` first, before trusting any diff). **That flag was
+wrong.** `find_drift.py 0x10017000 0x10018000` shows both functions
+introduce **zero** new drift — the earlier "massive mismatch" was, a
+third time now, purely an artifact of comparing against a target that
+was already misaligned from drift further upstream (this file's own
+prologue tail was showing through at what looked like
+`func_10017DF0`'s start). Confirmed by reading the source directly
+too: `func_10017DF0` and `func_10017E4C` build an `N_ALEvent` struct
+field-by-field, and the disassembly constants line up exactly with the
+C source's literals (`type=2`, `status = chan|0xB0`, `byte1=92`, the
+`0xfc`/`li a3` from the `n_alEvtqPostEvent(..., 0, 2)` call args) —
+there was never a real mismatch to find here. **Do not re-flag
+`func_10017E4C` as broken without first checking `find_drift.py` for
+its address range** — this is now the third time this exact class of
+misdiagnosis has happened in this investigation (after
+`func_10008790` and `func_10008BC0`), which is a strong enough pattern
+that it's worth stating as a hard rule going forward, not just a
+lesson: **an `-s`-scoped or otherwise-unverified diff that looks
+alarming is not evidence of a bug until `find_drift.py` confirms real
+new drift is introduced at that function specifically.**
+
+Given `func_10017E4C` isn't actually the blocker, `func_10008A94`'s
+remaining -12ish bytes of drift (from the `init_8180.c` sessions
+above) most likely trace back to the same two already-documented
+scheduling residuals (`func_10008660.arg3`, `func_10008C04`) rather
+than a separate bug — consistent with every other "downstream symptom"
+case found throughout this investigation. Not independently
+re-verified this round; low priority given it's almost certainly not
+a new issue.
+
+**Found a new, much larger cluster of the productive category**,
+distinct from `init_8180.c`: `find_drift.py 0x1000E000 0x10017100`
+shows well over a dozen separate drift-introducing points scattered
+from `func_1000E054` through past `func_10015550`, cumulative delta
+reaching -176 bytes by `func_10016E90` and staying there through at
+least `func_10017100`. One of them, `func_1000E704`, was already
+identified in an earlier session as genuinely hard (calls the
+already-flagged non-matching `func_10008C6C`) — not every point in
+this range will be the easy category. Spot-checked the very first one,
+`func_1000E054` (`src/init_B1B0.c:345`): target is missing our
+`addiu sp,sp,-0x20` prologue instruction entirely (everything else
+in the function matches with a constant +4 current-vs-target offset,
+i.e. this one instruction is the entire discrepancy) — looks like the
+same shape as earlier "unnecessary stack allocation" findings, but
+the exact cause (which local/spill is forcing our version to reserve
+a frame target doesn't need) wasn't pinned down before running out of
+turn budget. **Not fixed — no confirmed root cause yet, don't guess.**
+This is the concrete next lead: `src/init_B1B0.c`, starting at
+`func_1000E054`, using the same explicit-bounds-diff-plus-
+`find_drift.py` discipline established over the last several rounds.
