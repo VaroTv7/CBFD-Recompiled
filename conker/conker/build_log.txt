@@ -1,0 +1,158 @@
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_169510.c > build/src/game_169510.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_2DF70.c > build/src/game_2DF70.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_45B80.c > build/src/game_45B80.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_77AD0.c > build/src/game_77AD0.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_C8950.c > build/src/game_C8950.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_CB1C0.c > build/src/game_CB1C0.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_2DF70.c.o build/src/game_2DF70.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/init_8180.c > build/src/init_8180.c
+cfe: Warning 712: src/game_2DF70.c, line 69: illegal combination of pointer and integer
+     D_800B0DE0 = ((((s32)D_800B0DE0) + 0x3) & ~0x3) ;
+ ---------------^
+cfe: Warning 712: src/game_2DF70.c, line 98: illegal combination of pointer and integer
+     sp20 = allocate_memory((D_800DBE4C + 1) << 1, 1, 0, 0);
+ ---------^
+cfe: Warning 712: src/game_2DF70.c, line 139: illegal combination of pointer and integer
+     sp20 = allocate_memory((D_800DBE4C + 1) << 1, 1, 0, 0);
+ ---------^
+cfe: Warning 712: src/game_2DF70.c, line 297: illegal combination of pointer and integer
+     sp3C = func_1502B6BC(&sp34, 0, &sp38, 2, 21, arg0);
+ ---------^
+cfe: Warning 712: src/game_2DF70.c, line 299: illegal combination of pointer and integer
+         D_800B0DF0 = sp3C->unk0;
+ -------------------^
+cfe: Warning 712: src/game_2DF70.c, line 319: illegal combination of pointer and integer
+         D_800D2F40 = sp3C->unk8;
+ -------------------^
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_169510.c.o build/src/game_169510.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_45B80.c.o build/src/game_45B80.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_77AD0.c.o build/src/game_77AD0.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_C8950.c.o build/src/game_C8950.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/game_CB1C0.c.o build/src/game_CB1C0.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_2DF70.c --post-process build/src/game_2DF70.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -O2 -g3  -mips2 -o32 -o build/src/init_8180.c.o build/src/init_8180.c
+python3 ../tools/asm-processor/asm_processor.py -g src/libultra/audio/init_15550.c > build/src/libultra/audio/init_15550.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g  -mips2 -o32 -o build/src/libultra/audio/init_15550.c.o build/src/libultra/audio/init_15550.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_17AF0.c.o src/libultra/audio/init_17AF0.c
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 68: Incompatible pointer type assignment
+         n_alSynStopVoice(&arg0->unk10);
+ -------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 69: Incompatible pointer type assignment
+         n_alSynFreeVoice(&arg0->unk10);
+ -------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 83: Incompatible pointer type assignment
+     event.msg.vol.voice = arg0;
+ ------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 145: Incompatible pointer type assignment
+         D_8002BA28 = sp24->node.next;
+ -------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 154: Incompatible pointer type assignment
+             sp24->node.next = D_8002BA20;
+ ----------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 156: Incompatible pointer type assignment
+             D_8002BA20->node.prev = sp24;
+ ----------------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 184: Incompatible pointer type assignment
+         D_8002BA20 = arg0->node.next;
+ -------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 187: Incompatible pointer type assignment
+         D_8002BA24 = arg0->node.prev;
+ -------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 200: Incompatible pointer type assignment
+         arg0->node.next = D_8002BA28;
+ ------------------------^
+cfe: Warning 709: src/libultra/audio/init_15550.c, line 202: Incompatible pointer type assignment
+         D_8002BA28->node.prev = arg0;
+ ------------------------------^
+cfe: Warning 712: src/libultra/audio/init_15550.c, line 330: illegal combination of pointer and integer
+         event.msg.vol.voice = arg0;
+ ----------------------------^
+python3 ../tools/asm-processor/asm_processor.py -g src/libultra/audio/init_15550.c --post-process build/src/libultra/audio/init_15550.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_17C00.c.o src/libultra/audio/init_17C00.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_17DF0.c.o src/libultra/audio/init_17DF0.c
+cfe: Warning 709: src/game_C8950.c, line 35: Incompatible pointer type assignment
+     temp_v0 = func_1509B704(arg0);
+ ------------^
+cfe: Warning 712: src/game_C8950.c, line 38: illegal combination of pointer and integer
+         return (s32)temp_v0 + (res & 0xFFFF);
+ --------^
+cfe: Warning 712: src/game_45B80.c, line 59: illegal combination of pointer and integer
+     arg0 = func_15174B48(arg0, D_800BE9F0, arg1);
+ ---------^
+cfe: Warning 712: src/game_C8950.c, line 69: illegal combination of pointer and integer
+     temp_v0 = func_1502B5C8(&sp18, 2, 20, arg0);
+ ------------^
+cfe: Warning 712: src/game_169510.c, line 63: illegal combination of pointer and integer
+     temp_v0 = func_1513C350(arg0, arg1, arg2, arg3, argA, argB, argC, &tmp, argD, argE, argF);
+ ------------^
+cfe: Warning 712: src/game_169510.c, line 68: illegal combination of pointer and integer
+     return temp_v0;
+ ----^
+cfe: Warning 712: src/game_169510.c, line 72: illegal combination of pointer and integer
+     s32 tmp = func_1513C350(arg0, arg1, arg2, arg3, argA, 0, 0, 0, argB, argC, argD);
+ --------^
+cfe: Warning 712: src/game_169510.c, line 77: illegal combination of pointer and integer
+     return tmp;
+ ----^
+cfe: Warning 712: src/game_169510.c, line 88: illegal combination of pointer and integer
+     temp_v0 = func_1513C350(arg0, 0, arg1, arg2, argA, argB, argC, &tmp, argD, argE, argF);
+ ------------^
+cfe: Warning 712: src/game_169510.c, line 97: illegal combination of pointer and integer
+     return temp_v0;
+ ----^
+cfe: Warning 712: src/game_169510.c, line 101: illegal combination of pointer and integer
+     s32 tmp = func_1513C350(arg0, 0, arg1, arg2, argA, 0, 0, 0, argB, argC, argD);
+ --------^
+cfe: Warning 712: src/game_169510.c, line 110: illegal combination of pointer and integer
+     return tmp;
+ ----^
+cfe: Warning 712: src/game_169510.c, line 114: illegal combination of pointer and integer
+     s32 tmp = func_1513C350(arg0, 0, arg2, arg3, argB, 0, 0, 0, argC, argD, argE);
+ --------^
+cfe: Warning 712: src/game_169510.c, line 122: illegal combination of pointer and integer
+     return tmp;
+ ----^
+cfe: Warning 712: src/game_169510.c, line 243: illegal combination of pointer and integer
+         arg1 = &D_800A4AA0;
+ -------------^
+cfe: Warning 712: src/game_169510.c, line 250: illegal combination of pointer and integer
+     return temp_v0;
+ ----^
+cfe: Warning 709: src/game_169510.c, line 394: Incompatible pointer type assignment
+     struct212 *temp_v0 = &arg0->unk110;
+ ---------------^
+cfe: Warning 709: src/game_169510.c, line 400: Incompatible pointer type assignment
+         temp_v0 = &arg0->unk110;
+ ----------------^
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_45B80.c --post-process build/src/game_45B80.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_C8950.c --post-process build/src/game_C8950.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_CB1C0.c --post-process build/src/game_CB1C0.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_17F10.c.o src/libultra/audio/init_17F10.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_169510.c --post-process build/src/game_169510.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+python3 ../tools/asm-processor/asm_processor.py -g src/libultra/audio/init_1D900.c > build/src/libultra/audio/init_1D900.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/game_77AD0.c --post-process build/src/game_77AD0.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_1E2A0.c.o src/libultra/audio/init_1E2A0.c
+python3 ../tools/asm-processor/asm_processor.py -O2 -g3 src/init_8180.c --post-process build/src/init_8180.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_1E350.c.o src/libultra/audio/init_1E350.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g -mips2 -o32 -o build/src/libultra/audio/init_1E400.c.o src/libultra/audio/init_1E400.c
+../ido/ido5.3_recomp/cc -c -32 -G 0 -Xfullwarn -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32 -woff 649,838 -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc -I src/libultra/os -I src/libultra/audio -I src/libultra/io -g  -mips2 -o32 -o build/src/libultra/audio/init_1D900.c.o build/src/libultra/audio/init_1D900.c
+cfe: Warning 712: src/libultra/audio/init_1D900.c, line 29: illegal combination of pointer and integer
+         return n_syn->auxBus[arg0].sources;
+ --------^
+python3 ../tools/asm-processor/asm_processor.py -g src/libultra/audio/init_1D900.c --post-process build/src/libultra/audio/init_1D900.c.o \
+	--assembler "mips-linux-gnu-as -EB -mtune=vr4300 -march=vr4300 -mabi=32 -I include" --asm-prelude ../tools/asm-processor/prelude.inc
+mips-linux-gnu-ld -T build/conker.ld -Map build/conker.us.map -T undefined_syms.us.txt -T undefined_funcs.us.txt -T undefined_syms_auto.txt -T undefined_funcs_auto.txt --no-check-sections -o build/conker.us.elf
+mips-linux-gnu-objcopy  -O binary build/conker.us.elf build/conker.us.bin
+build/conker.us.bin: FAILED
+sha1sum: WARNING: 1 computed checksum did NOT match
+make: *** [Makefile:224: build/conker.us.ok] Error 1
+make: Target 'default' not remade because of errors.
+EXIT:2
