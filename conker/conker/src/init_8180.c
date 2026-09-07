@@ -124,7 +124,7 @@ void func_10008988( u8 idx, s32 mask, s32 enable) {
 }
 
 // is this n_alCSPGetChlVol ?
-u8 func_10008A4C( u8 idx, s32 chan) {
+u8 func_10008A4C( u8 idx, u8 chan) {
     return ((N_ALCSPlayer *)D_8003C900[idx])->chanState[chan].unkD; // do we assume this is volume?
 }
 
@@ -143,7 +143,7 @@ void func_10008B2C( u8 idx) {
       n_alCSPGetTempo(D_8003C900[idx]);
 }
 
-void func_10008B60( u8 idx, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
+void func_10008B60( u8 idx, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
     func_10017F10(D_8003C900[idx], arg1, arg2, arg3, arg4);
 }
 
@@ -151,7 +151,7 @@ void func_10008BC0(u8 idx, f32 arg1, f32 arg2) {
     func_10017DF0(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008C04( u8 idx, s32 arg1, s32 arg2) {
+void func_10008C04( u8 idx, u8 arg1, s32 arg2) {
     func_10018790(&D_8003CA58[idx], &D_8003CD48[idx], arg1, arg2);
 }
 
@@ -203,7 +203,7 @@ void func_10008C04( u8 idx, s32 arg1, s32 arg2) {
 //     return 0;
 // }
 
-void func_10008EE0( u8 idx, s32 arg1) {
+void func_10008EE0( u8 idx, s16 arg1) {
     func_10018D00(D_8003C900[idx], arg1);
 }
 

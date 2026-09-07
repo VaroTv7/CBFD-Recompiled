@@ -4191,3 +4191,74 @@ investigated.
 `func_10008C04`, `func_10008EE0`, `func_10008F24`, `func_10008F58` —
 continue the same function-by-function, explicit-bounds-diff
 discipline from `func_100088F0` onward next time.
+
+## Session log — init_8180.c finished: func_100088F0 through end of file (2026-09-07, later still)
+
+Finished the walk-through. Result: **`init_8180.c`'s total drift went
+from -416 bytes (session start, three rounds ago) to -4 bytes** —
+essentially the whole file, confirmed function by function with
+explicit-bounds diffs and a rebuild after each change.
+
+`func_100088F0` and `func_10008988` needed no changes at all — already
+byte-perfect once the earlier `func_10008660`/`func_10008824` fixes
+landed; what looked like problems in an earlier round's stale diff was
+purely upstream misalignment.
+
+Two more real fixes, same category as the whole file:
+- `func_10008A4C`: `chan` (2nd param) → `u8` — confirmed via target's
+  `sw a1,4(sp); andi t7,a1,0xff` before use. Fixing this alone also
+  fully resolved `func_10008A94` and `func_10008F90`'s previously-
+  reported drift as a side effect (same "downstream symptom of an
+  upstream bug" pattern seen repeatedly this investigation) — neither
+  actually had its own bug.
+- `func_10008B60`: all four forwarded arguments (`arg1`-`arg4`) → `u8`
+  — confirmed via target masking all of them (`andi` for the first
+  three, `lbu` byte-reload for the fourth, which lives on the stack
+  per the o32 ABI's 4-register-argument limit).
+
+**Important correction to a previous round's conclusion**:
+`func_10008BC0`'s `f32` "register round-trip" was flagged twice ago as
+a hard, unfixable IDO scheduling quirk. It wasn't — once the upstream
+functions were actually fixed and the alignment was clean, re-checking
+it showed the `mtc1`/`mfc1` pattern matches target **exactly**, byte
+for byte. That "quirk" was purely an artifact of comparing against a
+misaligned target, the same root cause as the `func_10008790`
+"different function" misdiagnosis from last round. **Lesson
+reinforced yet again**: never trust an anomalous-looking diff for a
+function until confirming, via `find_drift.py`, that nothing upstream
+of it is still contributing drift.
+
+One more real, still-partially-open fix: `func_10008C04`'s `arg1` →
+`u8` (confirmed via target's `lbu a2,0x1f(sp)` byte-reload before its
+second forwarded call). This one has a genuine small residual left
+after the type fix — target reloads and uses `arg1` earlier in the
+instruction sequence than current does (a delay-slot/scheduling
+placement difference, not a type or logic bug) — same class of
+unresolved nuance as `func_10008660`'s `arg3`. Left as-is rather than
+risk making it worse via more C restructuring, per the established
+pattern from two rounds ago where that kind of experiment backfired.
+
+`func_10008EE0`: `arg1` → `s16`, not `u8` — confirmed via the
+shift-based sign-extend idiom (`sll $reg,$reg,0x10` /
+`sra $reg,$reg,0x10`) instead of an `andi ...,0xff` mask, the same
+signature as `func_15149490`'s fix from an earlier session. This
+fully resolved `func_10008F24`'s reported drift too (same downstream-
+symptom pattern).
+
+`func_10008F24` and `func_10008F58` (the last function in the file)
+both needed no changes — clean once everything upstream was fixed.
+The remaining -4 bytes at the very end of the file trace back
+entirely to the two still-open scheduling residuals
+(`func_10008660.arg3`, `func_10008C04`'s reload timing) — not a new,
+unexamined bug.
+
+Rebuilt clean after every change this round (0 `cfe: Error`, 0
+`Signal 11`, 0 CRLF regressions) — confirmed via
+`find_drift.py 0x10008000 0x10009000` after each fix, and a final full
+`us` rebuild.
+
+**`init_8180.c` is now effectively done** as a target for this kind
+of investigation — the only two remaining issues are documented
+instruction-scheduling nuances, not undiscovered bugs, and both
+resisted direct fix attempts already. Worth moving to a different
+file next time rather than continuing to poke at these two.
