@@ -1,0 +1,23 @@
+# Auto-generated from full m2c batch analysis (558 files)
+# Merge into symbol_addrs.us.txt
+
+# === High confidence (already applied in C output) ===
+gGameState = 0x8008FDD4; // ptr; fields: unk20(flags), unk2B/unk2C, unk3E/unk3F(mode), unk42
+gObjects   = 0x800CC2D0; // object pool base; element size 812 (0x32C)
+
+# === Next rename targets (still D_ in output — confirm then add) ===
+# D_800D154C  (867 refs)  — major manager / list
+# D_800BE9A4  (594 refs)
+# D_800BE9E4  (580 refs)  — often s32 counter/handle
+# D_800BE9C0  (347 refs)
+# D_800A5480  (235 refs)
+# D_800D23B0  (182 refs)
+# D_8008FD8C  ( 92 refs)  — object index used with gObjects
+
+# === Hottest functions to investigate ===
+# func_150ADA20  (1706 refs)
+# func_150ADA68  (1291 refs)
+# func_1516972C  ( 280 refs)
+# func_151423D8  ( 265 refs)
+# func_1509BE40  ( 125 refs)
+# func_10004074  (  98 refs)

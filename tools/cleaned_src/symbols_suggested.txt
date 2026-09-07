@@ -1,0 +1,4 @@
+# Suggested symbol renames (add to symbol_addrs.us.txt if not already present)
+
+gGameState = 0x8008FDD4; // global game/player state pointer
+gObjects   = 0x800CC2D0; // object/actor pool base, element size 812 (0x32C)
