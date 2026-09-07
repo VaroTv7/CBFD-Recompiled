@@ -20,8 +20,8 @@ void func_15001970(void) {
 
     D_800B0DE4 = 0;
     D_800DBE63 = 0;
-    *D_800DBE18 = 0;
-    *D_800DBE1C = 0;
+    (*(s32 *)((D_800DBE18))) = 0;
+    (*(s32 *)((D_800DBE1C))) = 0;
     D_800DBE20 = 0;
     tmp = D_80091C04[D_800BE9F0];
     D_800DBE24 = 0;
@@ -77,11 +77,11 @@ u16* func_15001B10(void) {
     return temp_v0;
 }
 
-void func_15001B5C(u8 arg0) {
+void func_15001B5C( s32 arg0) {
     *D_800B0DE0++ = arg0;
 }
 
-void func_15001B8C(u16 arg0) {
+void func_15001B8C( s32 arg0) {
    D_800B0DE0[0] = (arg0 >> 8);
    D_800B0DE0[1] = arg0 & 0xFF;
    D_800B0DE0 += 2;
@@ -256,7 +256,7 @@ s32 func_15002878(void) {
     s32 tmp;
     s32 highest;
 
-    highest = *D_800DBE18;
+    highest = (*(s32 *)((D_800DBE18)));
 
     for (i = 0; i < 3; i++) {
         tmp = D_800DBE1C[i];

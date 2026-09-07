@@ -4,7 +4,7 @@
 #include "variables.h"
 
 
-void func_15007A70(s16 arg0, s16 arg1, s16 arg2) {
+void func_15007A70( s32 arg0, s32 arg1, s32 arg2) {
 
     D_800BE9B4 = 2;
     func_1503FB08();

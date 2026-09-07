@@ -447,15 +447,15 @@ void func_1500A990(s32 arg0) {
     tmp.unk10 = 30.0f;
     tmp.unk14 = 50.0f;
 
-    phi_f18 = (u32)(osGetCount() * func_150ADA20()) & 0xFFFF;
+    phi_f18 = (u32)(osGetCount() * random_u32()) & 0xFFFF;
     phi_f18 *= D_80095BB8;
     tmp.unk18 = (phi_f18 + phi_f18) * D_80095BBC;
 
-    phi_f18 = (u32)(osGetCount() * func_150ADA20()) & 0xFFFF;
+    phi_f18 = (u32)(osGetCount() * random_u32()) & 0xFFFF;
     phi_f18 *= D_80095BC0;
     tmp.unk1C = (phi_f18 + phi_f18) * D_80095BC4;
 
-    phi_f18 = (u32)(osGetCount() * func_150ADA20()) & 0xFFFF;
+    phi_f18 = (u32)(osGetCount() * random_u32()) & 0xFFFF;
     phi_f18 *= D_80095BC8;
 
     tmp.unk20 = (phi_f18 + phi_f18) * D_80095BCC;

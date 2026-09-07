@@ -10,7 +10,7 @@
 //     void *temp_v0;
 //
 //     arg0->unk10 = 0xA;
-//     temp_v0 = func_15147A80(&arg1->unk40, 0x10, 8, 8, 8, 0, 0, arg3, (?32) arg4, arg5);
+//     temp_v0 = func_15147A80(&arg1->unk40, 0x10, 8, 8, 8, 0, 0, arg3, (s32) arg4, arg5);
 //     if (temp_v0 == 0) {
 //         return NULL;
 //     }
@@ -48,7 +48,7 @@
 // }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515D030.s")
-// s32 func_1515D030(void *arg0, ? arg1) {
+// s32 func_1515D030(void *arg0, void * arg1) {
 //     s8 temp_v0;
 //     s32 phi_v1;
 //

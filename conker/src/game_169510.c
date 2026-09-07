@@ -217,7 +217,7 @@ void func_1513CBA4(struct210 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513CBF0.s")
 
-void func_1513CF9C(s32 arg0, s32 arg1, u8 arg2) {
+void func_1513CF9C(s32 arg0, s32 arg1, s32 arg2) {
     D_80089F60[0](arg0, arg1, arg2);
 }
 
@@ -228,12 +228,12 @@ void func_1513CFD0(s32 arg0, s32 arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513D2F0.s")
 
-void func_1513D4B8(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, u8 arg6, s32 arg7, u8 arg8, s32 arg9) {
-    func_1513D2F0(arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0, 0, arg7, arg8, arg9);
+void *func_1513D4B8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, s32 arg9) {
+    return func_1513D2F0(arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0, 0, arg7, arg8, arg9);
 }
 
-void func_1513D524(s32 arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s32 arg6, u8 arg7, s32 arg8) {
-    func_1513D2F0(arg0, &D_800A4AA0, arg1, arg2, arg3, arg4, arg5, 0, 0, arg6, arg7, arg8);
+void *func_1513D524(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8) {
+    return func_1513D2F0(arg0, &D_800A4AA0, arg1, arg2, arg3, arg4, arg5, 0, 0, arg6, arg7, arg8);
 }
 
 s32 func_1513D594(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 arg6, f32 arg7, f32 arg8, s32 arg9, s32 argA, s32 argB, s32 argC, u8 argD, s32 argE, u8 argF, s32 arg10) {
@@ -250,8 +250,8 @@ s32 func_1513D594(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 ar
     return temp_v0;
 }
 
-void func_1513D668(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 arg6, f32 arg7, f32 arg8, s32 arg9, s32 argA, u8 argB, s32 argC, u8 argD, s32 argE) {
-    func_1513D594(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, argA, 0, 0, argB, argC, argD, argE);
+void *func_1513D668(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 arg6, f32 arg7, f32 arg8, s32 arg9, s32 argA, u8 argB, s32 argC, u8 argD, s32 argE) {
+    return (void *) func_1513D594(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, argA, 0, 0, argB, argC, argD, argE);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513D6FC.s")
@@ -390,7 +390,7 @@ void func_1513D668(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 a
 void func_1513E070(s32 arg0, s32 arg1, s32 arg2) {
 }
 
-void func_1513E084(struct210 *arg0, struct212 *arg1, u8 arg2) {
+void func_1513E084(struct210 *arg0, struct212 *arg1, s32 arg2) {
     struct212 *temp_v0 = &arg0->unk110;
     if (arg2 == 0x1A) {
         if ((temp_v0->unk0 == arg1->unk0) || (temp_v0->unk4.b.unk0 == arg1->unk4.b.unk0)) {
@@ -501,25 +501,25 @@ void func_1513E2A4(void) {
 // ???
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513EAD8.s")
 
-void func_1513EDB4(s32 arg0, s16 arg1) {
+void func_1513EDB4(s32 arg0, s32 arg1) {
     func_1513EAD8(arg0, 0, arg1);
 }
 
-void func_1513EDE4(s32 arg0, s16 arg1) {
-    func_1513EAD8(arg0, 1, arg1);
+s32 func_1513EDE4(s32 arg0, s32 arg1) {
+    return func_1513EAD8(arg0, 1, arg1);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513EE14.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F114.s")
 
-void func_1513F4B0(struct210 *arg0, s16 arg1) {
+void func_1513F4B0(struct210 *arg0, s32 arg1) {
     func_15140410(arg0, &arg0->unk110, &arg0->unk11C, arg1);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F4E4.s")
 
-void func_1513F680(struct171 *arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
+void func_1513F680(struct171 *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     arg0->unk70 = arg1;
     arg0->unk71 = arg2;
     arg0->unk72 = arg3;
@@ -544,11 +544,11 @@ void func_1513F680(struct171 *arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_15140190.s")
 
-void func_151403A8(s32 arg0, u8 arg1) {
+void func_151403A8(s32 arg0, s32 arg1) {
     func_15169260(&D_800A5168, 4, arg0, arg1);
 }
 
-void func_151403DC(s32 arg0, u8 arg1) {
+void func_151403DC(s32 arg0, s32 arg1) {
     func_15169260(&D_800A5178, 3, arg0, arg1);
 }
 

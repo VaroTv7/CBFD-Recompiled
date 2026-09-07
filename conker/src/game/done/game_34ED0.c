@@ -5,8 +5,8 @@
 
 
 void func_15007A20(void) {
-    // zero out bss (?)
+    // zero out bss (void *)
     bzero(&D_800B0DC0, (s32)&D_800E9D00 - (s32)&D_800B0DC0);
-    // zero out (?)
+    // zero out (void *)
     bzero(&D_80044B20, 0x3E000); // 253952 bytes
 }

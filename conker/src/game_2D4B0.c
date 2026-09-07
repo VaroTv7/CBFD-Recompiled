@@ -99,9 +99,9 @@ void func_15000090(void) {
 //     sp44 = 0;
 //     D_80041F00 = (u8)0;
 //     if (temp_v0 != 0) {
-//         sp60.unk0 = (?32) (unaligned s32) temp_v0->unk2C;
-//         sp60.unk4 = (?32) (unaligned s32) temp_v0->unk30;
-//         sp60.unk8 = (?32) (unaligned s32) temp_v0->unk34;
+//         sp60.unk0 = (s32) (s32) temp_v0->unk2C;
+//         sp60.unk4 = (s32) (s32) temp_v0->unk30;
+//         sp60.unk8 = (s32) (s32) temp_v0->unk34;
 //         sp60.unkC = (u16) temp_v0->unk38;
 //     } else {
 //         sp6C = 1;

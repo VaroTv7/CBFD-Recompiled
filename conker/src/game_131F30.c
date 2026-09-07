@@ -11,13 +11,13 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_151050B0.s")
 
-void func_1510550C(struct102 *arg0, s32 arg1, u8 arg2) {
+void func_1510550C(struct102 *arg0, s32 arg1, s32 arg2) {
     if (arg2 == 0x4B) {
         func_1516972C(arg0);
     }
 }
 
-void func_15105548(struct207 *arg0, s32 *arg1, u8 arg2) {
+void func_15105548(struct207 *arg0, s32 *arg1, s32 arg2) {
     struct206 *temp_v0 = &arg0->unk28;
     if ((arg2 == 0x38) && (temp_v0->unk0->unk14 == 1)) {
         temp_v0->unk70 = *arg1;
@@ -27,7 +27,7 @@ void func_15105548(struct207 *arg0, s32 *arg1, u8 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_1510558C.s")
 
-void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
+void func_15105848(struct207 *arg0, s32 arg1, s32 arg2) {
     struct206 *temp_v0;
 
     if (arg2 == 0x38) {
@@ -46,7 +46,7 @@ void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
 // void func_151058B4(void *arg0) {
 //     s8 spE1;
 //     s8 spE0;
-//     ?32 spDC;
+//     s32 spDC;
 //     s16 spDA;
 //     s16 spD8;
 //     ? spD4;
@@ -59,8 +59,8 @@ void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
 //     s16 spC0;
 //     s16 spBE;
 //     s16 spBC;
-//     ?32 spB8;
-//     ?32 spB4;
+//     s32 spB8;
+//     s32 spB4;
 //     s8 spB1;
 //     s8 spB0;
 //     s8 spAF;
@@ -91,7 +91,7 @@ void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
 //
 //     if (func_151464B8(arg0->unk30) == 0) {
 //         temp_s4 = arg0 + 0x28;
-//         temp_f20 = ((func_150ADA68() * *(void *)0x800A23EC) + *(void *)0x800A23F0) * temp_s4->unk4;
+//         temp_f20 = ((random_float() * *(void *)0x800A23EC) + *(void *)0x800A23F0) * temp_s4->unk4;
 //         if (temp_f20 > 1.0f) {
 //             spDA = 0x15;
 //             spDC = 0xA;
@@ -123,16 +123,16 @@ void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
 //             spD0 = (f32) temp_s4->unk0->unk2;
 //             phi_f20 = temp_f20;
 // loop_3:
-//             spAA = (func_150ADA20() % 0x65U) + 0x9B;
-//             spE1 = (func_150ADA20() & 3) + 3;
+//             spAA = (random_u32() % 0x65U) + 0x9B;
+//             spE1 = (random_u32() & 3) + 3;
 //             func_151432BC(temp_s4->unk0, &spCC, &spD4, &sp8C, &sp88);
-//             spD8 = (func_150ADA20() % 0x1FU) + 0x1E;
-//             sp90 = (func_150ADA68() * temp_f24) + temp_f26;
-//             temp_s0 = func_150ADA20();
-//             temp_s1 = func_150ADA20();
-//             func_15143794((s16) (temp_s0 & 0xFF), (s16) ((temp_s1 % 0x16U) - 0x36), (func_150ADA68() * 20.0f) + 30.0f, &sp94);
-//             spA0 = (func_150ADA68() * *(void *)0x800A23FC) + *(void *)0x800A2400;
-//             func_1515C2F0(&spCC, 0, &sp90, 0, (?32) arg0->unkC, (?32) arg0->unk1);
+//             spD8 = (random_u32() % 0x1FU) + 0x1E;
+//             sp90 = (random_float() * temp_f24) + temp_f26;
+//             temp_s0 = random_u32();
+//             temp_s1 = random_u32();
+//             func_15143794((s16) (temp_s0 & 0xFF), (s16) ((temp_s1 % 0x16U) - 0x36), (random_float() * 20.0f) + 30.0f, &sp94);
+//             spA0 = (random_float() * *(void *)0x800A23FC) + *(void *)0x800A2400;
+//             func_1515C2F0(&spCC, 0, &sp90, 0, (s32) arg0->unkC, (s32) arg0->unk1);
 //             temp_f20_2 = phi_f20 - 1.0f;
 //             phi_f20 = temp_f20_2;
 //             if (temp_f20_2 > 1.0f) {

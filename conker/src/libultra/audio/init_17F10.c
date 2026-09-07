@@ -1,7 +1,7 @@
 #include <n_libaudio.h>
 
 
-void func_10017F10(N_ALCSPlayer *seqp, u8 arg1, u8 arg2, u8 arg3, s32 arg4) {
+void func_10017F10(N_ALCSPlayer *seqp, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 
     N_ALEvent evt;
     evt.type = 0x1A;

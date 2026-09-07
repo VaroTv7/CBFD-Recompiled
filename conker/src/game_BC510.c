@@ -21,7 +21,7 @@ void func_1508F7BC(void) {
     struct256 *temp_v0;
 
     D_800D2456 -= 1;
-    D_800D2890.unk0 = (u32) (func_150ADA20() % 5U);
+    D_800D2890.unk0 = (u32) (random_u32() % 5U);
     D_800D2890.unk8 = sqrtf(25.0f - (D_800D2890.unk0 * D_800D2890.unk0));
     temp_v0 = allocate_memory(sizeof(*temp_v0), 1, 1, 0);
     temp_v0->unk80 = D_800D245C;
@@ -29,12 +29,12 @@ void func_1508F7BC(void) {
     guMtxL2F(&sp48, (D_800D2456 << 7) + ((D_800BE9C0 ^ 1) << 6) + &D_800D2590);
     func_1503E5F8(&sp48, &temp_v0->unk84, &temp_v0->unk88, &temp_v0->unk8C, &temp_v0->unk9C, &temp_v0->unkA0, &temp_v0->unkA4, &sp44, &sp44, &sp44);
 
-    temp_v0->unk90 = (u32)((func_150ADA20() & 0xF) + 10);
-    temp_v0->unk94 = (u32)((func_150ADA20() & 0x1F) + 20);
+    temp_v0->unk90 = (u32)((random_u32() & 0xF) + 10);
+    temp_v0->unk94 = (u32)((random_u32() & 0x1F) + 20);
     temp_v0->unk98 = 0.0f;
-    temp_v0->unkA8 = (u32)(func_150ADA20() & 0xF);
-    temp_v0->unkAC = (u32)(func_150ADA20() & 0xF);
-    temp_v0->unkB0 = (u32)(func_150ADA20() & 0xF);
+    temp_v0->unkA8 = (u32)(random_u32() & 0xF);
+    temp_v0->unkAC = (u32)(random_u32() & 0xF);
+    temp_v0->unkB0 = (u32)(random_u32() & 0xF);
     temp_v0->unkB4 = 120;
 }
 

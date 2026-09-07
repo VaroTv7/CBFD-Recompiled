@@ -4,7 +4,7 @@
 #include "variables.h"
 
 
-void* func_151674F8(void *arg0, s32 arg1, s16 arg2, s32 arg3);
+void* func_151674F8();
 
 
 void func_150186D0(void) {
@@ -22,7 +22,7 @@ void func_150186D0(void) {
 
     D_8002AC60 = 1;
     D_8002AC64 = 3500;
-    *D_800BE728 = func_1501BBB8();
+    (*(s32 *)((D_800BE728))) = func_1501BBB8();
 
     while (func_151DCFD8(1) != 0) {};
 }
@@ -46,7 +46,7 @@ void func_15018DFC(void) {
     func_1507C8FC();
 }
 
-void func_15018E88(void *arg0, s16 arg1) {
+void func_15018E88(void *arg0, s32 arg1) {
     if (D_800BE616 == 0) {
         func_1517D7B0(&arg0, 1);
     }
@@ -55,7 +55,7 @@ void func_15018E88(void *arg0, s16 arg1) {
     func_15174AA4(arg0, D_800BE9F0, arg1);
 }
 
-void *func_15018F08(void *arg0, s16 arg1) {
+void *func_15018F08(void *arg0, s32 arg1) {
     arg0 = func_15174B48(arg0, D_800BE9F0, arg1);
     arg0 = func_151674F8(arg0, 1, arg1, 0);
     arg0 = func_151674F8(arg0, 1, arg1, 1);
@@ -65,7 +65,7 @@ void *func_15018F08(void *arg0, s16 arg1) {
     return arg0;
 }
 
-void func_15018F80(s16 arg0) {
+void func_15018F80( s32 arg0) {
     struct108 *sp24 = &D_800DBFF0[arg0];
     D_8003C8E0 = 0xA000000;
     if ((func_1517F40C(arg0) == 0) && (D_800BEAC0 == 0)) {
@@ -79,7 +79,7 @@ void func_15018F80(s16 arg0) {
 
 void func_1501905C(void) {
     D_800BE9D0 = D_800BE9D8[D_800BE9C0];
-    *D_800BE728 = func_1501BBB8();
+    (*(s32 *)((D_800BE728))) = func_1501BBB8();
     func_15019F20();
     if ((D_800BEAC1 != 0) && (D_800BEAC0 == 0)) {
         func_15169040(0, 0x47);

@@ -247,7 +247,7 @@ extern s32  D_8003BE94;
 
 extern s32  D_8003C858;
 extern s32  D_8003C8E0;
-extern struct26 *D_8003C900[];
+extern void *D_8003C900[];
 extern struct14 *D_8003CD40;
 extern struct247  D_8003CD48[];
 extern s16  D_8003C910[];
@@ -1307,7 +1307,7 @@ extern s32  D_800DDD0C;
 extern u8   D_800DDD1C;
 extern s32  D_800DDD20;
 extern u8   D_800DDD61;
-extern s32  D_800DDD64;
+extern void *  D_800DDD64;
 
 extern u8   D_800DDDAC;
 extern u8   D_800DDDAD;
@@ -1359,9 +1359,9 @@ extern u8   D_800E0B94;
 extern s32  D_800E0C20;
 extern s32  D_800E0E04;
 extern struct134 *D_800E0900[]; // probably not struct134
-extern void *D_800E0930;
-extern s32  D_800E0934;
-extern void *D_800E0940;
+extern s32 (*D_800E0930)(void *, void *, void *);
+extern void (*D_800E0934)(s32, s32, s32);
+extern void (*D_800E0940)(f32, void *, s32, void *);
 extern u8   D_800E0950;
 extern s32  D_800E0964;
 extern s16  D_800E0968[];
@@ -1420,7 +1420,7 @@ extern u8   D_160047E0[];
 
 extern u32  D_00AB1950; // offsets table
 
-extern s32  D_100290D0; // start of data (?)
+extern s32  D_100290D0; // start of data (void *)
 extern s32  D_100291A0;
 extern s32 *D_1002AAD0;
 extern s32  D_151F3C4C;
@@ -1428,5 +1428,9 @@ extern s32  D_151F3C4C;
 /* what is this */
 extern u16  D_BC000C02;
 extern s32  D_1FC007FC;
+
+extern struct127 gObjects[25];
+extern struct127 *gCurrentObject;
+extern s32 gCurrentObjectIndex;
 
 #endif

@@ -5,7 +5,7 @@
 
 
 void func_15011B00(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
-    struct04 *temp_v0 = func_151491F4((s16) ((func_150ADA20() & 0x7F) + 10), 1, -1, 1, 0, 10, 255, 0);
+    struct04 *temp_v0 = func_151491F4((s16) ((random_u32() & 0x7F) + 10), 1, -1, 1, 0, 10, 255, 0);
     if (temp_v0 != NULL) {
         temp_v0->unk28 = arg0;
         temp_v0->unk2A = arg1;

@@ -2,7 +2,7 @@
 #include <R4300.h>
 
 
-void __osCleanupThread(void);
+void __osCleanupThread();
 extern OSThread *__osActiveQueue;
 
 void osCreateThread(OSThread *t, OSId id, void (*entry)(void *), void *arg, void *sp, OSPri p)

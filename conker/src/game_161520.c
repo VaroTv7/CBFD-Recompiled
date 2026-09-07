@@ -126,7 +126,7 @@ void func_1513477C(struct102 *arg0) {
 
 f32 func_15135670(s32 arg0) {
     // "power", "../Effects/Blood/blood.c"
-    return func_151422DC(0, &D_800A3FB4, 0, 2000, 1000, &D_800A3FBC, 2938) * D_800A45B4;
+    return func_151422DC(0, D_800A3FB4, 0, 2000, 1000, D_800A3FBC, 2938) * D_800A45B4;
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151356D4.s")

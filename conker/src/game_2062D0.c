@@ -13,7 +13,7 @@ u8 func_151D8E20(void) {
 
 u8 func_151D8E6C(void) {
     u8 tmp[3] = D_800AB340;
-    return tmp[(func_150ADA20() % 3U)];
+    return tmp[(random_u32() % 3U)];
 }
 
 u8 func_151D8EB0(void) {
@@ -27,7 +27,7 @@ u8 func_151D8EBC(void) {
 u8 func_151D8EC8(void) {
     s32 tmp;
 
-    if (func_150ADA20() & 1) {
+    if (random_u32() & 1) {
         tmp = 17;
     } else {
         tmp = 147;
@@ -38,7 +38,7 @@ u8 func_151D8EC8(void) {
 u8 func_151D8EFC(void) {
     s32 tmp;
 
-    if (func_150ADA20() & 1) {
+    if (random_u32() & 1) {
         tmp = 90;
     } else {
         tmp = 91;
@@ -48,13 +48,13 @@ u8 func_151D8EFC(void) {
 
 u8 func_151D8F30(void) {
     u8 tmp[5] = D_800AB344;
-    return tmp[func_150ADA20() % 5U];
+    return tmp[random_u32() % 5U];
 }
 
 u8 func_151D8F7C(void) {
     s32 tmp;
 
-    if ((func_150ADA20() & 1) != 0) {
+    if ((random_u32() & 1) != 0) {
         tmp = 102;
     } else {
         tmp = 103;
@@ -80,7 +80,7 @@ u8 func_151D8FD4(void) {
 
 u8 func_151D8FE0(void) {
     u8 tmp[4] = D_800AB34C;
-    return tmp[func_150ADA20() & 3];
+    return tmp[random_u32() & 3];
 }
 
 // big struct definition
@@ -107,47 +107,47 @@ s32 func_151D93F4(void *arg0, void *arg1) {
 
 u8 func_151D97A8(void) {
     s32 tmp[7] = D_800AB350;
-    return tmp[func_150ADA20() % 7U];
+    return tmp[random_u32() % 7U];
 }
 
 u8 func_151D9820(void) {
     s32 tmp[3] = D_800AB36C;
-    return tmp[func_150ADA20() % 3U];
+    return tmp[random_u32() % 3U];
 }
 
 u8 func_151D9878(void) {
     s32 tmp[3] = D_800AB378;
-    return tmp[func_150ADA20() % 3U];
+    return tmp[random_u32() % 3U];
 }
 
 u8 func_151D98D0(void) {
     s32 tmp[2] = D_800AB384;
-    return tmp[func_150ADA20() & 1];
+    return tmp[random_u32() & 1];
 }
 
 u8 func_151D9918(void) {
     s32 tmp[2] = D_800AB38C;
-    return tmp[func_150ADA20() & 1];
+    return tmp[random_u32() & 1];
 }
 
 u8 func_151D9960(void) {
     s32 tmp[5] = D_800AB394;
-    return tmp[func_150ADA20() % 5U];
+    return tmp[random_u32() % 5U];
 }
 
 u8 func_151D99C8(void) {
     s32 tmp[3] = D_800AB3A8;
-    return tmp[func_150ADA20() % 3U];
+    return tmp[random_u32() % 3U];
 }
 
 u8 func_151D9A20(void) {
     s32 tmp[2] = D_800AB3B4;
-    return tmp[func_150ADA20() & 1];
+    return tmp[random_u32() & 1];
 }
 
 u8 func_151D9A68(void) {
     s32 tmp[3] = D_800AB3BC;
-    return tmp[func_150ADA20() % 3U];
+    return tmp[random_u32() % 3U];
 }
 
 u8 func_151D9AC0(void) {
@@ -157,12 +157,12 @@ u8 func_151D9AC0(void) {
 
 u8 func_151D9ADC(void) {
     s32 tmp[3] = D_800AB3CC;
-    return tmp[func_150ADA20() % 3U];
+    return tmp[random_u32() % 3U];
 }
 
 u8 func_151D9B34(void) {
     s32 tmp[4] = D_800AB3D8;
-    return tmp[func_150ADA20() & 3];
+    return tmp[random_u32() & 3];
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151D9B8C.s")
@@ -188,45 +188,45 @@ void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAE28.s")
 
 void func_151DB004(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk14 = (random_u32() % 0x38U) + 80;
     arg0->unk15 = 0;
     arg0->unk16 = 0;
-    arg0->unk18 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk18 = (random_u32() % 0x2EU) + 180;
     arg0->unk19 = 0;
     arg0->unk1A = 0;
 }
 
 void func_151DB068(struct218 *arg0) {
-    arg0->unk14 = arg0->unk15 = (func_150ADA20() % 0x38U) + 100;
+    arg0->unk14 = arg0->unk15 = (random_u32() % 0x38U) + 100;
     arg0->unk16 = 0;
-    arg0->unk18 = arg0->unk19 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk18 = arg0->unk19 = (random_u32() % 0x2EU) + 180;
     arg0->unk1A = 0;
 }
 
 void func_151DB0CC(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x38U) + 80;
-    arg0->unk15 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk14 = (random_u32() % 0x38U) + 80;
+    arg0->unk15 = (random_u32() % 0x38U) + 80;
     arg0->unk16 = 0;
-    arg0->unk18 = (func_150ADA20() % 0x2EU) + 180;
-    arg0->unk19 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk18 = (random_u32() % 0x2EU) + 180;
+    arg0->unk19 = (random_u32() % 0x2EU) + 180;
     arg0->unk1A = 0;
 }
 
 void func_151DB15C(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x38U) + 80;
-    arg0->unk15 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk14 = (random_u32() % 0x38U) + 80;
+    arg0->unk15 = (random_u32() % 0x38U) + 80;
     arg0->unk16 = 0;
-    arg0->unk18 = (func_150ADA20() % 0x2EU) + 180;
-    arg0->unk19 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk18 = (random_u32() % 0x2EU) + 180;
+    arg0->unk19 = (random_u32() % 0x2EU) + 180;
     arg0->unk1A = 0;
 }
 
 void func_151DB1EC(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x38U) + 80;
-    arg0->unk15 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk14 = (random_u32() % 0x38U) + 80;
+    arg0->unk15 = (random_u32() % 0x38U) + 80;
     arg0->unk16 = 0;
-    arg0->unk18 = (func_150ADA20() % 0x2EU) + 180;
-    arg0->unk19 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk18 = (random_u32() % 0x2EU) + 180;
+    arg0->unk19 = (random_u32() % 0x2EU) + 180;
     arg0->unk1A = 0;
 }
 
@@ -250,45 +250,45 @@ void func_151DB2A8(struct218 *arg0) {
 
 void func_151DB2CC(struct218 *arg0) {
     arg0->unk14 = 0;
-    arg0->unk15 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk15 = (random_u32() % 0x38U) + 80;
     arg0->unk16 = 0;
     arg0->unk18 = 0;
-    arg0->unk19 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk19 = (random_u32() % 0x2EU) + 180;
     arg0->unk1A = 0;
 }
 
 void func_151DB330(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x15U) + 95;
-    arg0->unk15 = (func_150ADA20() % 0x15U) + 95;
-    arg0->unk16 = (func_150ADA20() % 0xBU) + 45;
-    arg0->unk18 = (func_150ADA20() & 0xF) + 58;
-    arg0->unk19 = (func_150ADA20() & 0xF) + 60;
-    arg0->unk1A = (func_150ADA20() % 0xBU) + 25;
+    arg0->unk14 = (random_u32() % 0x15U) + 95;
+    arg0->unk15 = (random_u32() % 0x15U) + 95;
+    arg0->unk16 = (random_u32() % 0xBU) + 45;
+    arg0->unk18 = (random_u32() & 0xF) + 58;
+    arg0->unk19 = (random_u32() & 0xF) + 60;
+    arg0->unk1A = (random_u32() % 0xBU) + 25;
 }
 
 void func_151DB3D8(struct218 *arg0) {
     arg0->unk14 = 0;
-    arg0->unk15 = arg0->unk16 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk15 = arg0->unk16 = (random_u32() % 0x38U) + 80;
     arg0->unk18 = 0;
-    arg0->unk19 = arg0->unk1A = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk19 = arg0->unk1A = (random_u32() % 0x2EU) + 180;
 }
 
 void func_151DB43C(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 0x38U) + 80;
+    arg0->unk14 = (random_u32() % 0x38U) + 80;
     arg0->unk15 = 0;
-    arg0->unk16 = (func_150ADA20() % 0x38U) + 80;
-    arg0->unk18 = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk16 = (random_u32() % 0x38U) + 80;
+    arg0->unk18 = (random_u32() % 0x2EU) + 180;
     arg0->unk19 = 0;
-    arg0->unk1A = (func_150ADA20() % 0x2EU) + 180;
+    arg0->unk1A = (random_u32() % 0x2EU) + 180;
 }
 
 void func_151DB4CC(struct218 *arg0) {
-    arg0->unk14 = (func_150ADA20() % 56U) + 200;
-    arg0->unk15 = (func_150ADA20() % 56U) + 200;
-    arg0->unk16 = (func_150ADA20() % 56U) + 200;
-    arg0->unk18 = (func_150ADA20() % 56U) + 200;
-    arg0->unk19 = (func_150ADA20() % 56U) + 200;
-    arg0->unk1A = (func_150ADA20() % 56U) + 200;
+    arg0->unk14 = (random_u32() % 56U) + 200;
+    arg0->unk15 = (random_u32() % 56U) + 200;
+    arg0->unk16 = (random_u32() % 56U) + 200;
+    arg0->unk18 = (random_u32() % 56U) + 200;
+    arg0->unk19 = (random_u32() % 56U) + 200;
+    arg0->unk1A = (random_u32() % 56U) + 200;
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DB5D0.s")
@@ -370,7 +370,7 @@ void func_151DB4CC(struct218 *arg0) {
 //     func_15153F18(&tmp, &tmp.unk8, 0, arg3, arg4);
 // }
 
-void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, u8 arg3, s32 arg4) {
+void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, s32 arg3, s32 arg4) {
     struct17 tmp;
     struct217 tmp2;
 
@@ -379,10 +379,10 @@ void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, u8 arg3, s32 arg4) {
     tmp.unk8 = arg0->unk8;
 
     tmp2.unkF = *arg2;
-    tmp2.unk0 = func_150ADA68();
-    tmp2.unk4 = func_150ADA20();
+    tmp2.unk0 = random_float();
+    tmp2.unk4 = random_u32();
 
-    func_151D9B8C(tmp2.unkF, (tmp2.unk0 * 25.0f) + 10.0f, ((tmp2.unk4 % 0x38U) + 200), arg1 + 4, &tmp, (func_150ADA20() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
+    func_151D9B8C(tmp2.unkF, (tmp2.unk0 * 25.0f) + 10.0f, ((tmp2.unk4 % 0x38U) + 200), arg1 + 4, &tmp, (random_u32() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DBCBC.s")

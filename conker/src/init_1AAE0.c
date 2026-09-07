@@ -1,6 +1,8 @@
 #include <n_libaudio.h>
+#include "functions.h"
+#include "variables.h"
 
-void __n_resetPerfChanState(N_ALSeqPlayer *seqp, s32 chan);
+void __n_resetPerfChanState();
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_1AAE0/func_1001AAE0.s")
 // void func_1001AAE0(void *arg0, s32 arg1) {

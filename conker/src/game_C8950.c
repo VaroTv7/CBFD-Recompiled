@@ -3,9 +3,10 @@
 #include "variables.h"
 
 
-struct249 *func_1509B704(s16 arg0);
-void func_1509C120(void);
-void func_1509C3A0(void);
+struct249 *func_1509B704();
+void func_1509C120();
+void func_1509C3A0();
+s32 func_1509C2A4();
 
 
 void func_1509B4A0(s32 arg0, s32 arg1) {
@@ -41,7 +42,7 @@ u16 *func_1509B570(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B5AC.s")
 
-struct249 *func_1509B704(s16 arg0) {
+struct249 *func_1509B704( s32 arg0) {
     struct249 *tmp;
     s32 mask = 0xFFFF03FF;
     s32 i;
@@ -61,7 +62,7 @@ struct249 *func_1509B704(s16 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B810.s")
 
-void func_1509B8FC(s16 arg0) {
+void func_1509B8FC( s32 arg0) {
     struct248 *temp_v0;
     s16 sp18[2];
 

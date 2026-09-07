@@ -134,7 +134,7 @@ void func_10016F00(struct154 *arg0) {
 //     osSetIntMask(sp28);
 // }
 
-N_ALUnknownStruct1 *func_10017100(s32 arg0, s16 arg1) {
+N_ALUnknownStruct1 *func_10017100(s32 arg0, s32 arg1) {
     N_ALUnknownStruct1 *sp24;
     u32 mask;
     N_ALUnknownStruct1 *sp1C;
@@ -322,7 +322,7 @@ void func_100176EC(void) {
     func_10017604(3);
 }
 
-void func_10017714(s32 arg0, s16 type, s32 arg2) {
+void func_10017714(s32 arg0, s32 type, s32 arg2) {
     N_ALEvent event;
 
     if (arg0 != 0) {

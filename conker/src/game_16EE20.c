@@ -46,10 +46,10 @@ void func_15141DA4(void *arg0, s32 arg1, s32 arg2) {
 //     tmp.unk6 = arg0;
 //     tmp.unk7 = 0;
 //     tmp.unk0 = 0x6F701;
-//     tmp.unk4 = (func_150ADA20() % 61U) + 100;
+//     tmp.unk4 = (random_u32() % 61U) + 100;
 //     tmp.unk8 = 0;
 //     tmp.unkC = 0;
-//     tmp.unk10 = (func_150ADA20() & 0x7F) + 128;
+//     tmp.unk10 = (random_u32() & 0x7F) + 128;
 //     tmp.unk11 = 0xFF;
 //     tmp.unk12 = 0xFF;
 //     tmp.unk13 = 0xFF;
@@ -62,7 +62,7 @@ void func_15141DA4(void *arg0, s32 arg1, s32 arg2) {
 //     tmp.unk1C = arg1->unk18;
 //     tmp.unk22 = 0x28;
 //     tmp.unk24 = 6;
-//     temp_f2 = ((func_150ADA68() * 5.0f) + 10.0f) * arg2;
+//     temp_f2 = ((random_float() * 5.0f) + 10.0f) * arg2;
 //     // --- matching to here ---
 //     if (arg5 == 2) {
 //         phi_v0 = 1;
@@ -121,10 +121,10 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 //
 //     temp_t6 = (arg0->unk15) & 3;
 //     if (temp_t6 == 0) {
-//         tmp.unk1B = func_150ADA20();
+//         tmp.unk1B = random_u32();
 //         tmp.unk14 = func_151423D8((tmp.unk1B - 64) & 0xFF);
 //         tmp.unk10 = func_151423D8(tmp.unk1B);
-//         temp_ret = func_150ADA68();
+//         temp_ret = random_float();
 //         temp_f2 = temp_ret * arg0->unk6;
 //         *arg1 = (arg0->unk0 + (temp_f2 * tmp.unk10));
 //         *arg2 = (arg0->unk4 - (temp_f2 * tmp.unk14));
@@ -135,8 +135,8 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 //             tmp.unk2F = (u32) (arg0->unk10 * D_800A5644); // 0.7111111283302307
 //             tmp.unk28 = func_151423D8((tmp.unk2F - 64));
 //             tmp.unk24 = func_151423D8(tmp.unk2F);
-//             tmp.unk20 = (func_150ADA68() * (2.0f * (f32) arg0->unk6)) + (f32) -(s32) arg0->unk6;
-//             temp_f2 = (func_150ADA68() * (2.0f * (f32) arg0->unkA)) + (f32) -(s32) arg0->unkA;
+//             tmp.unk20 = (random_float() * (2.0f * (f32) arg0->unk6)) + (f32) -(s32) arg0->unk6;
+//             temp_f2 = (random_float() * (2.0f * (f32) arg0->unkA)) + (f32) -(s32) arg0->unkA;
 //             temp_f6 = temp_f2 * tmp.unk24;
 //             *arg1 = (arg0->unk0 + ((tmp.unk20 * tmp.unk24) + (temp_f2 * tmp.unk28)));
 //             *arg2 = (arg0->unk4 + (temp_f6 - (tmp.unk20 * tmp.unk28)));
@@ -149,10 +149,10 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 //             *arg4 = (arg0->unk2 - arg0->unk8);
 //         }
 //     } else {
-//         tmp.unkB = func_150ADA20();
+//         tmp.unkB = random_u32();
 //         tmp.unk4 = func_151423D8((tmp.unkB - 64));
 //         tmp.unk0 = func_151423D8(tmp.unkB);
-//         temp_ret = func_150ADA68();
+//         temp_ret = random_float();
 //         temp_f2 = temp_ret * (f32) arg0->unk6;
 //         *arg1 = (arg0->unk0 + (temp_f2 * tmp.unk0));
 //         *arg2 = (arg0->unk4 - (temp_f2 * tmp.unk4));
@@ -192,7 +192,7 @@ s32 func_15143E08(struct127 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B68.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144BC8.s")
 
-s32 func_15144C2C(s16 arg0) {
+s32 func_15144C2C( s32 arg0) {
     s16 tmp1 = arg0;
 
     while (tmp1 >= 256)
@@ -362,11 +362,11 @@ void func_15146508(struct127 *arg0, struct127 *arg1) {
 void func_151467A4(f32 *arg0, f32 arg1, f32 *arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 *arg7) {
     *arg0 = *arg0 - D_800BE9A4;
     if (*arg0 < 0.0f) {
-        *arg0 = func_150ADA68() * arg1;
-        if ((func_150ADA20() & 3) != 0) {
-            *arg2 = (func_150ADA68() * (arg4 - arg3)) + arg3;
+        *arg0 = random_float() * arg1;
+        if ((random_u32() & 3) != 0) {
+            *arg2 = (random_float() * (arg4 - arg3)) + arg3;
         } else {
-            *arg2 = (func_150ADA68() * (arg5 - arg4)) + arg4;
+            *arg2 = (random_float() * (arg5 - arg4)) + arg4;
         }
     }
     *arg7 = ((*arg2 - *arg7) * arg6) + *arg7;

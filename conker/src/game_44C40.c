@@ -8,7 +8,7 @@ void func_15017790(void) {
     func_1509C120();
     bzero(D_800D2E4C, 0x1B);
     bzero(&D_800D2E50, 0x10);
-    bzero(&D_800D2E60, 9);
+    bzero(D_800D2E60, 9);
     bzero(&D_800D2E70, 0xCC);
     D_800D2E44 = (u8)0;
 }

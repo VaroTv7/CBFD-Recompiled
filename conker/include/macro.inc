@@ -19,3 +19,9 @@
     .global \label
     \label:
 .endm
+
+.macro nonmatching, name, size
+.endm
+
+.macro enddlabel, name
+.endm

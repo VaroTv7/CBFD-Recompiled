@@ -4,7 +4,6 @@
 #include "variables.h"
 
 
-void func_1000E40C(s32, s32);
 #pragma GLOBAL_ASM("asm/nonmatchings/init_A420/func_1000A420.s")
 // NON-MATCHING: mostly just regalloc
 // s32 func_150AD960(s32, s32, s32, s32);

@@ -1,6 +1,7 @@
 #include "n_synthInternals.h"
+#include "functions.h"
+#include "variables.h"
 
-extern f32 D_8002C814;
 
 // relies on jump table
 #pragma GLOBAL_ASM("asm/nonmatchings/init_20000/func_10020000.s")

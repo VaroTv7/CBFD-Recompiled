@@ -246,6 +246,8 @@ __osContPifRam                  = 0x80042A10;
 __osEepromTimerQ                = 0x80042A78;
 __osContLastCmd                 = 0x80042A50;
 
+gGameState 	  = 0x8008FDD4; 
+gObjects   	  = 0x800CC2D0;
 gMessageQueue     = 0x80038908;
 gMessageQueue0    = 0x800388C8;
 gMessages         = 0x800388F8;
@@ -260,6 +262,11 @@ hdwrBugFlag       = 0x8002AB40;
 piEventQueue      = 0x80036B40;
 __osPiAccessQueueEnabled = 0x8002BD60;
 __osPiAccessQueue = 0x800428F8;
+
+gCurrentObject      = 0x800D154C;
+gCurrentObjectIndex = 0x800C3E78;
+random_u32          = 0x150ADA20;
+random_float        = 0x150ADA68;
 
 D_8008857C = 0x8008857C; // type:label
 D_80088628 = 0x80088628; // type:label

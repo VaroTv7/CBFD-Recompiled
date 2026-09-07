@@ -5,7 +5,7 @@
 
 void func_150162B0(void) {
 
-    bzero(&D_800CC2D0, 20300);
+    bzero(&gObjects, 20300);
     D_80086000 = 0;
 
     if (D_800D2138 == 2) {

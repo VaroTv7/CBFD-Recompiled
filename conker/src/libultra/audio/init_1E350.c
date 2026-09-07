@@ -3,7 +3,7 @@
 #include "n_synthInternals.h"
 
 
-void func_1001E350(N_ALVoice *v, u8 fxmix) {
+void func_1001E350(N_ALVoice *v, s32 fxmix) {
     ALParam *update;
 
     if (v->pvoice) {

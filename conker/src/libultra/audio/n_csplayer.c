@@ -8,11 +8,11 @@
 #include "n_cseqp.h"
 
 
-       ALMicroTime      __n_CSPVoiceHandler(void *node);
-static void              __n_CSPHandleNextSeqEvent(N_ALCSPlayer *seqp);
-static void             __n_CSPHandleMIDIMsg(N_ALCSPlayer *seqp, N_ALEvent *event);
-static void             __n_CSPHandleMetaMsg(N_ALCSPlayer *seqp, N_ALEvent *event);
-       void             __n_CSPRepostEvent(ALEventQueue *evtq, N_ALEventListItem *item);
+       ALMicroTime      __n_CSPVoiceHandler();
+static void              __n_CSPHandleNextSeqEvent();
+static void             __n_CSPHandleMIDIMsg();
+static void             __n_CSPHandleMetaMsg();
+       void             __n_CSPRepostEvent();
        void              __n_setUsptFromTempo(N_ALCSPlayer *seqp, f32 tempo);
 
 

@@ -3,8 +3,8 @@
 #include "functions.h"
 #include "variables.h"
 
-void func_151D3354(struct224 *arg0);
-void func_151D3308(struct224 *arg0);
+void func_151D3354();
+void func_151D3308();
 
 void func_151D2AB0(s32 arg0) {
     u32 tmp;

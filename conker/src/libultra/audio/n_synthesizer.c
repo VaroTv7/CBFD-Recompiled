@@ -2,6 +2,8 @@
 
 extern f32 D_8002C750;
 
+
+
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/n_synthesizer/n_alSynNew.s")
 // void n_alSynNew(struct07 *arg0) {
 //     s32 sp44;

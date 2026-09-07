@@ -4,7 +4,7 @@
 #include "variables.h"
 
 
-void func_15017300(s16 arg0, s16 arg1) {
+void func_15017300( s32 arg0, s32 arg1) {
     s32 i;
     s16 tmp;
 
@@ -28,7 +28,7 @@ void func_15017300(s16 arg0, s16 arg1) {
     D_800D2132 = 0;
 }
 
-void func_1501748C(s16 arg0) {
+void func_1501748C( s32 arg0) {
 }
 
 void func_15017498(void) {

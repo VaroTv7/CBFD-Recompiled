@@ -339,7 +339,7 @@ void func_15123508(struct108 *arg0) {
 void func_15124770(struct108 *arg0, s32 arg1) {
     if (arg1 != 0) {
         arg0->unk244 = arg1;
-        arg0->unk248 = &D_800CC2D0[arg1];
+        arg0->unk248 = &gObjects[arg1];
     } else {
         arg0->unk244 = 0;
         arg0->unk248 = NULL;
@@ -471,7 +471,7 @@ s32 func_151253CC(struct108 *arg0) {
 //     func_151239CC(arg0, 1);
 //     arg0->unk3D4->unk198 = 0;
 //     arg0->unk73C = 0;
-//     arg0->unk3D0 = &D_800CC2D0[arg1];
+//     arg0->unk3D0 = &gObjects[arg1];
 //     arg0->unk670 = 0.0f;
 // }
 
@@ -502,7 +502,7 @@ void func_15125608(struct108 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15125628.s")
 
 void func_15125690(struct108 *arg0, s32 arg1) {
-    u8 *temp_v0 = &D_800DBFF4[arg0->unk23D];
+    u8 *temp_v0 = D_800DBFF4[arg0->unk23D];
 
     if (*temp_v0 < arg1) {
         *temp_v0 = arg1;
@@ -565,8 +565,6 @@ void func_15126138(struct108 *arg0) {
     struct127 *temp_v0_2;
     struct108 *phi_a0;
 
-    func_151247C0(arg0);
-
     temp_v0_2 = arg0->unk3D0;
 
     if (((temp_v0_2->x_position != arg0->unk2B0) ||
@@ -621,7 +619,7 @@ void func_15126138(struct108 *arg0) {
 //
 //     phi_v0 = &arg0->unk3D0;
 //     if (phi_v0->unk65 != 0) {
-//         phi_v0 = &D_800CC2D0[phi_v0->unk65];
+//         phi_v0 = &gObjects[phi_v0->unk65];
 //     }
 //
 //     phi_v0->unk2FC &= ~(1 << arg0->unk23D);
@@ -662,7 +660,7 @@ void func_1512868C(struct108 *arg0) {
     arg0->unk1B4 = 3;
     func_15124B18(arg0);
     idx = arg0->unk23D;
-    arg0->unk3D0 = temp_v1_2 = &D_800CC2D0[idx];
+    arg0->unk3D0 = temp_v1_2 = &gObjects[idx];
     arg0->unk368 = arg0->unk3CC = idx;
     arg0->unk3D4 = temp_v1_2->unk31C;
     arg0->unk190 = 0.0f;

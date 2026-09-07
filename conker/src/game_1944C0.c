@@ -81,7 +81,7 @@ void func_15168B10(s32 arg0, s32 arg1) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516968C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151696DC.s")
 
-void func_1516972C(struct102 *arg0) {
+s32 func_1516972C(struct102 *arg0) {
     void (*func)(struct102 *arg0);
     func_151696DC();
 
@@ -89,10 +89,11 @@ void func_1516972C(struct102 *arg0) {
         func = D_8008B4D0[arg0->unk0].unk0;
         if (func != NULL) {
             func(arg0);
-            return;
+            return 0;
         }
         func_15169804(arg0);
     }
+    return 0;
 }
 
 void func_1516979C(struct102 *arg0) {

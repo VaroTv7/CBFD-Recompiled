@@ -1,66 +1,51 @@
 #include <n_libaudio.h>
 
 #include "macros.h"
+#include "functions.h"
+#include "variables.h"
 
-typedef struct {
-  u8 pad0[0x760];
-} struct247; // something naudio related?
-
-extern N_ALCSPlayer *D_8003C900[];
-extern ALCSeq        D_8003CA58[];
-extern struct247     D_8003CD48[];
 
 // FIXME: create header file for audio related functions
-s32  func_10017A80(N_ALCSPlayer *csp);
-void func_10017AF0(N_ALCSPlayer *csp, s32 arg1);
-void func_10017B04(N_ALCSPlayer *arg0, s32 arg1, u8 arg2);
-void func_10017B30(N_ALCSPlayer *csp);
-void func_10017BB8(N_ALCSPlayer *csp, s32 arg1);
-void func_10017C00(N_ALCSPlayer *csp, s32 arg1);
-void func_10017C68(N_ALCSPlayer *arg0, s32 arg1, u8 arg2, u8 arg3);
-void func_10017CE0(N_ALCSPlayer *arg0, s32 arg1, u8 arg2);
-void func_10017D30(N_ALCSPlayer *arg0, s32 arg1, u8 arg2);
-void func_10017D80(N_ALCSPlayer *arg0, u8 arg1, u8 arg2);
-void func_10017DF0(N_ALCSPlayer *csp, f32 arg1, f32 arg2);
-void func_10017E4C(N_ALCSPlayer *csp, u8 chan, u8 arg2);
-void func_10017F10(N_ALCSPlayer *arg0, u8 arg1, u8 arg2, u8 arg3, s32 arg4);
-void func_10018790(N_ALCSPlayer *arg0, s32 arg1, u32 arg2, u32 arg3);
-void func_10018D00(N_ALCSPlayer *arg0, s16 arg1);
-void func_10018D50(N_ALCSPlayer *seqp);
+void func_10017C00();
+void func_10017C68();
+void func_10017CE0();
+void func_10017D30();
+void func_10018D00();
+void func_10018D50();
 
 // this one is a monster
 #pragma GLOBAL_ASM("asm/nonmatchings/init_8180/func_10008180.s")
 
-void func_100084D8(u8 idx) {
+void func_100084D8( s32 idx) {
     if ((n_alCSPGetState(D_8003C900[idx]) == 0) || (n_alCSPGetState(D_8003C900[idx]) == 3)) {
         func_10017AA0(D_8003C900[idx]);
     }
 }
 
-s32 func_1000853C(u8 idx) {
+s32 func_1000853C( s32 idx) {
     return n_alCSPGetState(D_8003C900[idx]);
 }
 
-void func_10008570(u8 idx, s32 arg1) { // arg1 is OSMesgQueue ?
+void func_10008570( s32 idx, s32 arg1) { // arg1 is OSMesgQueue ?
     func_10017AF0(D_8003C900[idx], arg1);
 }
 
 void func_100085A4(s32 arg0, s32 arg1, s32 arg2) {
 }
 
-void func_100085B8(u8 idx, s32 arg1, u8 arg2) {
+void func_100085B8( s32 idx, s32 arg1, s32 arg2) {
     func_10017B04(D_8003C900[idx], arg1, arg2);
 }
 
-void func_100085F8(u8 idx, s32 arg1) {
+void func_100085F8( s32 idx, s32 arg1) {
     func_10017BB8(D_8003C900[idx], arg1);
 }
 
-void func_1000862C(u8 idx, s32 arg1) {
+void func_1000862C( s32 idx, s32 arg1) {
     func_10017C00(D_8003C900[idx], arg1);
 }
 
-void func_10008660(u8 idx, u8 chan, u8 arg2, s32 arg3) {
+void func_10008660( s32 idx, s32 chan, s32 arg2, s32 arg3) {
     if (arg3 > 0) {
         arg3 = (arg3 * 10) / 60;
         if (arg3 == 0) {
@@ -74,15 +59,15 @@ void func_10008660(u8 idx, u8 chan, u8 arg2, s32 arg3) {
     func_10017C68(D_8003C900[idx], chan, arg2, arg3);
 }
 
-void func_100086FC(u8 idx, u8 arg1, u8 arg2) {
+void func_100086FC( s32 idx, s32 arg1, s32 arg2) {
     func_10017CE0(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008744(u8 idx, u8 arg1, u8 arg2) {
+void func_10008744( s32 idx, s32 arg1, s32 arg2) {
     func_10017D80(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008790(u8 idx, s32 mask, u8 arg2, s32 arg3) {
+void func_10008790( s32 idx, s32 mask, s32 arg2, s32 arg3) {
     s32 chan;
 
     for (chan = 0; chan < 16; chan++)
@@ -93,11 +78,11 @@ void func_10008790(u8 idx, s32 mask, u8 arg2, s32 arg3) {
     }
 }
 
-void func_10008824(u8 idx, u8 arg1, u8 arg2) {
+void func_10008824( s32 idx, s32 arg1, s32 arg2) {
     func_10017D30(D_8003C900[idx], arg1, arg2);
 }
 
-void func_1000886C(u8 idx, s32 mask, u8 arg2) {
+void func_1000886C( s32 idx, s32 mask, s32 arg2) {
     s32 chan;
 
     for (chan = 0; chan < 16; chan++)
@@ -108,7 +93,7 @@ void func_1000886C(u8 idx, s32 mask, u8 arg2) {
     }
 }
 
-void func_100088F0(u8 idx, s32 mask, s32 enable) {
+void func_100088F0( s32 idx, s32 mask, s32 enable) {
     s32 chan;
 
     for (chan = 0; chan < 16; chan++)
@@ -123,27 +108,27 @@ void func_100088F0(u8 idx, s32 mask, s32 enable) {
     }
 }
 
-void func_10008988(u8 idx, s32 mask, s32 enable) {
+void func_10008988( s32 idx, s32 mask, s32 enable) {
     s32 chan;
 
     for(chan = 0; chan < 16; chan++) // 16 channels
     {
         if ((1 << chan) & mask) {
             if (enable != 0) {
-                D_8003C900[idx]->chanMask |= mask; // enable
+                ((N_ALCSPlayer *)D_8003C900[idx])->chanMask |= mask; // enable
             } else {
-                D_8003C900[idx]->chanMask &= (mask ^ 0xFFFF); // disable
+                ((N_ALCSPlayer *)D_8003C900[idx])->chanMask &= (mask ^ 0xFFFF); // disable
             }
         }
     }
 }
 
 // is this n_alCSPGetChlVol ?
-u8 func_10008A4C(u8 idx, u8 chan) {
-    return D_8003C900[idx]->chanState[chan].unkD; // do we assume this is volume?
+u8 func_10008A4C( s32 idx, s32 chan) {
+    return ((N_ALCSPlayer *)D_8003C900[idx])->chanState[chan].unkD; // do we assume this is volume?
 }
 
-void func_10008A94(u8 idx, s32 mask, s32 arg2) {
+void func_10008A94( s32 idx, s32 mask, s32 arg2) {
     s32 chan;
 
     for(chan = 0; chan < 16; chan++)
@@ -154,11 +139,11 @@ void func_10008A94(u8 idx, s32 mask, s32 arg2) {
     }
 }
 
-void func_10008B2C(u8 idx) {
+void func_10008B2C( s32 idx) {
       n_alCSPGetTempo(D_8003C900[idx]);
 }
 
-void func_10008B60(u8 idx, u8 arg1, u8 arg2, u8 arg3, s32 arg4) {
+void func_10008B60( s32 idx, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     func_10017F10(D_8003C900[idx], arg1, arg2, arg3, arg4);
 }
 
@@ -166,7 +151,7 @@ void func_10008BC0(u8 idx, f32 arg1, f32 arg2) {
     func_10017DF0(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008C04(u8 idx, u8 arg1, s32 arg2) {
+void func_10008C04( s32 idx, s32 arg1, s32 arg2) {
     func_10018790(&D_8003CA58[idx], &D_8003CD48[idx], arg1, arg2);
 }
 
@@ -218,15 +203,15 @@ void func_10008C04(u8 idx, u8 arg1, s32 arg2) {
 //     return 0;
 // }
 
-void func_10008EE0(u8 idx, s32 arg1) {
+void func_10008EE0( s32 idx, s32 arg1) {
     func_10018D00(D_8003C900[idx], arg1);
 }
 
-void func_10008F24(u8 idx) {
+void func_10008F24( s32 idx) {
     // AL_TRACK_END
     func_10018C60(D_8003C900[idx]);
 }
 
-void func_10008F58(u8 idx) {
+void func_10008F58( s32 idx) {
     func_10018D50(D_8003C900[idx]);
 }

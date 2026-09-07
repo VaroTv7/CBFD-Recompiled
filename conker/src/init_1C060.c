@@ -2,6 +2,8 @@
 #include "n_libaudio.h"
 #include <os_internal.h>
 #include <ultraerror.h>
+#include "functions.h"
+#include "variables.h"
 
 void n_alEvtqNew(ALEventQueue *evtq, N_ALEventListItem *items, s32 itemCount)
 {

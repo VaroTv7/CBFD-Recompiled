@@ -1,4 +1,6 @@
 #include "n_synthInternals.h"
+#include "functions.h"
+#include "variables.h"
 
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_22040/func_10022040.s")

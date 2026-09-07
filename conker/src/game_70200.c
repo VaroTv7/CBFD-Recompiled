@@ -9,7 +9,7 @@ void func_15042D50(void) {
     func_15043384(0);
 }
 
-void func_15042D78(u8 arg0) {
+void func_15042D78( s32 arg0) {
     D_800CBD74 = arg0;
 }
 
@@ -28,12 +28,12 @@ void func_150432CC(s32 arg0, s32 arg1) {
     D_800CBD78 = arg0;
 }
 
-void func_150432FC(s16 arg0, s16 arg1) {
+void func_150432FC( s32 arg0, s32 arg1) {
     D_800CBD70 = arg0;
     D_800CBD72 = arg1;
 }
 
-void func_1504332C(u8 arg0, u8 arg1, u8 arg2, u8 arg3) {
+void func_1504332C( s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     D_800CBD60 = arg0;
     D_800CBD61 = arg1;
     D_800CBD62 = arg2;

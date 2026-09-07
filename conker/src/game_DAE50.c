@@ -92,7 +92,7 @@
 
 // well this is a bastard
 #pragma GLOBAL_ASM("asm/nonmatchings/game_DAE50/func_150ADA20.s")
-// s32 func_150ADA20() {
+// s32 random_u32() {
 //     // u32 tmp1;
 //     u64 tmp2;
 //     u64 tmp0;

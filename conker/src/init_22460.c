@@ -1,4 +1,6 @@
 #include "n_synthInternals.h"
+#include "functions.h"
+#include "variables.h"
 
 
 // modified n_alResamplePull

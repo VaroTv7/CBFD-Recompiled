@@ -57,7 +57,7 @@
 //         arg0->unk1B6[phi_s0] = 999;
 //     }
 //     temp_v0 = arg0->unk23D;
-//     temp_a2 = &D_800CC2D0[temp_v0]; // * 0x32C);
+//     temp_a2 = &gObjects[temp_v0]; // * 0x32C);
 //     arg0->unk5D4 = (f32) (((f32) D_800BE624 * 60.0f) / 216.0f);
 //     arg0->unk2C = 1;
 //     arg0->unkDC = 0;
@@ -99,7 +99,7 @@
 //     arg0->unk238 = -1;
 //     arg0->unk3CC = (s16) temp_v0;
 //     arg0->unk368 = (s16) temp_v0;
-//     temp_a2 = &D_800CC2D0[temp_v0]; // * 0x32C);
+//     temp_a2 = &gObjects[temp_v0]; // * 0x32C);
 //     arg0->unk3D0 = temp_a2;
 //     arg0->unk3D4 = temp_a2->unk31C;
 //     func_151298C0(arg0, arg2, temp_a2);
