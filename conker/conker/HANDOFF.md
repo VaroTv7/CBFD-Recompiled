@@ -3837,3 +3837,131 @@ narrow-typed function-pointer tables and checking every one's
 caller(s) systematically rather than one at a time from a score list,
 since this project apparently has several such tables and it's cheap
 to check them all in one pass.
+
+## Session log — Category B revisited: it was mostly Category A in disguise (2026-09-07, later still)
+
+Went back to properly root-cause the "cascading drift" category flagged
+above as too risky to guess-fix. The key realization: this project's
+`func_ADDR`/`D_ADDR` auto-naming convention bakes each symbol's *true*
+target address into its own name, while its *actual* linked address
+(from `build/conker.us.map`) reflects whatever size our own build
+produced. Comparing declared-in-name vs actual-linked address for every
+such symbol, walked sequentially through a section, gives a byte-exact,
+ground-truth drift measurement completely independent of `asm-differ`'s
+relative-addressing display (which the earlier round correctly found
+unreliable once drift has already started upstream). Wrote
+`find_drift.py` (kept in the repo — genuinely reusable, not scratch) to
+do this: it parses `build/conker.us.map`, walks a given VRAM range, and
+prints every point where the accumulated `actual - declared` delta
+changes, i.e. every point new drift is introduced.
+
+First real find with this tool: `cmp conker.us.bin build/conker.us.bin`
+showed the *global* first divergence at ROM byte 4204 — inside
+`func_10001050`, the very first substantial (non-entrypoint-stub)
+function in the whole ROM. But diffing that function in isolation
+showed it's *itself* byte-perfect (every instruction matches, same
+count, same order) — the only mismatches were six `jal` target
+addresses, all shifted by the exact same `+0x1A0` (416 bytes),
+pointing to functions around `0x10022xxx`. That meant the true
+root cause wasn't `func_10001050` at all, just something it calls
+transitively. Ran `find_drift.py` over the whole `.init` range
+(0x10001000–0x10023000) and got the real picture: **not one root
+cause — dozens of small, scattered drift points**, `-4` bytes (one
+missing instruction) by far the most common single increment,
+starting at `func_1000853C` and continuing through many unrelated-
+looking functions.
+
+Diffed `func_100084D8` (the function right before the first drift
+point, still byte-perfect at that point so its diff is fully
+trustworthy) and found the same Category A shape as the previous two
+sessions: target does `sw a0,0x20(sp)` / `andi a1,a0,0xff` (save then
+mask the argument to a byte) before using it as an array index into
+`D_8003C900[]`; current just does `move a1,a0` — no mask. Its own
+source, `src/init_8180.c`, turned out to be a **whole file built
+around this exact pattern**: ~20 small wrapper functions, each taking
+a `s32 idx` first parameter and indexing `D_8003C900[idx]` (an audio
+channel-player table) before forwarding to a real `n_al*`/`func_1001*`
+call. One of them, `func_10008BC0`, already had `u8 idx` from an
+earlier session — direct confirmation the type should be `u8`
+everywhere in this file, just never propagated to its ~20 siblings.
+Verified there was no other `s32 idx` usage in the file (only the
+exact `( s32 idx` parameter pattern, 22 matches, no local variables
+sharing the name) and did a single scoped `sed -i 's/( s32 idx/( u8
+idx/g'` across the whole file, then ran the usual pipeline
+(`restore_promotion_safe_signatures.py` restored 21 strict
+`functions.h` prototypes; `fix_cross_file_arg_counts.py` found nothing
+to trim — the 3 external call sites, in `game_2D4B0.c`/`init_B1B0.c`,
+all already passed plausible small values). Rebuilt clean (0
+`cfe: Error`, 0 `Signal 11`), and `find_drift.py` confirmed roughly a
+third of the `.init` range's accumulated drift by `func_1001E2A0`
+(`-416` → `-320` bytes) resolved in one pass — about a dozen
+functions' worth of drift eliminated by a single, mechanical,
+20-line `sed`.
+
+**Residual, genuinely harder cases found within the same investigation
+— NOT fixed, don't guess at these:**
+- `func_100085F8` and `func_100086FC` (same file, `init_8180.c`):
+  target's content at their declared addresses doesn't match a simple
+  type-narrowing story — `func_100085F8`'s target is just an epilogue
+  (`addiu sp,sp,0x18; jr ra; nop`, no matching prologue), and
+  `func_100086FC`'s target references a live value in `t9`/`s0` that
+  isn't set by anything in the visible window, plus an extra 0x20-byte
+  stack frame with a saved `s0` our simple forwarding wrapper doesn't
+  have. Both look like genuine function-boundary or missing-content
+  issues (in the same family as the `random_u32`/`random_float` case
+  from two sessions ago), not a type bug — would need the same
+  ground-truth-bytes-first discipline as that fix, not attempted here.
+- `func_10008BC0`: despite already having the correct `u8 idx`, still
+  shows drift — diff reveals an `mtc1`/`mfc1` float-register round-trip
+  (`f32 arg1, arg2` get moved into `$f12`/`$f14` then back into
+  `a1`/`a2` right before the forwarded call) that target doesn't do at
+  all (target keeps them in `a1`/`a2` throughout). The callee
+  (`func_10017DF0`) is genuinely `(N_ALCSPlayer*, f32, f32)`, so this
+  isn't a wrong-type bug — more likely an IDO register-allocation/ABI
+  quirk specific to a non-float first parameter (`u8 idx`) preceding
+  float parameters. Not well enough understood to fix confidently;
+  flagging the pattern (float params after a non-float first param,
+  in a K&R-relaxed-turned-strict prototype) in case it recurs
+  elsewhere and a real explanation surfaces.
+- `func_1000E704` (past `init_8180.c`, further into `.init`): diffed
+  out of curiosity while checking how far the "easy" pattern extended
+  — genuinely different logic entirely (score 2828, large structural
+  mismatch), and it calls `func_10008C6C` — one of this same file's
+  own already-flagged `// NON-MATCHING: need to determine what these
+  variables hold` functions. Confirms the remaining drift past this
+  point is real, un-reverse-engineered logic, not a mechanical
+  category — expected, not a regression to chase.
+
+**Overall conclusion on "Category B"**: it was never really one thing.
+A large fraction of what looked like mysterious cascading drift was
+actually many independent instances of the already-known Category A
+bug (narrow parameter type missing its mask), concentrated in files
+that happen to share a common indexing/table pattern — findable and
+fixable in bulk once you spot the shared pattern, exactly like this
+round did for `init_8180.c`. What's left after that cleanup is a
+smaller set of *actually* hard cases — real missing/misplaced content
+or genuine unreverse-engineered logic — where the right move is still
+to stop and flag rather than guess. **Actually checked the `.game` section too** (not just recommended —
+ran `find_drift.py 0x15000000 0x15060000`, found the first drift point
+at `func_15001B8C`, diffed the byte-perfect function immediately
+before it, `func_15001B5C`). Result: a completely different, much
+harder shape than `.init`'s. Our C source is a trivial one-liner
+(`*D_800B0DE0++ = arg0;` — an append-to-buffer helper), but target's
+real content is dramatically more complex: a magic-constant check
+(`0x98cce31a`, looks like a debug/cheat-code sentinel), several calls
+to other functions (`func_23764`, `func_3c40`, etc.), and writes to
+half a dozen different memory locations. This isn't a type-narrowing
+bug or a boundary-off-by-N-bytes issue like the earlier finds — it's
+a genuine, substantial missing-logic gap in a 2-line reconstruction
+that should probably be many lines. Confirmed via source read, not
+just the disassembly. **Do not attempt to reconstruct this speculatively**
+— a wrong guess at "what a magic-constant cheat-code check does" is
+exactly the kind of invented-semantics risk flagged as out-of-bounds
+throughout this investigation. `.game`'s Category B is a different,
+harder beast than `.init`'s was; `find_drift.py` now takes `lo_hex
+hi_hex` CLI args (was hardcoded to `.init`'s range) so this same
+ground-truth methodology can be pointed at any section on demand —
+worth using it to at least map out how much of `.game`'s drift is
+this-shape-of-hard vs some other still-undiscovered mechanical
+pattern, before deciding whether it's worth a dedicated future
+session.
