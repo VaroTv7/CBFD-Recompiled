@@ -31,3 +31,4 @@ for actual, declared, name in entries:
     if delta != prev_delta:
         print(f"DRIFT CHANGE at {name}: actual=0x{actual:08x} declared=0x{declared:08x} "
               f"delta {prev_delta:+d} -> {delta:+d} (introduced {delta-prev_delta:+d} bytes here)")
+        prev_delta = delta

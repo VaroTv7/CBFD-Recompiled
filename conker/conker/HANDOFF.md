@@ -3965,3 +3965,57 @@ worth using it to at least map out how much of `.game`'s drift is
 this-shape-of-hard vs some other still-undiscovered mechanical
 pattern, before deciding whether it's worth a dedicated future
 session.
+
+## Session log — searched broadly for more of the same category, came up empty (2026-09-07, later still)
+
+**Found and fixed a real bug in `find_drift.py` first**: the CLI-args
+rewrite from the previous round dropped the `prev_delta = delta`
+update at the end of the loop, so every entry with any nonzero delta
+printed as if it were a brand-new change from 0 (263 "changes" in
+`.init` instead of the true 34). Fixed by restoring the update. Re-ran
+the corrected scan — confirms `.init`'s remaining drift after the
+`init_8180.c` fix is 34 real change-points, stabilizing at a final
+`-320` byte cumulative offset by `func_1001E2A0` and staying there
+through the rest of the section.
+
+Spent the rest of this round checking whether the productive
+"forwarding wrapper missing an argument mask" pattern from
+`init_8180.c` repeats anywhere else, using the corrected tool:
+- `func_1000BA18` (next real `.init` drift point after `init_8180.c`'s
+  cluster): huge, unrelated logic — different magic constants
+  (`0xff00ffff`, `0x2023`, `0x7fff`), different callees entirely
+  (`func_e514`/`func_c4bc` vs target's `func_e588`/`func_df68`/
+  `func_c530`). Not a type bug.
+- `func_1000ECCC`: also a large restructuring, not a simple mask/type
+  issue — different register allocation and an extra load/shift
+  sequence throughout.
+- `func_16001390` (`.debugger` section — checked because it only has
+  2 drift points total, matching its already-high 87.91% match rate):
+  a ring-buffer/memmove-shaped function, genuinely different control
+  flow, not mechanical.
+- `func_1506045C` (a different, later part of `.game`, away from the
+  `game_2062D0.c`/`game_1765E0.c`/`game_2DF70.c` files already looked
+  at): another large, deeply different function — looks like game-
+  state/animation-flag logic with many magic byte comparisons (`0x29`,
+  `0x2e`, `0x1a`, `0x2a`, etc.), nothing resembling a narrow-parameter-
+  type bug.
+- Also checked directly whether any other file shares `init_8180.c`'s
+  `D_8003C900[]` array (`grep -rl` across `src/`) — no other file
+  references it, so that specific fix genuinely was file-local, not
+  part of a wider table-sharing pattern.
+
+**Conclusion**: the `init_8180.c` fix was a real, valuable, but
+apparently isolated find — a file that happened to be built almost
+entirely out of one repeated wrapper shape sharing one bug. It was not
+evidence of a broader, still-undiscovered mechanical category waiting
+to be found elsewhere. Everything checked this round belongs to the
+"genuine missing/different logic, needs real reverse engineering"
+bucket already described for `.game`, not something a type change or
+similar mechanical edit can safely fix. No source changes went in this
+round (only the `find_drift.py` bug fix) — didn't want to force a
+fix that isn't there. **Next productive step for this class of work is
+not more searching for the same pattern** — it's picking one specific
+hard function (e.g. `func_100085F8`'s empty-target mystery, still
+unresolved from two rounds ago, since it's small and well-isolated)
+and doing the slower, ground-truth-bytes-first reverse engineering
+that this kind of case actually requires.
