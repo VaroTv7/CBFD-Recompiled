@@ -3548,3 +3548,175 @@ $2","$1}' func_scores.csv | sort -t',' -k1 -n | head -N` for the N
 closest-to-matching functions — the productive place to keep looking
 for further clean, targeted fixes (as opposed to the widen/restore
 tradeoff class of gap, which isn't one).
+
+## Session log — build environment recovery after a bad graft (2026-09-07, later)
+
+A PR merge earlier this session (`gh pr merge 1 --merge`, folding
+`conker-build-fixes` into `master` via a manual `git read-tree
+--prefix=conker/` graft to work around GitHub's "no common ancestry"
+block) used `rm -rf conker` as part of the graft sequence. That deleted
+the nested repo's `.git` **and every gitignored file in the working
+tree** — including `conker.ld` and the entire `asm/` directory, both
+excluded by `.gitignore` (`*.ld`, `nonmatchings`) and therefore never
+committed anywhere, in this session or upstream. The subsequent `git
+checkout`/`read-tree` also silently re-wrote all 651 `src/`/`include/`
+files (plus `Makefile`, the four `conker.*.yaml` files, and 55 other
+tracked files) with CRLF line endings, because `core.autocrlf` was
+`true` in both the outer and nested repo configs — this broke the
+WSL/Linux IDO compiler in a way that didn't look like a normal compile
+error (`"Too many errors... goodbye"`, a cfe parser meltdown, not a
+`cfe: Error` line), so it went undetected for several turns until the
+next full rebuild was actually attempted. **Lesson: after any
+operation that touches `.git` internals or replaces a working tree
+wholesale (grafts, `rm -rf` + recheckout, submodule surgery), rerun the
+actual build immediately — "the pushed remote content diffs clean"
+is not the same claim as "the local build still works," and Windows
+git's `autocrlf`/`core.symlinks` defaults can silently corrupt a
+working tree in ways `git status` won't show.**
+
+Recovery chain (each step exposed the next problem):
+1. **CRLF**: `git config core.autocrlf false` (outer + nested), then
+   `wsl grep -rlP '\r' src include` → `sed -i 's/\r$//'` across all
+   affected files. Git Bash's own `\r` detection gave false negatives;
+   had to shell out to WSL for a reliable check.
+2. **`conker.ld` gone, unrecoverable from git** (gitignored everywhere
+   — checked local history, `personal`, upstream `origin`, and
+   jefemagril's fork; none track it). Regenerated via `make extract`,
+   which cascaded into three more blockers before it would even run:
+   - `tools/n64splat/` was a fully empty, never-initialized submodule
+     placeholder (this project's outer-repo submodule tracking didn't
+     survive the earlier graft). Fixed with a direct
+     `git clone https://github.com/ethteck/n64splat.git` rather than
+     trying to restore proper submodule linkage.
+   - The freshly-cloned n64splat pulled latest (0.50.0), which broke
+     `tools/splat_ext/rzip.py`'s custom segment type (`ImportError:
+     cannot import name 'opts' from src.splat.util.options` — that
+     global was removed in n64splat's own `cff96e2 "Separate Config
+     from Split (#442)"`).
+   - `tools/splat_ext/rareunzip.py` (meant to be a symlink to
+     `tools/rareunzip.py`) had been checked out by Windows git as a
+     15-byte **plain text file containing the literal string**
+     `../rareunzip.py` — not a working symlink (`core.symlinks` is
+     evidently unsupported/off in this Windows git setup) — causing
+     `invalid syntax (rareunzip.py, line 1)`.
+   The *correct* fix, found only after the pragmatic ones above: fetch
+   each of the four `tools/*` submodules' **exact upstream-pinned
+   commit SHA** directly from GitHub's API
+   (`api.github.com/repos/mkst/conker/contents/tools` — the gitlink
+   entries report their pinned SHA even though this repo's own
+   submodule linkage is broken) and `git checkout <sha> -- .` inside
+   each freshly-cloned tool dir, rather than trusting "latest". Pinned
+   SHAs used: `n64splat@3376e8c1`, `asm-differ@093360aa3`,
+   `asm-processor@42e7ccaf`, `mips_to_c@3ae39f5c6`. Also discovered
+   `tools/asm-differ`, `tools/asm-processor`, `tools/mips_to_c` **inside**
+   `conker/conker/tools/` are themselves fake-symlink text files
+   (`../../tools/<name>`) pointing at the middle-level `conker/tools/`
+   copies — same Windows-symlink problem, fixed the same way but this
+   time with real `ln -s` (which *does* work via WSL on this DrvFs
+   mount, confirmed by `ls -la` showing `l...->` and content resolving
+   correctly — the earlier "fake symlink" files were an artifact of
+   Windows `git checkout` specifically, not a WSL/DrvFs limitation).
+3. **`spimdisasm` version mismatch** (a transitive pip dependency of
+   n64splat, not pinned by the submodule fix above — n64splat's own
+   `requirements.txt` only says `spimdisasm>=1.33.0`, so `pip install`
+   grabbed latest, 1.42.4). Newest spimdisasm emits a `nonmatching
+   func_X, 0xSIZE` marker line before `glabel` in generated `.s` files
+   by default (`ASM_NM_LABEL`/`useNonMatchingLabel`, both on by
+   default) — a real spimdisasm feature (there to work around a KMC
+   compiler quirk) that this project's pinned `asm-processor` doesn't
+   parse, so it either misreads the line as a bogus instruction
+   (`.text block without an initial glabel`) or — after the
+   `nonmatchings` marker was disabled — the underlying naming mismatch
+   below became visible instead. Fixed via `pip3 install --user
+   --break-system-packages spimdisasm==1.33.0` (matching n64splat's
+   stated floor).
+4. **Two functions never got their own `.s` stub**: `random_u32`
+   (`0x150ADA20`) and `random_float` (`0x150ADA68`) inside
+   `game_DAE50.c` — hand-named/hand-optimized in an earlier session
+   (visible from the fully-transcribed hex+pseudocode comments still in
+   the file) — were declared in `symbol_addrs.us.txt` **without**
+   `// type:func`, so n64splat's C-segment splitter didn't recognize
+   them as function boundaries and silently emitted nothing for that
+   byte range, leaving the `.c` file's `#pragma GLOBAL_ASM(...)`
+   pointing at a nonexistent file. asm-processor's fallback for "can't
+   determine size" is a literal `#include "GLOBAL_ASM:path"` sentinel
+   in its pass-1 output, which the vintage IDO `cfe` doesn't reject
+   gracefully — it segfaults (`Signal 11`) instead of erroring. Adding
+   `// type:func` alone didn't fix it; adding an explicit `size:0x48` /
+   `size:0x64` didn't either. **What actually worked: deleting the two
+   symbol_addrs entries entirely** and letting n64splat's vanilla
+   auto-detection name them itself — which produces exactly
+   `func_150ADA20.s` / `func_150ADA68.s`, matching what the `.c` file's
+   pragmas already expected all along. (The custom names were
+   apparently added for readability at some point but never actually
+   wired up correctly; reverting them is what unblocked the build. If
+   the `random_u32`/`random_float` names matter for future readability,
+   they'd need to be reapplied as pure renames *after* confirming
+   fresh extraction still produces matching `.s` files under the old
+   auto-names — not attempted here, out of scope for a build-recovery
+   pass.) Byte content was cross-checked against the hex already
+   transcribed in `game_DAE50.c`'s comments for `random_u32` — exact
+   match, confirming the regenerated `.s` is correct, not a fluke.
+5. **One more `cfe` segfault**, this time on a real (non-stub) 118-line
+   auto-decompiled function, `func_150FB4C0` in
+   `src/game/game_128970.c`. Root cause turned out to be structural,
+   not a code-quality issue: `conker.us.yaml` still types this entire
+   byte range (`0x128970`-`0x128d70`) as a single **matching** `asm`
+   segment (`[0x128970, asm]`, no `c` override) — i.e. `asm/128970.s`
+   already contains a byte-perfect `glabel func_150FB4C0` for this
+   function. `game_128970.c` was an orphaned mips_to_c experiment
+   (header comment: `"Auto-decompiled from asm/128970.s (non-matching)"`)
+   that got left in `src/game/` without ever updating the yaml to make
+   it a real `c` segment — so it was simultaneously crashing the
+   compiler *and*, had it compiled, would have produced a duplicate
+   definition of `func_150FB4C0` against the already-linked
+   `asm/128970.s.o`. Fixed by deleting `game_128970.c` outright (the
+   Makefile's `C_FILES` glob just stops picking it up); the real,
+   working, byte-perfect `asm/128970.s` is unaffected and was always
+   the actual source of truth for this range.
+6. **`conker.ld`'s hand-fix layer was also lost** (see point 2 — it's
+   gitignored, so `make extract`'s fresh output only restores the
+   *auto-generated* linker script, not fixes layered on top of it in a
+   previous session). Specifically, 4 files' `.rodata` were "discarded
+   section" at link time — this exact issue and fix were already
+   documented earlier in this file (see the "4 files' `.rodata`
+   sections silently discarded" entry above) but the fix itself lived
+   only in the working-tree `conker.ld`, so it had to be re-applied by
+   hand: 4 `build/src/<name>.c.o(.rodata);` lines
+   (`game_36680`, `game_77AD0`, `game_981E0`, `game_2062D0`) added
+   inside the `.game_data` output section's `.rodata` list, right
+   before `game_data_RODATA_END`. **This is a standing risk**: any
+   future loss of the working tree will silently drop this fix again
+   with no git history to recover it from, since `conker.ld` can never
+   be committed while `.gitignore` has a blanket `*.ld` — worth
+   special-casing `conker.ld` out of that pattern (`!conker.ld`) in a
+   follow-up if hand-maintained linker-script fixes are going to keep
+   accumulating.
+
+**Confirmed reproducible end-to-end**: `rm -rf build && make -j$(nproc)
+-k` (VERSION=us) now produces `build/conker.us.elf` /
+`build/conker.us.bin` again with 0 `cfe: Error`, 0 `Signal 11`/`Fatal
+error` lines, 0 "discarded section" warnings — fails only the expected
+`sha1sum` byte-match `.ok` check, exactly the pre-existing/documented
+state. All four `VERSION`s (`us`/`eu`/`ects`/`debug`) confirmed
+building to a valid `.elf`/`.bin` the same way.
+
+**Progress comparison vs. jefemagril/conker** (the question that
+triggered this whole recovery — badges fetched from that fork's
+`progress/badge_*.svg` on 2026-09-07): our own freshly-computed
+`progress.py` numbers, computed the same way (`% functions not under
+`GLOBAL_ASM`), turned out **ahead of, not behind,** that fork on total
+and on two of three sections:
+
+| section  | ours (us)        | jefemagril/conker  |
+|----------|-------------------|---------------------|
+| init     | 49.60% (307/619)  | **60.73%** (410/575) |
+| game     | **19.68%** (1429/7261) | 8.30% (1642/7274) |
+| debugger | **87.91%** (160/182)   | 42.12% (162/182)  |
+| **total**| **23.51%** (1896/8064) | 12.41% (2214/8031) |
+
+So the premise of "they're further ahead" doesn't hold up under a real
+side-by-side — we're behind only on `init` specifically, and ahead
+overall, on `game`, and substantially ahead on `debugger`. Worth
+revisiting `init` specifically if closing that one gap matters, but
+there's no broad "catching up" work implied by this comparison.

@@ -265,8 +265,6 @@ __osPiAccessQueue = 0x800428F8;
 
 gCurrentObject      = 0x800D154C;
 gCurrentObjectIndex = 0x800C3E78;
-random_u32          = 0x150ADA20;
-random_float        = 0x150ADA68;
 
 D_8008857C = 0x8008857C; // type:label
 D_80088628 = 0x80088628; // type:label

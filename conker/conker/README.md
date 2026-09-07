@@ -7,14 +7,29 @@
 - ✅ **Build: fully working.** `make -j$(nproc) -k` compiles and links
   successfully (produces a valid `.elf`/`.bin`) for all four ROM
   versions — `us`, `eu`, `ects`, and `debug` — confirmed reproducible
-  from a clean rebuild.
+  from a clean rebuild. (A working tree loss mid-session briefly broke
+  this — `conker.ld`, `asm/`, and submodule content are all gitignored
+  and were lost together; full recovery chain documented in
+  `HANDOFF.md`.)
 - ⏳ **Matching: in progress, not the current focus.** The build is
   *not* byte-perfect against the original ROM — plenty of correctness
-  was traded for compile success along the way, and ~400+ functions
-  are still marked `NON-MATCHING`/`fakematch` in the source. Two real
-  matching regressions found during a follow-up investigation have
-  been fixed; see below for what was tried and what wasn't worth
-  pursuing further.
+  was traded for compile success along the way, and thousands of
+  functions are still marked `NON-MATCHING`/`GLOBAL_ASM` in the
+  source. Two real matching regressions found during a follow-up
+  investigation have been fixed; see `HANDOFF.md` for what was tried
+  and what wasn't worth pursuing further.
+- 📊 **Progress vs. [jefemagril/conker](https://github.com/jefemagril/conker)**
+  (computed 2026-09-07 via `tools/progress.py`, same methodology both
+  sides — % of functions not under `GLOBAL_ASM`): we're **ahead
+  overall and on two of three sections**, behind only on `init`.
+
+  | section  | this repo (us)         | jefemagril/conker      |
+  |----------|-------------------------|--------------------------|
+  | init     | 49.60% (307/619)        | **60.73%** (410/575)    |
+  | game     | **19.68%** (1429/7261)  | 8.30% (1642/7274)       |
+  | debugger | **87.91%** (160/182)    | 42.12% (162/182)        |
+  | **total**| **23.51%** (1896/8064)  | 12.41% (2214/8031)      |
+
 - 📄 **Full details:** [`HANDOFF.md`](HANDOFF.md) has the complete
   history — every fixer script, every bug found and fixed (including
   in the fixer scripts themselves), the exact numeric error-count
