@@ -33,7 +33,7 @@ void func_10008570( u8 idx, s32 arg1) { // arg1 is OSMesgQueue ?
 void func_100085A4(s32 arg0, s32 arg1, s32 arg2) {
 }
 
-void func_100085B8( u8 idx, s32 arg1, s32 arg2) {
+void func_100085B8( u8 idx, s32 arg1, u8 arg2) {
     func_10017B04(D_8003C900[idx], arg1, arg2);
 }
 
@@ -45,7 +45,7 @@ void func_1000862C( u8 idx, s32 arg1) {
     func_10017C00(D_8003C900[idx], arg1);
 }
 
-void func_10008660( u8 idx, s32 chan, s32 arg2, s32 arg3) {
+void func_10008660( u8 idx, s32 chan, u8 arg2, s32 arg3) {
     if (arg3 > 0) {
         arg3 = (arg3 * 10) / 60;
         if (arg3 == 0) {
@@ -59,11 +59,11 @@ void func_10008660( u8 idx, s32 chan, s32 arg2, s32 arg3) {
     func_10017C68(D_8003C900[idx], chan, arg2, arg3);
 }
 
-void func_100086FC( u8 idx, s32 arg1, s32 arg2) {
+void func_100086FC( u8 idx, u8 arg1, u8 arg2) {
     func_10017CE0(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008744( u8 idx, s32 arg1, s32 arg2) {
+void func_10008744( u8 idx, u8 arg1, u8 arg2) {
     func_10017D80(D_8003C900[idx], arg1, arg2);
 }
 

@@ -4019,3 +4019,103 @@ hard function (e.g. `func_100085F8`'s empty-target mystery, still
 unresolved from two rounds ago, since it's small and well-isolated)
 and doing the slower, ground-truth-bytes-first reverse engineering
 that this kind of case actually requires.
+
+## Session log — init_8180.c, function by function (2026-09-07, later still)
+
+Went back through `init_8180.c` properly this time, function by
+function with full (untruncated where feasible) diffs, instead of the
+quick bulk `sed` from two rounds ago. That bulk fix only handled the
+`idx` parameter — it turned out several sibling functions have
+*additional* parameters that also need narrowing, which the earlier
+pass never checked because it only looked at the first ~60 lines of a
+`-s`-scoped diff (which silently truncates at the first `jr ra`,
+hiding a function's true full body when it has multiple return paths
+or — as this round's first real finding showed — hiding drift that
+had already started *before* the function even began).
+
+**Root cause of `func_100085F8`'s "empty target" mystery from two
+rounds ago**: it wasn't a missing function or a boundary problem at
+all. `func_100085B8` (the function right before it) was never actually
+byte-perfect — the earlier round's `-s`-truncated check only verified
+its first return path, and missed that `arg2` (3rd param) also needed
+`u8`, same as `idx`. Fixing `func_100085B8` properly (`arg2: s32 ->
+u8`) resolved essentially all of `func_100085F8`'s apparent problem as
+a side effect — its score dropped from 1005 to 105, and the target
+content is now confirmed as a completely ordinary wrapper (calls
+`func_10017BB8`, no missing content, no weird boundary). **Lesson**:
+`-s` (stop-at-first-return) diffs are fast but can hide real bugs in
+the *preceding* function that only manifest as apparent problems in
+the *next* one — always double check the immediately preceding
+function with a full, unscoped diff before concluding a target's
+content looks anomalous.
+
+Went on to find and fix the same "forwarded argument needs u8, not
+s32" bug in three more functions, confirmed by checking the actual
+`andi ...,0xff` / `lbu ...,0x..(sp)` masking target does before each
+forwarded call:
+- `func_10008660`: `arg2` (3rd param) → `u8`.
+- `func_100086FC`: `arg1` and `arg2` → `u8` (confirmed `arg1` via
+  target's `lbu a1,0x1f(sp)` — a byte reload right before the call,
+  not just an `andi`).
+- `func_10008744`: `arg1` and `arg2` → `u8` (both directly `andi`-
+  masked in target).
+
+Rebuilt clean after each (0 `cfe: Error`, 0 `Signal 11`) via the usual
+pipeline (`restore_promotion_safe_signatures.py` — needed every time,
+since every one of these functions has an `f32`/`u8`/`s16`-class
+parameter now; `fix_cross_file_arg_counts.py` — found nothing to trim,
+no external callers of any of these).
+
+**Two genuinely harder residuals found, tried, and correctly left
+alone rather than force-fixed:**
+
+1. **`func_10008660`'s `arg3`** — target holds the post-clamp value
+   in a *callee-saved* register (`s0`, preserved across the whole
+   branching clamp computation) and does a final `andi a3,s0,0xff`
+   right before the call; current computes the same value but keeps
+   it in a caller-saved temp and reloads it from the stack late. Tried
+   two experiments to match this: (a) introducing a separate `u8
+   result` local instead of reassigning `arg3` in place — made the
+   score *worse* (1176 → 1535, wrong branch structure, lost target's
+   `bnezl` likely-branch entirely); (b) narrowing `arg3`'s own
+   parameter type to `u8` while keeping the in-place reassignment —
+   also worse (1176 → 1443, got the register class right but still
+   wrong instruction order and an extra spurious `andi`). Reverted to
+   the best-known version (`arg3` still `s32`, in-place reassignment,
+   score 1176) rather than keep guessing. This looks like the same
+   class of IDO register-allocation quirk already flagged for
+   `func_10008BC0`'s `f32` round-trip two rounds ago — not something a
+   source-level type or variable-structure tweak has reliably fixed
+   so far.
+
+2. **`func_10008790` (and almost certainly its sibling
+   `func_1000886C`, same shape)**: this is not a type bug at all.
+   Our C source implements it as a 16-channel loop (`for chan in
+   0..16: if bit set in mask, call func_10008660(idx, chan, arg2,
+   arg3)`), using 6 saved registers (`s0`-`s5`) in the compiled
+   output. But target's *actual* content at this address is a
+   completely different, much simpler wrapper — the exact same shape
+   as `func_10008744`/`func_100086FC` (masked array lookup + a single
+   forwarded call to `func_10017D80`), with no loop, no mask
+   parameter, no `s0`-`s5` at all. Confirmed neither function has any
+   caller anywhere in the currently-decompiled C tree (`grep -rn` came
+   up empty for both), so there's no cross-reference to help pin down
+   what they're actually supposed to do — they may be called only from
+   the still-unconverted `func_10008180.s` ("this one is a monster",
+   per the file's own comment) or elsewhere via a raw address. **Did
+   not attempt to guess a replacement implementation** — this needs
+   real reverse engineering (probably starting from disassembling a
+   wider stretch of the ROM around this address to find where the
+   *real* loop-with-6-saved-registers content actually lives, if it
+   exists at all) not a source rewrite based on assumption.
+
+**Where the systematic walk-through stands**: confirmed clean through
+`func_10008744`. `func_10008790` onward (`func_10008790`,
+`func_1000886C`, `func_100088F0`, `func_10008988`, `func_10008A4C`,
+`func_10008A94`, `func_10008B2C`, `func_10008B60`, `func_10008BC0`
+[already known, see above], `func_10008C04`, `func_10008EE0`,
+`func_10008F24`, `func_10008F58`) not yet re-verified with a full
+diff this round — worth continuing the same function-by-function,
+full-diff (not `-s`-truncated) discipline from `func_10008790`
+onward next time, since several of them likely still carry drift
+from the two open issues above until those are actually resolved.
