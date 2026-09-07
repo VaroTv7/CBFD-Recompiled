@@ -4110,12 +4110,84 @@ alone rather than force-fixed:**
    exists at all) not a source rewrite based on assumption.
 
 **Where the systematic walk-through stands**: confirmed clean through
-`func_10008744`. `func_10008790` onward (`func_10008790`,
-`func_1000886C`, `func_100088F0`, `func_10008988`, `func_10008A4C`,
-`func_10008A94`, `func_10008B2C`, `func_10008B60`, `func_10008BC0`
-[already known, see above], `func_10008C04`, `func_10008EE0`,
-`func_10008F24`, `func_10008F58`) not yet re-verified with a full
-diff this round — worth continuing the same function-by-function,
-full-diff (not `-s`-truncated) discipline from `func_10008790`
-onward next time, since several of them likely still carry drift
-from the two open issues above until those are actually resolved.
+`func_10008744`.
+
+## Session log — init_8180.c continued: func_10008790 onward (2026-09-07, later still)
+
+Picked up exactly where the previous round left off. Key methodology
+fix first: `-s` (stop-at-first-return) diffs are actively misleading
+for the loop-shaped functions in this file (`func_10008790`,
+`func_1000886C`, `func_10008A94`) — they have an early-exit return
+path that `-s` catches prematurely, making a *correctly-sized* loop
+function look like a completely different, much simpler function.
+The tell: `find_drift.py` showing **zero** new drift introduced at a
+function is strong evidence its size (and likely its content) is
+already right, even if an `-s`-scoped diff looks alarming — always
+cross-check against the drift scanner before trusting an `-s` diff's
+shape for these. Switched to explicit-bounds diffs (`diff.py fn
+0xNEXT_FUNC_ADDR`, run via `run_in_background` since these can take
+30-60+ seconds and time out otherwise) for anything loop-shaped.
+
+Fixed, confirmed via rebuild + `find_drift.py` after each:
+- `func_10008660`: `chan` (2nd param) → `u8` (target masks it
+  `andi a1,s0,0xff` right before calling `func_10017C68`). Combined
+  with fixing the *caller* (`func_10008790`)'s `arg2` → `u8`
+  (`andi s3,a2,0xff` at loop entry), this fully resolved
+  `func_10008790` **and** `func_10008824` — both went from "looks
+  like a totally different function" to zero drift.
+- Same pattern, same fix, for the `func_1000886C`/`func_10008824`
+  pair: `func_10008824`'s `arg1` (chan) → `u8`, and (separately)
+  `func_10008824`'s own `arg2` → `u8` too (confirmed via its own
+  bounded diff showing `andi t6,a2,0xff` before its `func_10017D30`
+  call) — `func_1000886C` dropped from -20 introduced drift to -4
+  (the -4 is upstream leakage from `func_10008660`'s still-open
+  `arg3` issue, not a `func_1000886C`-local problem).
+
+**One experiment that made things worse, reverted**: tried declaring
+`func_10008A94`'s local loop variable `chan` as `u8` (its callee,
+`func_10017E4C`, is called directly rather than through one of our
+own wrapper functions, so there was no "narrow the callee's parameter"
+option available the way there was for the other two loops). This
+completely changed the compiled loop structure — IDO generates a
+different comparison/branch pattern for a byte-typed loop counter
+than an int-typed one (`bnel s0,s5,...` likely-branch became a
+`slti`+`bnez` pair, registers reshuffled). Confirmed via rebuild this
+was strictly worse (introduced *more* mismatched instructions, not
+fewer) and reverted `chan` back to `s32`. **Lesson reinforced**: the
+narrow-type fix belongs on the parameter of the function *receiving*
+the value (or a parameter being forwarded), not on a local loop
+counter that's merely used to compute an argument — those are
+different codegen paths in IDO and get typed independently. Kept
+`func_10008A94`'s own `arg2` parameter as `u8` (that part alone is
+still correct and doesn't touch the loop structure).
+
+**Found the real blocker for `func_10008A94`**: it isn't a type bug
+at the caller at all. `func_10017E4C` itself (`src/libultra/audio/
+init_17DF0.c`) — the function `func_10008A94` calls directly, with no
+wrapper in between — has a massive, structurally different
+implementation in target (building some kind of message/struct with
+`sb`/`sh` byte and halfword stores, magic values `0xfc`/`0xb0`/`0x5c`,
+a completely different call target) versus our current one-line
+version. This is not a narrow-parameter bug and was not attempted —
+flagging `func_10017E4C` itself as the next real target if anyone
+wants to chase `func_10008A94`'s remaining drift further, rather than
+continuing to poke at `func_10008A94`'s own signature.
+
+**Confirmed stable end state this round**: full clean rebuild (0
+`cfe: Error`, 0 `Signal 11`, 0 CRLF regressions). Remaining drift in
+`init_8180.c`'s address range, from `find_drift.py 0x10008000
+0x10009000`: `func_100085F8`/`func_100086FC`/`func_10008744` carry
+the still-open `func_10008660.arg3` residual (-4, -20, -4 bytes
+respectively — all the same underlying cause, not three separate
+bugs); `func_1000886C` carries -4 more of the same; `func_10008A94`
+introduces -12 (the `func_10017E4C` issue above); `func_10008B2C`
+shows +4 (not yet investigated); `func_10008BC0` (`f32` register
+round-trip, flagged two rounds ago) still open at -76 cumulative
+by that point; `func_10008F24` and `func_10008F90` not yet
+investigated.
+
+**Not yet re-verified with a full diff**: `func_100088F0`,
+`func_10008988`, `func_10008A4C`, `func_10008B2C`, `func_10008B60`,
+`func_10008C04`, `func_10008EE0`, `func_10008F24`, `func_10008F58` —
+continue the same function-by-function, explicit-bounds-diff
+discipline from `func_100088F0` onward next time.

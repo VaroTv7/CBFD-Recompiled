@@ -45,7 +45,7 @@ void func_1000862C( u8 idx, s32 arg1) {
     func_10017C00(D_8003C900[idx], arg1);
 }
 
-void func_10008660( u8 idx, s32 chan, u8 arg2, s32 arg3) {
+void func_10008660( u8 idx, u8 chan, u8 arg2, s32 arg3) {
     if (arg3 > 0) {
         arg3 = (arg3 * 10) / 60;
         if (arg3 == 0) {
@@ -67,7 +67,7 @@ void func_10008744( u8 idx, u8 arg1, u8 arg2) {
     func_10017D80(D_8003C900[idx], arg1, arg2);
 }
 
-void func_10008790( u8 idx, s32 mask, s32 arg2, s32 arg3) {
+void func_10008790( u8 idx, s32 mask, u8 arg2, s32 arg3) {
     s32 chan;
 
     for (chan = 0; chan < 16; chan++)
@@ -78,11 +78,11 @@ void func_10008790( u8 idx, s32 mask, s32 arg2, s32 arg3) {
     }
 }
 
-void func_10008824( u8 idx, s32 arg1, s32 arg2) {
+void func_10008824( u8 idx, u8 arg1, u8 arg2) {
     func_10017D30(D_8003C900[idx], arg1, arg2);
 }
 
-void func_1000886C( u8 idx, s32 mask, s32 arg2) {
+void func_1000886C( u8 idx, s32 mask, u8 arg2) {
     s32 chan;
 
     for (chan = 0; chan < 16; chan++)
@@ -128,7 +128,7 @@ u8 func_10008A4C( u8 idx, s32 chan) {
     return ((N_ALCSPlayer *)D_8003C900[idx])->chanState[chan].unkD; // do we assume this is volume?
 }
 
-void func_10008A94( u8 idx, s32 mask, s32 arg2) {
+void func_10008A94( u8 idx, s32 mask, u8 arg2) {
     s32 chan;
 
     for(chan = 0; chan < 16; chan++)
