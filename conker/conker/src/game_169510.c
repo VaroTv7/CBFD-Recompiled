@@ -544,11 +544,11 @@ void func_1513F680(struct171 *arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_15140190.s")
 
-void func_151403A8(s32 arg0, s32 arg1) {
+void func_151403A8(s32 arg0, u8 arg1) {
     func_15169260(&D_800A5168, 4, arg0, arg1);
 }
 
-void func_151403DC(s32 arg0, s32 arg1) {
+void func_151403DC(s32 arg0, u8 arg1) {
     func_15169260(&D_800A5178, 3, arg0, arg1);
 }
 

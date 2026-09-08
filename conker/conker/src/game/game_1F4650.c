@@ -742,7 +742,7 @@ void func_151C8674(s32 arg0, s32 arg1) {
     if (arg0 != 0) {
         sp18 = arg0;
         sp1C = arg1;
-        func_151403A8(&sp18, 0x20, arg0, arg1);
+        func_151403A8(&sp18, 0x20);
     }
 }
 
@@ -1377,7 +1377,7 @@ void func_151C970C( s32 arg0, s32 arg1) {
 
     sp18 = arg1;
     sp1C = arg0;
-    func_151403A8(&sp18, 0x3A, arg1, (s32) arg0);
+    func_151403A8(&sp18, 0x3A);
 }
 
 void func_151C9740(void *arg0, s32 arg1, s32 arg2) {

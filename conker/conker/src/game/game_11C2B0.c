@@ -167,7 +167,7 @@ void func_150EEF40(void *arg0, s32 arg1) {
     sp18 = arg0;
     sp1D = temp_a3;
     sp1C = (*(s32 *)((char *)(arg0) + 0x3B));
-    func_151403A8(&sp18, 0x43, arg0, temp_a3);
+    func_151403A8(&sp18, 0x43);
 }
 
 void *func_150EEF80(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
