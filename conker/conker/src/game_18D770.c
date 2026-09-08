@@ -57,7 +57,7 @@ void func_15163DEC();
 s32  func_15163F50();
 struct225 *func_15164208();
 s32  func_1516429C();
-void func_151643A8();
+void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2);
 void func_151644F4();
 
 struct225 *func_151602C0(Header *header, Header2 *header2, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 offset, s32 arg9, s32 argA) {
@@ -1164,7 +1164,7 @@ s32 func_1516429C(struct237 *arg0) {
 // what structs?
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_1516434C.s")
 
-void func_151643A8(struct225 *arg0, s32 arg1, s32 arg2) {
+void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2) {
     struct227 *tmp;
     tmp = &arg0->unk18;
     if (arg2 == 64) {
