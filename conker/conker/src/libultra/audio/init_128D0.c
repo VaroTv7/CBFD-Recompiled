@@ -113,7 +113,7 @@ void func_10012CFC(struct12 *arg0, s32 arg1, s32 arg2) {
     }
 }
 
-f32 func_10012D80( s32 arg0) {
+f32 func_10012D80( u8 arg0) {
     f32 sp4 = 1.0309929847717285f;
     f32 sp0 = 1.0f;
 

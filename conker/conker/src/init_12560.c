@@ -58,7 +58,7 @@ s32 func_10012718( s32 arg0, struct127 *arg1, s32 arg2, s32 arg3, s32 arg4) {
     if (arg1->camera != 0) {
         func_1001263C(arg0, arg2, 64);
     } else {
-        func_100114D0(arg1->x_position, arg1->y_position, arg1->z_position, arg2, arg4, arg3, &sp3C, &sp38, &sp34);
+        func_100114D0((s32) arg1->x_position, (s32) arg1->y_position, (s32) arg1->z_position, arg2, arg4, arg3, &sp3C, &sp38, &sp34);
         func_1001263C(arg0, sp38, sp3C);
     }
     return 1;

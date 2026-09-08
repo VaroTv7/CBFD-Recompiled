@@ -4852,3 +4852,72 @@ file family, same corrected `-S`-shift discipline. Given the
 "resolved" or "closed" residual from before this round in this same
 cluster, it would be worth a quick re-verification pass with the
 corrected technique rather than assuming past conclusions still hold.
+
+## Session log — entire original continuation list fully resolved (2026-09-08, later still)
+
+Finished the list from the top of this session with two more real
+fixes, both following the corrected `-S`-shift/dual-`objdump`
+discipline:
+
+**`func_10012718`** (`src/init_12560.c` — first fix this whole
+investigation to land outside `init_EB00.c` itself, in a neighboring
+file in the same cluster): its call to `func_100114D0` (still raw
+`GLOBAL_ASM`, called with 9 args) passed `arg1->x_position`,
+`arg1->y_position`, `arg1->z_position` (genuine `f32` fields)
+completely uncast — same shape of bug as `func_10010720`/
+`func_1000FA64` fixed earlier this round, but a different resolution:
+`objdump` showed target doing `trunc.w.s`+`mfc1` with **no** follow-up
+`sll`/`sra`-by-16 sign-extend, meaning the real parameter type is
+`s32` (not `s16` — the other call sites of `func_100114D0` agree,
+passing plain integer literals / `(s32)` casts, unlike
+`func_1000FA64`'s callers which universally use `(s16)`). Added
+`(s32)` casts on all three position args. Fully resolved
+`func_100127D0`'s *and* `func_10012934`'s reported drift as side
+effects (both disappeared from `find_drift.py` in one shot).
+
+**`func_10012D80`** (`src/libultra/audio/init_128D0.c` — binary
+exponentiation helper: `f32 func_10012D80(s32 arg0)` computes
+`1.0309929847717285f ^ arg0` via square-and-multiply): `objdump`
+showed target masking `arg0` with `andi a0,a0,0xff` **twice** — once
+on entry, once again after each `>>1` shift inside the loop. Classic
+`u8` narrow-type idiom. Fixed `s32 arg0` → `u8 arg0`. Fully resolved
+**both** `func_10012E04`'s and `func_10015550`'s reported drift in one
+shot (both disappeared from `find_drift.py`).
+
+Rebuilt clean after each fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py`.
+
+**Milestone**: `find_drift.py 0x10009000 0x10017100` (the full range
+covering the entire wide cluster investigated across this whole
+multi-round effort, starting from `init_8180.c` through
+`init_EB00.c`, `init_12560.c`, and `init_128D0.c`) now reports **only
+two entries**: `func_1000F9D4` (+12, a leftover from the still-closed
+`func_1000F91C` register-allocation residual bleeding forward) and
+`func_1000FA64` (+4, `func_1000F9D4`'s own small closed residual
+bleeding forward). Every other point in the entire original
+continuation list — `func_100107F8`, `func_100114D0`,
+`func_1001123C`, `func_100112BC`, `func_10011FA0`, `func_100127D0`,
+`func_10012934`, `func_10012E04`, `func_10015550` — is now fully
+resolved. This closes out the "wide ~18-point drift cluster past
+`init_8180.c`" investigation that spanned this whole multi-round
+effort: it turned out to be almost entirely real, independent,
+fixable bugs (mostly the narrow-parameter-type pattern, plus a few
+missing-prototype-float-promotion and one genuine logic-restoration
+case), NOT alignment amplification of the two closed `init_8180.c`
+residuals as originally hypothesized, and NOT primarily unfixable IDO
+heuristics either (only two small residuals — `func_1000F91C`'s
++12 and `func_1000F9D4`'s own +4 — remain genuinely closed).
+
+**New adjacent cluster found, NOT yet investigated** (out of this
+round's scope, flagged for the next continuation):
+`python3 find_drift.py 0x10017100 0x10020000` shows a fresh,
+independent drift cluster starting immediately after where this one
+ends: `func_10017298` (-32), `func_10017B30` (-4), `func_10017C00`
+(+4), `func_1001CEA4` (+16), `func_1001DA28` (-8), `func_1001E2A0`
+(-24). Same file family region (`src/init_EB00.c`'s tail end and
+whatever follows). **Recommended next continuation**: apply the exact
+same discipline established this round — `find_drift.py` first,
+check the function immediately *preceding* any reported point (not
+just the named one) for the true cause, use `-S <shift>` or dual
+`objdump -bbinary --adjust-vma=0x10000000` comparison rather than a
+plain `diff.py` call whenever upstream drift is nonzero going in.

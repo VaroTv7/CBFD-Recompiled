@@ -113,7 +113,7 @@ void func_10012B84();
 void func_10012BD0();
 void func_10012C5C();
 void func_10012CFC();
-f32  func_10012D80();
+f32  func_10012D80(u8 arg0);
 s32  func_10012E04();
 s32  func_10012F94();
 void func_100131D8();
