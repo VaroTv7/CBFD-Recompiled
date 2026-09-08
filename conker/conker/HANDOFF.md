@@ -5251,3 +5251,115 @@ Continue with the `target_file_offset(V) = 0x0002d4b0 + (V -
 check-the-preceding-function discipline, and the new
 compile-time-constant-literal lesson above whenever a float-promotion
 bug is found.
+
+## Session log — continued sweep through the 0x15000000+ cluster (2026-09-08, later still)
+
+Continued down the list from the previous entry with the established
+`target_file_offset(V) = 0x0002d4b0 + (V - 0x15000000)` discipline.
+Several more real fixes, one important new lesson, and one residual
+left open for a future session.
+
+**`func_15017300`** (`src/game_447B0.c`): `arg1` (a 16-channel
+bitmask) needed `s32`→`s16` (target sign-extends both `arg0` and
+`arg1` at entry; current was only doing `arg0` via its `tmp`
+variable). Also added explicit `(s16)` casts on the loop variable `i`
+at its four `func_15085710(...)` call sites, matching the s16-cast
+convention already used at several *other* call sites of that function
+elsewhere in the codebase. This is a **partial** fix — recovered 16 of
+64 bytes, but a `-48` residual remains: target recomputes the `(s16)i`
+sign-extension fresh before *every* one of the 4 calls, while IDO's
+optimizer here performs common-subexpression-elimination and reuses
+the first computed value for the later 3 calls. Tried (and reverted)
+declaring `i` itself as `s16` — this didn't reduce total drift at all,
+it just relocated 4 bytes of it into an unrelated neighboring function
+(`func_150175E0`), confirming it's the same CSE choice, not a type
+issue. Left open; likely needs a source shape neither of these two
+attempts found (in the same "closed" family as `func_1000F91C`'s
+earlier register-allocation residual, though not yet formally closed
+since fewer restructuring variants have been tried).
+
+**`func_15018F80`**: `arg0` `s32`→`s16` (entry sign-extend idiom).
+Fully resolved `func_1501905C`'s reported drift.
+
+**`func_1501905C`** (via its call to `func_1000D758`): another
+missing-prototype float-promotion case, `functions.h` only has the
+relaxed `void func_1000D758();` and this file already sees it (so a
+local full-prototype redeclaration would hit the known IDO5.3
+K&R-redeclaration bug). Used the function-pointer-cast workaround
+(indirect call, minor overhead) since this one is a genuine
+runtime-computed call (not a compile-time constant) with no simpler
+option — only partial byte-match improvement, but the actual promotion
+correctness bug is fixed.
+
+**`func_15042D78`, `func_1504332C`**: straightforward `u8`-typed
+parameter fixes (`D_800CBD74`, `D_800CBD60`-`63` are all genuinely
+`u8` fields) — both fully resolved.
+
+**`func_150432FC`**: `s16`-typed parameters (`D_800CBD70`/`72` are
+`s16` fields) — fully resolved, including 2 cross-file call sites
+that had extra unused trailing arguments trimmed by
+`fix_cross_file_arg_counts.py`.
+
+**`func_15043D90`, `func_15043E68`, `func_15043F6C`** (`src/game_71240.c`):
+three sibling functions all calling `func_150A8050`/`func_150A9B0C`
+(both still raw `GLOBAL_ASM`, only relaxed K&R declarations visible)
+with **runtime** `f32` parameter values (not compile-time constants).
+Target passes these as raw bit patterns through plain integer
+registers (`mfc1` directly from the float register, no `cvt.d.s`) —
+same shape as the earlier `func_15187EC0` compile-time-constant case,
+but this time the values are genuine function *parameters*, not
+locals. **New, generally-useful discovery**: bit-reinterpreting an
+existing function *parameter* directly (`*(s32 *) &arg1`, no new local
+variable) does **not** incur the stack-spill penalty that plagued the
+earlier `f32 threshold; threshold = X; *(s32*)&threshold` pattern for
+locals — parameters are already materialized/addressable by the
+calling convention, so IDO doesn't need an extra dedicated spill slot
+for them. This produced an **exact, zero-residual match** for all
+three functions in one shot — a cleaner, more broadly applicable
+technique than either the pointer-cast-indirect-call or the
+named-local-bitcast workarounds used previously. **Rule of thumb
+going forward**: for a missing-prototype float-promotion bug, if the
+value being passed is already a function parameter (not a freshly
+computed/local value), prefer `*(s32*)&param` directly on the
+parameter over introducing a new local — check the resulting diff to
+confirm zero residual before assuming it's clean.
+
+**`func_15048664`, `func_150486B8`** (`src/game/done/game_75A90.c` —
+despite the `done/` directory name, these still had real residuals):
+both needed `arg0` `s32`→`s16` (same sign-extend-at-entry idiom). Both
+fully resolved.
+
+**Investigated but left open**: `func_150487E0` (`src/game_75C90.c`)
+has a `+8`-byte residual from `f32 temp_f14 = (D_80098E00[(s32)
+(fabsf(arg0) * D_80099000)] * D_80099004) / 65536.0f;` — current
+compiles this with a redundant `cvt.d.s`+`cvt.s.d` round-trip on
+`arg0` immediately at function entry, before any visible use, that
+target's equivalent (`abs.s $f0,$f12` directly, no conversion) doesn't
+have. Tried splitting `fabsf(arg0)` into its own separate local
+statement first — no change in the generated code, reverted. The root
+cause isn't yet understood (target never calls anything for the
+`fabs` — both versions resolve to hardware `abs.s` eventually, so it
+isn't a missing-fabsf-intrinsic issue; something about how IDO
+evaluates this specific composite array-index expression forces an
+early, wasted double round-trip on `arg0` specifically). Worth a fresh
+look in a future session, possibly by feeding the target disassembly
+through `mips_to_c` to see what source shape it infers.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: `func_150488C8` (a raw-asm-preceded point,
+check whatever real C function precedes it), `func_15048C30`,
+`func_150490A8`, `func_15049260`, `func_1504A620`, `func_1504BC38`,
+`func_1504CA60`, `func_15052F58`, and many more beyond — this cluster
+remains large. Same discipline throughout: check the function
+immediately preceding any reported point first, use the
+`target_file_offset` formula for this segment (recalibrate via
+prologue-pattern matching if a comparison looks misaligned — the fixed
+LMA constant has been observed to drift slightly deeper into the
+segment, most likely from `SUBALIGN(16)` padding differences
+compounding at object-file boundaries between current and target), and
+prefer the parameter-bit-reinterpretation technique over
+pointer-cast-indirect-call for any further missing-prototype
+float-promotion bugs involving runtime parameter values.

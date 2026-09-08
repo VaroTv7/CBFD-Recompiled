@@ -75,7 +75,7 @@ s32 func_150485E0(s32 arg0) {
     return tmp1 - (((tmp1 - tmp2) * (arg0 & phi_v1)) >> phi_a1);
 }
 
-u16 func_15048664( s32 arg0) {
+u16 func_15048664( s16 arg0) {
     s32 tmp;
 
     if (arg0 >= 0) {
@@ -91,7 +91,7 @@ u16 func_15048664( s32 arg0) {
     return tmp;
 }
 
-s16 func_150486B8( s32 arg0) {
+s16 func_150486B8( s16 arg0) {
     s32 tmp;
 
     if (arg0 >= 0) {
