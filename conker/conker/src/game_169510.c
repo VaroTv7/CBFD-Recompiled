@@ -390,7 +390,7 @@ void *func_1513D668(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 
 void func_1513E070(s32 arg0, s32 arg1, s32 arg2) {
 }
 
-void func_1513E084(struct210 *arg0, struct212 *arg1, s32 arg2) {
+void func_1513E084(struct210 *arg0, struct212 *arg1, u8 arg2) {
     struct212 *temp_v0 = &arg0->unk110;
     if (arg2 == 0x1A) {
         if ((temp_v0->unk0 == arg1->unk0) || (temp_v0->unk4.b.unk0 == arg1->unk4.b.unk0)) {
