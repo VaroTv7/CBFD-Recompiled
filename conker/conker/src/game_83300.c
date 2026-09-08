@@ -525,7 +525,7 @@ void func_15059140(struct127 *arg0) {
     if ((arg0->unkF8 & 0x180000) != 0) {
         func_150511E8(arg0);
     }
-    func_1505B5F8(arg0, arg0->unk180);
+    func_1505B5F8(arg0, *(s32 *) &arg0->unk180);
     if (((arg0->unkF4 & 0x1000) != 0) && (arg0->unk28 < D_800994B0)) {
         func_15056B08(arg0);
     }
