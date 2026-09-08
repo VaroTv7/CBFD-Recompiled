@@ -21,7 +21,7 @@ struct225 *func_15161408();
 struct225 *func_15161494(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161540();
 struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5);
-void func_151616D0();
+void func_151616D0(u8 arg0, s32 arg1, s32 arg2);
 void func_15161714();
 void func_15161740();
 void func_1516176C();
@@ -407,7 +407,7 @@ struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 ar
     return temp_v0;
 }
 
-void func_151616D0( s32 arg0, s32 arg1, s32 arg2) {
+void func_151616D0( u8 arg0, s32 arg1, s32 arg2) {
     struct234 tmp;
 
     tmp.unk0 = arg0;
