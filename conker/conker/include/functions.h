@@ -83,8 +83,8 @@ void func_1000F248();
 s32  func_1000F3D0(u16 arg0);
 s32  func_1000F44C(u16 arg0);
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4, s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9);
-void func_1000F9D4(u16 arg0, s32 arg1, s32 arg2, s32 arg3);
-void func_10010720();
+void func_1000F9D4(u16 arg0, s16 arg1, s16 arg2, s16 arg3);
+void func_10010720(u16 arg0, struct127 *arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
 s32  func_100107F8();
 s32  func_10010894();
 void func_100109D0();
@@ -960,7 +960,7 @@ s32  func_1000EE70();
 //func_1000F44C
 //func_1000F4D8
 //func_1000F568
-//func_1000F6B8
+s32  func_1000F6B8(s32 arg0, s16 arg1, s16 arg2, s16 arg3, s32 *arg4, s32 arg5, s32 arg6);
 void func_1000F85C();
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4, s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9);
 u16  func_1000FA64();

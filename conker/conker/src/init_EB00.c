@@ -227,15 +227,14 @@ s32 func_1000F44C( u16 arg0) {
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4,
                    s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9) {
     s32 sp2C;
-    s32 tmp = func_1000F6B8(arg4, arg5, arg6, arg7, &sp2C, (s32) arg8, (s32) arg9);
 
-    func_1000F85C(arg0, 8, (u32) (tmp * arg1) >> 0xF);
+    func_1000F85C(arg0, 8, (u32) (arg1 * func_1000F6B8(arg4, arg5, arg6, arg7, &sp2C, (s32) arg8, (s32) arg9)) >> 0xF);
     func_1000F85C(arg0, 4, sp2C & 0x7F);
     func_1000F85C(arg0, 256, (sp2C & 0x80) | arg3);
     func_1000F85C(arg0, 16, arg2);
 }
 
-void func_1000F9D4( u16 arg0, s32 arg1, s32 arg2, s32 arg3) {
+void func_1000F9D4( u16 arg0, s16 arg1, s16 arg2, s16 arg3) {
     u32 tmp;
 
     func_1000F6B8(-1, arg1, arg2, arg3, &tmp, 32760, 32765);
@@ -310,11 +309,11 @@ void func_1000F9D4( u16 arg0, s32 arg1, s32 arg2, s32 arg3) {
 //     }
 // }
 
-void func_10010720( s32 arg0, struct127 *arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+void func_10010720( u16 arg0, struct127 *arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
     if (arg5 <= 0) {
         func_10010630(arg0, arg1, arg2, arg3, arg4);
     } else {
-        func_1000FA64(arg0, arg1->x_position, arg1->y_position, arg1->z_position, arg2, arg4, arg3, func_1000EDA0, arg5, arg1, 0, 0);
+        func_1000FA64(arg0, (s16) arg1->x_position, (s16) arg1->y_position, (s16) arg1->z_position, arg2, arg4, arg3, func_1000EDA0, arg5, arg1, 0, 0);
     }
 }
 

@@ -4630,3 +4630,147 @@ now-resolved entries: `func_1000FA64`, `func_100107F8`,
 `func_100114D0`, `func_10011FA0`, `func_100127D0`, `func_10012934`,
 `func_10012E04`, `func_10015550` — same file family
 (`src/init_EB00.c` and neighbors), same discipline.
+
+## Session log — diff.py drift-artifact discovery, two real fixes, one confirmed dead end (2026-09-08, later still)
+
+**Important methodology discovery**: `tools/asm-differ/diff.py`'s default
+binary-diff mode (`dump_binary()`) resolves the TARGET address to slice
+out of `conker.us.bin` using **current's own actual (possibly drifted)
+linked address**, not the function's declared/name address — it does
+*not* self-correct for pre-existing upstream drift. Whenever nonzero
+cumulative drift already exists going into a function (which is now the
+normal case this deep into the cluster), a plain `diff.py func_NAME
+[end]` call shows completely bogus "target" content: it's actually
+target's real bytes from `current_addr`, i.e. the tail end of whatever
+target function precedes the real one by exactly the drift amount. This
+produces a convincing-looking but totally wrong diff (extra unrelated
+"target-only" instructions at the top that look like a different
+function's epilogue, because that's literally what they are).
+
+**Fix**: pass `-S <drift_in_bytes>` (`--base-shift`), computed as
+`declared_addr - actual_addr` for the function's own start (i.e. the
+magnitude of the existing negative delta reported by `find_drift.py`
+just before this function). This shifts only the target-side read
+address, correctly re-aligning it to the function's true declared
+position. Confirmed empirically: `diff.py -S 0x30 func_1000F91C` (drift
+was -0x30/-48 at that point) produced a completely different, correct,
+sensibly-aligned diff vs the unshifted call. Cross-verified against raw
+`mips-linux-gnu-objdump -Dz -bbinary -EB -m mips:4300
+--adjust-vma=0x10000000 --start-address=... --stop-address=...
+conker.us.bin` (the .bin's file offset 0 corresponds to VMA
+`0x10000000`) — matches the shifted diff exactly. **This should be
+standard practice from here on**: before trusting any `diff.py` output
+for a function past the very first unresolved drift point, check
+`find_drift.py`'s cumulative delta immediately before that function and
+pass it as `-S`, or fall back to the two-sided raw `objdump` comparison
+if in doubt.
+
+Re-investigated the continuation list with this corrected technique.
+
+**`func_1000F91C`** (delta going in: -48, i.e. this function itself was
++12 oversized): properly-shifted diff showed real, if subtle,
+divergence — current keeps `arg0` resident in a saved register (`s0`)
+across all 4 `func_1000F85C` calls, while target just re-`lhu`s it fresh
+from its own stack spill slot before every use. Tried removing the
+`s32 tmp` intermediate local (inlining `func_1000F6B8`'s call directly
+into the first `func_1000F85C` argument expression, matching what
+`mips_to_c` derives from the real target disassembly) — **zero effect
+on codegen size**, byte-for-byte identical object output before and
+after. This confirms the register-promotion choice is a pure IDO
+register-allocation heuristic unrelated to that particular source
+shape difference, in the same family as the already-closed
+`func_10008660.arg3` residual. **Formally closing this one too** for
+now — kept the inlined form since it's a harmless, arguably cleaner
+equivalent (matches `mips_to_c`'s natural reconstruction) with no
+downside.
+
+**`func_1000F9D4`** (real bug, fixed): properly-shifted diff revealed
+target does a full `sll+sra`-by-16 sign-extend idiom on `arg1`/`arg2`/
+`arg3` immediately in its prologue before forwarding them to
+`func_1000F6B8` — 9 extra target instructions current was missing
+entirely. This is the standard "narrow parameter type" pattern: all
+three should be `s16`, not `s32` (they're forwarded verbatim to
+`func_1000F6B8`'s already-`s16` slots 2–4, confirmed via `mips_to_c`'s
+independent reconstruction of that function's own signature). Fixed
+`void func_1000F9D4(u16 arg0, s16 arg1, s16 arg2, s16 arg3)`. Result:
+drift at this function dropped from **-32 bytes (under target) to just
++4 bytes (over)** — recovered 28 of 32 bytes. The remaining +4 is one
+extra instruction (`sw a0,0x28(sp)` + reload instead of a fresh `lhu`
+reload from the original prologue slot before the second
+`func_1000F85C` call) — same register/stack-allocation-choice flavor as
+the `func_1000F91C` residual above. Not chased further; diminishing
+returns for the effort, and it matches an already-established
+unfixable-heuristic pattern.
+
+**`func_1000F6B8`** (still `#pragma GLOBAL_ASM`, never converted): had
+**no prototype at all** in `functions.h` (its line was fully commented
+out — `//func_1000F6B8` — even more relaxed than K&R, meaning fully
+implicit `int` typing with zero arg-count/type checking). Added a real
+prototype derived from `mips_to_c`'s reconstruction of its call sites:
+`s32 func_1000F6B8(s32 arg0, s16 arg1, s16 arg2, s16 arg3, s32 *arg4,
+s32 arg5, s32 arg6);`. Zero effect on codegen (both call sites already
+passed compatible-width values), but it's a genuine correctness/
+documentation improvement with no downside, so kept.
+
+**`func_10010720`** (real bug, fully resolved — this was the true cause
+of `func_100107F8`'s entire reported drift, another instance of the
+established misattribution pattern): two separate real bugs found via
+the corrected diff technique:
+1. Its call to `func_1000FA64` (still raw `GLOBAL_ASM`, called with 12
+   args) passed `arg1->x_position`, `arg1->y_position`,
+   `arg1->z_position` (all genuine `f32` struct fields) completely
+   uncast, unlike **every other of the ~24 call sites of
+   `func_1000FA64` across the codebase**, which all explicitly cast
+   their positional args to `(s16)`. Added the matching `(s16)` casts.
+   Confirmed via `objdump` that target does `trunc.w.s` + `mfc1` +
+   `sll`/`sra`-by-16 (float-to-`s16` truncation) at this exact call
+   site — current was doing a no-op float pass-through instead.
+2. `arg0` itself needed `s32` → `u16`: target's prologue does an
+   `andi t6,a0,0xffff` + `move a0,t6` mask/re-move idiom current
+   lacked entirely (three extra target instructions). Consistent with
+   `arg0` being forwarded as the `u16` first argument to both
+   `func_10010630` and `func_1000FA64`.
+
+Both fixed together, verified via the corrected `objdump`-vs-`objdump`
+comparison at `0x10010720`–`0x100107f8` before rebuilding — matched
+target **instruction-for-instruction, fully byte-identical**. Rebuilt
+and confirmed: `func_100107F8`'s reported drift (`-48` bytes at the
+start of this round) **disappeared entirely from `find_drift.py`'s
+output** — fully resolved, zero remaining drift. `func_10011FA0`'s
+small `+4`-byte entry also disappeared as an unrelated side effect
+during this round's work (likely already fixed by the prior round's
+`func_1000F3D0` change, just not previously re-verified after that
+build).
+
+Rebuild note: hit a transient/flaky parallel-build race this round
+(`rm -rf build && make -j$(nproc)` produced several unrelated
+`AssertionError`/`struct.error` failures in `asm_processor.py` for
+files never touched this session — `game_16DC80.c`, `game_169510.c`,
+`game_18D770.c`, `game_57FA0.c`, `game_C8950.c`, `game_CB1C0.c`,
+`libultra/gu/guMtxF2L.c` — plus one corrupted leftover `.o` for
+`guMtxF2L.c` that needed manual deletion before a subsequent
+incremental `make -j$(nproc) -k` succeeded cleanly). Not caused by any
+source change; purely a race under high parallelism on this
+filesystem. **Lesson**: if a `-j$(nproc)` build shows `asm_processor.py`
+Python tracebacks (`AssertionError`, `struct.error`) in otherwise-
+untouched files rather than real `cfe: Error`/`Signal 11` compiler
+failures, suspect a build race — retry with an incremental (non-clean)
+`make -j$(nproc) -k`, deleting any specifically-corrupted `.o` files
+first if the retry still fails on the same targets.
+
+Rebuilt clean after all fixes (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py` and direct `objdump`
+comparisons throughout.
+
+**Continuation point**: `func_1000FA64` and `func_100114D0` are both
+still raw `GLOBAL_ASM` (never converted) — no direct source fix
+possible there; any remaining reported drift near them needs the same
+"check the immediately preceding real C function" treatment first, with
+the corrected `-S`-shifted (or raw dual-`objdump`) diff technique.
+Remaining unchecked from the list: `func_100114D0` (check whichever
+real C function precedes it), `func_100127D0`, `func_10012934`,
+`func_10012E04`, `func_10015550` — same file family, same corrected
+discipline (**always compute and pass the right `-S` value, or
+cross-check with raw `objdump -bbinary --adjust-vma=0x10000000`,
+before trusting a `diff.py` result past the first unresolved drift
+point**).
