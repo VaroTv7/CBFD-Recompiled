@@ -4921,3 +4921,110 @@ check the function immediately *preceding* any reported point (not
 just the named one) for the true cause, use `-S <shift>` or dual
 `objdump -bbinary --adjust-vma=0x10000000` comparison rather than a
 plain `diff.py` call whenever upstream drift is nonzero going in.
+
+## Session log — extended cluster (0x10017100-0x10020000) fully resolved; non-address-named-symbol lesson (2026-09-08, later still)
+
+Continued into the newly-discovered adjacent cluster from the previous
+entry. **Important correction to that entry**: the first "drift point"
+listed there, `func_10017298` (-32), was a false positive — an
+artifact of running `find_drift.py` as a fresh separate invocation
+starting at `0x10017100`, which resets its internal cumulative-delta
+tracker to 0 even though real drift (-32, carried over from the
+already-closed `func_1000F91C`/`func_1000F9D4` residuals) was already
+present at that address. Always scan with a single continuous range
+from `0x10009000` onward (or whatever the true start of tracking is)
+rather than stitching together separately-invoked sub-ranges, or the
+first entry of every sub-range will be bogus.
+
+Four more real, independent fixes found and applied, all via the
+`-S`-shift / dual-`objdump` discipline:
+
+**`func_10017B04`** (`src/libultra/audio/init_17AF0.c`): `arg2` needed
+`s32`→`u8` — target masks it with `andi a2,0xff` at entry before
+storing into a `u8` struct field (`chanState[chan].unk17`). Resolved
+`func_10017B30`'s and `func_10017C00`'s reported drift together (the
+usual misattribution pattern — both are downstream, unrelated to the
+real bug).
+
+**`func_1001CBF0`** (`src/libultra/audio/init_1CBF0.c`): its call to
+`func_150484A0` was being compiled as an implicit K&R call (double
+promotion of the `f32` args, and the `f32` return value wrongly
+reinterpreted through `mtc1`+`cvt.s.w` as if it were an `int` return)
+even though `func_150484A0` **does** have a fully correct prototype in
+`functions.h` (`f32 func_150484A0(f32, f32)`) — this file just never
+includes `functions.h` in its include chain (only
+`n_synthInternals.h`, which doesn't pull it in either). Added a local
+forward declaration instead of including the whole `functions.h`, to
+avoid any risk of unrelated symbol clashes in this SDK-audio-library
+area. This is the same missing-prototype-across-file-boundary bug
+category as `func_1000C530` from several rounds ago, just with the
+prototype already existing elsewhere rather than needing to be
+authored fresh. Fully resolved `func_1001CEA4`'s reported drift.
+
+**`func_1001D9B0`** (`src/libultra/audio/init_1D900.c`): `arg0`
+`s32`→`s16` (target sign-extends at entry, `sll`+`sra` by 16 — no
+callers found in any `.c` file, so this couldn't be cross-checked
+against a call site, but the target disassembly is unambiguous).
+Resolved `func_1001DA28`'s reported drift.
+
+**`func_1001DAE4`** (same file): two independent bugs found together:
+1. `arg1` needed `s32`→`s16` (target reads only the low halfword of
+   its stack-spilled slot via `lh`, rather than the full word via
+   `lw` — same idiom as `func_1001D9B0` above, different flavor: this
+   one shows up as a narrower *load* rather than an explicit
+   mask/sign-extend instruction sequence, because the value is only
+   ever read back from its own spill slot, never reused in a register).
+2. Its call to `func_1001CF38` (which *does* have a correct prototype,
+   `void func_1001CF38(void*, f32)`, elsewhere in `functions.h`) was
+   passing `n_syn->outputRate` (an integer field) as a raw bit-pattern
+   instead of being properly `int`-to-`float` converted, because — same
+   root cause as the `func_150484A0` case above — this file doesn't
+   see `func_1001CF38`'s prototype either. Added a second local forward
+   declaration. Fully resolved `func_1001E2A0`'s reported drift.
+
+**Methodology lesson, non-obvious and worth flagging strongly for any
+future work on unnamed (non-`func_ADDR`) symbols**: `find_drift.py`'s
+regex only tracks symbols whose name encodes their own expected
+address (`func_XXXXXXXX` / `D_XXXXXXXX`). Real SDK/library functions
+with hand-picked names (`n_alSynStartVoiceParams`, `__alCSeqNextDelta`,
+`n_alSynAllocVoice`, `init_lpfilter`, etc.) are **invisible** to it —
+their own individual drift never gets reported, only the *cumulative*
+total shows up once tracking resumes at the next `func_ADDR`-named
+symbol. This means a single printed drift entry can be hiding
+several bytes' worth of *actual* drift spread across multiple
+consecutive unnamed functions, and — critically — **the naive
+assumption that the cumulative delta stays constant through an unnamed
+stretch is not reliable**; it can change partway through with zero
+warning from the tool. The only robust way to locate the true source
+within an unnamed stretch is direct prologue-pattern matching: dump
+current's own disassembly for the candidate function (`objdump -d
+build/conker.us.elf --start-address=... --stop-address=...`), note its
+distinctive prologue instruction sequence, then binary-search plausible
+`-S` shift values against the raw target `.bin`
+(`objdump -Dz -bbinary -EB -m mips:4300 --adjust-vma=0x10000000
+--start-address=<current_actual+shift> ...`) until that exact
+instruction sequence appears at the expected offset — a wrong shift
+typically produces either a function *tail* (epilogue: `jr ra` /
+`addiu sp,sp,+N` / trailing `nop`s) or unrelated garbage, both
+obviously wrong once you know what a real prologue looks like, so this
+converges fast in practice (2-3 tries) even with zero prior
+information about the unnamed function's true size. This is how
+`func_1001DAE4` was ultimately isolated as the true single-function
+source of drift spanning across `func_1001DAE4` itself plus three
+further unnamed functions (`__alCSeqNextDelta`, `n_alSynAllocVoice`,
+`n_alSynStartVoiceParams`) that turned out, once correctly checked,
+to already match perfectly.
+
+Rebuilt clean after each fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py` (single continuous range
+`0x10009000`-`0x10020000` throughout, per the correction above).
+
+**Milestone**: `find_drift.py 0x10009000 0x10020000` now reports only
+the same two long-closed residuals (`func_1000F9D4` +12,
+`func_1000FA64` +4) — the entire `0x10009000`-`0x10020000` range,
+covering both the original wide cluster AND this session's
+newly-discovered extension, is now fully resolved except for those two
+genuine IDO register-allocation heuristics. No further known
+continuation point in this immediate area; a fresh `find_drift.py`
+scan starting past `0x10020000` would be needed to find the next area
+of interest, if any, whenever this investigation resumes.

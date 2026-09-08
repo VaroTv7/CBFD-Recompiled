@@ -4,6 +4,7 @@
 
 
 extern Acmd *(func_1001E530)(s32, Acmd *);
+void func_1001CF38(void *, f32 arg1);
 
 
 void n_alSynSetFXMix( N_ALVoice *v, u8 fxmix) {
@@ -21,7 +22,7 @@ void n_alSynSetFXMix( N_ALVoice *v, u8 fxmix) {
     }
 }
 
-s32 func_1001D9B0( s32 arg0) {
+s32 func_1001D9B0( s16 arg0) {
     N_ALMainBus *sp4;
 
     sp4 = n_syn->mainBus;
@@ -50,7 +51,7 @@ void func_1001DAA0(s32 arg0, s32 arg1, s32 arg2) {
     func_1001ED6C(sp1C, arg1, arg2);
 }
 
-void func_1001DAE4(ALVoiceConfig *arg0, s32 arg1, s32 *arg2) {
+void func_1001DAE4(ALVoiceConfig *arg0, s16 arg1, s32 *arg2) {
     if (arg1 == 8) {
         arg0->fxBus = (f32) *arg2 * 0.1f;
     } else if (arg1 == 9) {

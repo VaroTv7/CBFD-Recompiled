@@ -1,5 +1,7 @@
 #include "n_synthInternals.h"
 
+f32 func_150484A0(f32 arg0, f32 arg1);
+
 #if 0
 f32 PI = 3.1415927410125732;
 f32 D_8002C774 = 1.4142136573791504;
