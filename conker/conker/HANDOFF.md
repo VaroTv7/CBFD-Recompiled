@@ -5913,3 +5913,112 @@ the same objdump-diff methodology used for `func_15059140` above), the
 `func_1513EDE4`/`EE14`/`F4E4`/`F6C0` region in `game_169510.c`, and
 (if ever revisited) the `func_1505A250` full-prototype cleanup
 described above.
+
+## Session log — clearing game_169510.c's remaining narrow-parameter bugs; a new "done" directory found (2026-09-08, later still)
+
+Continued the systematic objdump-diff sweep from `func_1504BC38`
+onward. Most of the small entries in the `game_77AD0.c`/`game_981E0.c`
+region turned out to be either (a) already-documented, accepted
+residuals from earlier rounds' fixes bleeding forward (the
+`func_1505E650`-with-`0.0f` register-routing quirk, confirmed via
+direct re-verification at `func_1506B020` — target still routes the
+literal through `mtc1`+`swc1` where no C-level literal choice
+reproduces it), or (b) genuine `SUBALIGN`-adjacent object-boundary
+padding (confirmed again at the `game_77AD0.c`→`game_83300.c` file
+boundary, same diagnosis as `func_150491EC` two rounds back — the
+function's own body is byte-identical to target, target just has one
+extra trailing `nop`).
+
+One genuine fresh bug found in that region: **`func_150548E4`**
+(`game_77AD0.c`) had a local `phi_v0` variable declared `s32` holding
+either `0x1DB` or `0x1DC` before being passed to `func_10010344` as
+its first argument. Target computes the constant directly into the
+argument register in each branch with no intermediate temp/mask;
+ours routed through a local `v0` requiring an extra `andi ...,0xffff`
+before the call. Changed `phi_v0` to `u16` — this let IDO fold the
+constant directly into the argument register like target does,
+eliminating the extra instruction entirely. A different kind of fix
+than the usual "match target's masking with a narrower parameter
+type" — here it's a *local variable's* type causing an avoidable
+intermediate load/mask, not a function parameter's type.
+
+**Cleared essentially all of `game_169510.c`'s remaining narrow-type
+bugs**, continuing the vein from two rounds ago:
+- `func_1513E084`: `arg2`→`u8` (compared against `0x1A`/`0x2D`).
+- `func_1513EDB4`/`func_1513EDE4`: `arg1`→`s16` (target uses
+  `sll`+`sra` 16-bit *sign*-extend, not `andi` — the first time this
+  session a narrow-parameter fix needed a signed type rather than
+  `u8`; confirmed via direct instruction inspection, not assumed).
+  Promoting `functions.h`'s declaration to strict let
+  `fix_cross_file_arg_counts.py` catch and pad a genuinely
+  pre-existing bug in `src/game/game_129EE0.c` — a call site passing
+  only 1 of 2 required arguments, unrelated to this round's work but
+  surfaced by it.
+- `func_1513F4B0`: `arg1`→`s16`, same sign-extend pattern.
+- `func_1513F680`: all 4 args (`arg1..arg4`)→`u8`. Notable: the
+  destination struct (`struct171`) declares three of these fields as
+  `s8` and one as `u8`, but target's masking instruction is `andi`
+  (zero-extend) for all four — confirming again (as with
+  `func_151616D0` last round) that the *observed instruction* is the
+  ground truth to match, not the destination field's declared
+  signedness, when the two disagree. This was the largest single fix
+  this round: `-36` bytes, fully resolved.
+- `func_151403A8`/`func_151403DC`: `arg1`→`u8`. Promoting
+  `functions.h` to strict here let `fix_cross_file_arg_counts.py` trim
+  3 pre-existing over-long calls (extra trailing arguments beyond the
+  real 2-parameter signature) in `game/game_11C2B0.c` and
+  `game/game_1F4650.c`.
+
+Cluster dropped from 95 to **88 entries** across this round (144→88
+across the full `0x15000000+` investigation to date).
+
+**Major new finding, not yet fixed**: `func_15149264`'s residual
+(`-48`, misattributed per the usual pattern — the real bug is in the
+*preceding* function `func_151491F4`) traces to a file I hadn't
+noticed before: **`src/game/done/game_1765E0.c`** — a `done/`
+subdirectory, presumably meaning "already matched," that in fact still
+has real drift. `func_151491F4`'s current signature is
+`(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7)`,
+but direct `objdump` comparison shows target treats the parameters as
+a genuinely mixed-width signature: `arg0` sign-extended 16-bit (`s16`),
+`arg1`/`arg2` sign-extended 8-bit (`s8` each, via `sll`+`sra` in-
+register), and at least `arg3` read back as a single byte from its
+stack spill slot (probably `s8`/`u8`, not yet confirmed with the same
+rigor). This function (and its wrapper `func_15149130`, also in the
+same file) is called from **13 different files**
+(`game_113D60.c`, `game_188440.c`, `game_1BFDD0.c`, `game_1CA420.c`,
+`game_1CC440.c`, and more), making this a much larger, higher-risk fix
+than this round's other single-file changes — the exact per-argument
+byte offsets need to be worked out carefully from the stack layout
+(args beyond the 4 register slots land at non-uniformly-spaced stack
+offsets once narrower types are packed), and `fix_cross_file_arg_counts.py`
+would need to be run and its output checked carefully given the
+number of call sites. Deliberately left unfixed this round rather than
+rushing a wide, error-prone change — see continuation point below.
+
+**Newly relevant**: the existence of a `src/game/done/` subdirectory
+suggests there may be other files under it worth auditing the same
+way — files presumed complete that `find_drift.py`'s ground-truth
+comparison shows are not. Worth a `grep -rl` sweep of `src/game/done/`
+against the current drift list in a future round to see if
+`game_1765E0.c` is an isolated case or a sign of a broader pattern.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: work out `func_151491F4`/`func_15149130`'s
+real per-argument types in `src/game/done/game_1765E0.c` carefully
+(dump target's full disassembly with stack-offset annotations, cross-
+reference against `struct260`'s field types the same way `Header`/
+`struct171` were used as ground truth in earlier rounds), fix both
+functions' signatures together, then run
+`restore_promotion_safe_signatures.py` + `fix_cross_file_arg_counts.py`
+and manually spot-check a few of the 13 calling files' resulting diffs
+before trusting the automated fixup blindly (this is a wider blast
+radius than anything fixed so far this investigation). Beyond that,
+continue the systematic sweep past `func_15149550`,
+`func_1516979C`/`func_15169900` (in `game_1944C0.c` — not yet
+individually diagnosed), and whatever remains toward
+`func_151DA08C`/`func_151DBCBC`/`func_151DC6A0` and the
+`func_16000000`+ tail of the segment.
