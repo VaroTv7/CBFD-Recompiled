@@ -11,11 +11,11 @@ void func_1506AF74(void) {
         gCurrentObject->unk100 |= 4;
     }
     gCurrentObject->unk100 &= 0xF7;
-    func_1505E650(gCurrentObject, 0x38, 1.0f, 5.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x38, 0x3F800000, 0x40A00000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506AFE0(void) {
-    func_1505E650(gCurrentObject, 0x48, 1.0f, 5.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x48, 0x3F800000, 0x40A00000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B020(void) {
