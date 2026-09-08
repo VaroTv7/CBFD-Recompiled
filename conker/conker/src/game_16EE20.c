@@ -3,6 +3,7 @@
 #include "functions.h"
 #include "variables.h"
 
+f32 random_float();                                /* extern */
 
 void func_15141970(struct37 *arg0) {
     func_1514EDF0(arg0, arg0->unk2C);

@@ -2,6 +2,8 @@
 #include "functions.h"
 #include "variables.h"
 
+f32 random_float();                                /* extern */
+
 s32 func_151149AC();
 
 struct225 *func_151602C0();

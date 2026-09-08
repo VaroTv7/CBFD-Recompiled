@@ -3,6 +3,7 @@
 #include "functions.h"
 #include "variables.h"
 
+f32 random_float();                                /* extern */
 
 u8 func_151D8E20(void) {
     if ((D_800BE9F0 == 0) && (func_150A29C8(0, 0x1C) == 0)) {
