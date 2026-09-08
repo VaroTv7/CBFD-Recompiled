@@ -955,8 +955,8 @@ f32 func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4) {
         arg2 = arg2 * arg3;
     }
     temp_f12 = (arg0 - 90.0f) * D_80099520; // 0.01745329238474369f;
-    sp24 = func_150AD780(temp_f12);
-    temp_f0 = func_150AD78C(temp_f12);
+    sp24 = func_150AD780(*(s32 *) &temp_f12);
+    temp_f0 = func_150AD78C(*(s32 *) &temp_f12);
     *arg4 = (-arg1 * temp_f0) + (arg2 * sp24);
     return (arg1 * sp24) + arg2 * temp_f0;
 }
@@ -1005,9 +1005,9 @@ f32 func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4) {
 
 void func_15060B04(s32 arg0, struct127 *arg1, s32 arg2) {
     if (arg1->camera == NULL) {
-        func_10010630(arg0, arg1, arg2, 500, 2500);
+        func_10010630((u16) arg0, arg1, arg2, 500, 2500);
     } else {
-        func_15060778(arg0, arg1, arg2, 0, 500, 2500, 0);
+        func_15060778(arg0, arg1, (u16) arg2, 0, 500, 2500, 0);
     }
 }
 
