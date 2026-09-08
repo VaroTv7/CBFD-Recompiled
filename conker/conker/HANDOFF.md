@@ -4386,3 +4386,66 @@ to chase what may turn out to be their downstream shadows across a
 dozen other functions. If those two get solved, re-run
 `find_drift.py` over this whole wide range before investigating any
 of the ~18 points individually — most of them may simply disappear.
+
+## Session log — another real attempt at the two init_8180.c residuals, still unsolved (2026-09-08)
+
+Went back to actually try harder on `func_10008660`'s `arg3` and
+`func_10008C04`'s reload-timing residual, per explicit instruction,
+rather than treating them as permanently closed.
+
+**Fixed a real tooling gap first**: `tools/mips_to_c/m2c.py` was
+completely broken (`ModuleNotFoundError` chain ending in
+`pycparser.plyparser` missing) — the project's `pyproject.toml` pins
+`pycparser = "^2.21"`, but the environment had `pycparser` 3.0
+installed (a newer major version that reorganized/removed the
+`plyparser` module `m2c.py` imports through). Fixed with
+`pip3 install --user --break-system-packages 'pycparser==2.21'`.
+This makes `mips_to_c` usable for the first time this session — worth
+remembering as a tool for exactly this kind of "what C structure
+would produce this exact asm" question, distinct from `diff.py`
+(compares two known things) and `find_drift.py` (locates where things
+diverge). Usage: hand-transcribe the target's disassembly (from a
+`diff.py` target column) into a valid `.s` file with `glabel`/local
+labels, then `python3 tools/mips_to_c/m2c.py the_file.s`.
+
+**`func_10008660`**: ran `mips_to_c` against a hand-transcribed `.s`
+of target's actual bytes. It suggested a **third** structural variant
+neither of the previous two rounds' experiments tried: a separate
+`s32` local (not `u8`, and not reassigning `arg3` in place) with an
+explicit `& 0xFF` cast only at the call site (`(u8) sp0` in this
+attempt's code) — matching the observed `andi a3,s0,0xff` appearing
+exactly once, right before the call, rather than baked into a
+narrower variable's type throughout. Applied it, rebuilt clean,
+scored it: **worse** (985 → 1285) — same outcome as both prior
+attempts, just a different specific way of being worse. Reverted to
+the known-best version (985, `arg3` reassigned in place, still `s32`).
+This is now a **third** independently-tried structural variant that
+all move the disassembly further from target instead of closer,
+despite `mips_to_c`'s C being semantically identical to all of them —
+strong evidence the remaining gap here is genuinely IDO's own
+register-allocation heuristic (not reachable through equivalent
+C restructuring), not something this investigation has just failed to
+phrase correctly yet.
+
+**`func_10008C04`**: same `mips_to_c` treatment. This time it
+confirmed our *existing* C structure is already the natural
+reconstruction (`(arg0*0xF8)+0x8003CA58`, `(arg0*0x760)+0x8003CD48`
+matching `D_8003CA58[idx]`/`D_8003CD48[idx]` exactly) — no alternative
+structure suggested, nothing to try. The `lbu a2,0x1f(sp)` early-
+reload-and-hold pattern target uses really does look like a pure
+instruction-scheduling choice with no C-source-level lever to pull.
+
+**Conclusion, with higher confidence than before**: both residuals
+have now survived three independent fix attempts each (well,
+`func_10008C04` has had fewer attempts but `mips_to_c` found nothing
+new to try). Treating both as **closed for source-level fixes** going
+forward — further attempts would need either a different compiler-
+level lever (unclear if one exists in this project's tooling) or
+accepting them as permanent gaps. Recommend re-running the alignment-
+amplification test from last round instead (checking whether the wider
+~18-point cluster past `init_8180.c` actually depends on these two, or
+is independent) since that question is still open and doesn't require
+solving these two first.
+
+Scratch `.s` files used for the `mips_to_c` experiments were temporary
+and have been deleted — not part of the repo.
