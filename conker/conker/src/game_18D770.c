@@ -48,7 +48,7 @@ void func_1516381C();
 void func_1516387C();
 s32  func_151639D0(struct225 *arg0, s32 arg1, u8 arg2);
 void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2);
-struct225 *func_15163A60();
+struct225 *func_15163A60(u8 arg0, s32 arg1, s32 arg2);
 s32  func_15163B98();
 struct225 *func_15163BE8();
 s32  func_15163CD0();
@@ -1021,7 +1021,7 @@ void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2) {
     }
 }
 
-struct225 *func_15163A60( s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15163A60( u8 arg0, s32 arg1, s32 arg2) {
     struct225 *temp_v0_2;
     Header header;
     f32 tmp1[4];
