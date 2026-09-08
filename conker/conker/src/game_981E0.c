@@ -43,11 +43,11 @@ void func_1506B100(s32 arg0, f32 arg1, f32 arg2) {
 }
 
 void func_1506B14C(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 0);
+    func_1505E650(gCurrentObject, (u16) (gCurrentObject->unk84.uh + 1), *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B198(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 1);
+    func_1505E650(gCurrentObject, (u16) (gCurrentObject->unk84.uh + 1), *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 1);
 }
 
 void func_1506B1E8(void) {
@@ -1445,7 +1445,7 @@ void func_15072A7C(void) {
 }
 
 void func_15072AF8(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, 0x3F800000, 0x40C00000, 0x00000000, 0x00000000, 0);
+    func_1505E650(gCurrentObject, (u16) (gCurrentObject->unk84.uh + 1), 0x3F800000, 0x40C00000, 0x00000000, 0x00000000, 0);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15072B44.s")
