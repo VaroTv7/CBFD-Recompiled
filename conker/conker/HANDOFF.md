@@ -5530,3 +5530,86 @@ missing-prototype fix's real semantics via direct `objdump` comparison
 session, function-dependent), and don't assume every residual is a
 promotion bug — check for missing `return` statements and outright
 wrong field/variable references too.
+
+## Session log — batch-fixing the recurring func_1505E650 pattern across game_981E0.c (2026-09-08, later still)
+
+Continued the sweep. `func_1505E650`'s missing-prototype float-
+promotion bug turned out to be *extremely* common throughout
+`src/game_981E0.c` specifically (an animation/state-change dispatch
+file with dozens of near-identical one-line wrapper functions). Rather
+than rediscovering each one individually via `find_drift.py`, grepped
+the whole file for `func_1505E650(...)` calls containing float
+literals and fixed all ~19 of them in one pass:
+
+- Pure compile-time-constant cases: replaced float literals with their
+  precomputed IEEE-754 hex bit patterns (the by-now well-established
+  fix for this exact function).
+- Cases passing a genuine runtime value (a function parameter, a
+  struct field `gCurrentObject->animation_speed`, a global variable
+  `D_800D1878`): applied the parameter/field-bitcast technique
+  (`*(s32*)&expr`) instead, since these are all directly addressable.
+- Found and fixed a **second, independent** bug hiding under the same
+  calls: three sites passing `gCurrentObject->unk84.uh + 1` as the
+  *second* argument were missing a `(u16)` cast (target masks with
+  `andi a1,0xffff`) — this is unrelated to the float-promotion issue
+  and was only found because the residual at those specific sites
+  (`-12`) was larger than the standard `-4` "closest achievable" floor
+  established for this call pattern, prompting a closer look.
+- One more distinct instance found via the sweep:
+  `func_150716EC`'s call to a *different* unprototyped function
+  (`func_151D5404`) had the same float-literal-promotion shape;
+  fixed the same way.
+
+**Result**: every one of these ~20 call sites now sits at either an
+exact match or the same small `-4`/`-8` "closest achievable" residual
+already documented (target routes a literal `0.0f` through float
+registers in a way no C-level literal choice reproduces exactly).
+Net effect: cluster count dropped from 118 to 114, but — as with the
+earlier `game_75FC0.c`/`game_77AD0.c` rounds — the entry-count delta
+understates the real improvement, since most of these went from large
+double-digit-byte discrepancies down to the same tiny residual rather
+than disappearing outright.
+
+**Lesson for future rounds**: when a specific unprototyped function
+(`func_1505E650` here) is found to be buggy at one call site, it's
+worth grepping the whole codebase for *all* its call sites with float
+literals up front, rather than rediscovering each one individually
+through the slower `find_drift.py`-driven loop — this function alone
+had calls scattered across at least 7 different files
+(`game_11FF10.c`, `game_20AE20.c`, `game_49D30.c`, `game_50D80.c`,
+`game_90840.c`, `game_DE5A0.c`, plus `game_981E0.c` fixed this round).
+The ones in those other 6 files are **not yet verified** against
+`find_drift.py` (some may be outside this segment's current sweep
+range, or already matching) — don't blindly batch-fix them without
+confirming via the drift tool first, since some of those call sites
+mix in non-addressable runtime expressions (e.g.
+`src/game/game_50D80.c:706` passes a literal `0.0f` as the very
+*first* argument, an unusual shape worth double-checking before
+assuming the same fix applies) that need individual verification.
+
+**Investigated, not fixed**: `func_1506F8F0`
+(`src/game_981E0.c:894`) calls `func_150E2EA4`, which — unlike every
+other case fixed this whole investigation — **already has a full,
+correct prototype** in `functions.h` (all `f32` parameters properly
+typed). Its `+8` residual is therefore *not* a missing-prototype
+promotion bug; direct `objdump` comparison shows a genuine
+instruction-scheduling/register-allocation difference (reordered
+`swc1`/`mtc1`/`cvt.s.w` sequences) in how the expression
+`(random_float() * 10.0f) + 40.0f` gets evaluated relative to the
+surrounding argument setup. No clear single-line fix found; likely in
+the same family as other closed IDO-scheduling residuals from earlier
+in this investigation. Left as-is.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: `func_1506F8F0`'s scheduling residual (flagged
+above, likely not worth chasing further), `func_1506FA90`,
+`func_1506FB60` (both showing the same `+8` — worth checking whether
+they share `func_1506F8F0`'s pattern or are independent),
+`func_15071544`, `func_150718E4`, and the long tail beyond in
+`game_981E0.c` and whatever files follow it in this segment. Also
+worth a dedicated pass through the other 6 files with confirmed-but-
+unverified `func_1505E650` float-literal calls listed above, checked
+individually against `find_drift.py` rather than blindly batch-fixed.
