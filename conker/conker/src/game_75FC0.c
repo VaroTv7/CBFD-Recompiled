@@ -30,9 +30,14 @@ void func_15048B10(s32 arg0, s32 arg1) {
     tmp.unkA8 = -tmp.unk190;
     tmp.unkAC = -tmp.unk18C;
 
-    func_150A8050(&tmp.unk134, -tmp.unk17C,           0,           0);
-    func_150A8050(&tmp.unkF4,            0, -tmp.unk178,           0);
-    func_150A8050(&tmp.unkB4,            0,           0, -tmp.unk174);
+    {
+        f32 negRoll = -tmp.unk17C;
+        f32 negPitch = -tmp.unk178;
+        f32 negYaw = -tmp.unk174;
+        func_150A8050(&tmp.unk134, *(s32 *) &negRoll, 0, 0);
+        func_150A8050(&tmp.unkF4, 0, *(s32 *) &negPitch, 0);
+        func_150A8050(&tmp.unkB4, 0, 0, *(s32 *) &negYaw);
+    }
 
     func_150A7A48(&tmp.unk80,  &tmp.unkB4, &tmp.unk40);
     func_150A7A48(&tmp.unk40,  &tmp.unkF4, &tmp.unk0);
