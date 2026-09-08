@@ -4318,3 +4318,71 @@ turn budget. **Not fixed — no confirmed root cause yet, don't guess.**
 This is the concrete next lead: `src/init_B1B0.c`, starting at
 `func_1000E054`, using the same explicit-bounds-diff-plus-
 `find_drift.py` discipline established over the last several rounds.
+
+## Session log — func_1000E054 was ALSO a misdiagnosis; a strategic reframe of the "large cluster" (2026-09-08)
+
+Went to start on `func_1000E054` per the previous round's lead.
+**It was the exact same trap, a fourth time, immediately after writing
+the hard rule about it.** Ran `find_drift.py` on the range *before*
+`func_1000E054` first this time (finally applying the rule
+consistently) and found the drift actually starts much earlier — at
+`func_1000DE1C`, then earlier still at `func_1000D2F8`, then
+`func_1000C350`/`func_1000CD40`, then `func_1000B060`, then
+`func_100093CC` — each check pushed the "true first divergence" point
+further back. The apparent "-48 bytes, missing `addiu sp,sp,-0x20`"
+finding for `func_1000E054` from last round was reading *cumulative*
+drift as if it were *newly introduced* drift at that function —
+exactly the bug class already fixed once in `find_drift.py` itself
+two rounds ago (the missing `prev_delta = delta` line), just repeated
+as a *manual* reading error this time instead of a script bug.
+
+Traced all the way back to `func_100093CC` (`src/init_8F90.c`,
+immediately after `init_8180.c`'s own file ends) as the first new
+divergence point, introducing a genuine **-48** bytes on top of
+`init_8180.c`'s already-known -4 residual. Investigated it and its
+neighbor `func_10008F90` (a huge, 1084-byte `#pragma GLOBAL_ASM`
+block, already flagged `// NON-MATCHING: so much to do` from an
+earlier session) directly. Verified via a full-range diff scan
+(grepping for pure insertion/deletion lines, not just address/
+immediate differences) that **`func_10008F90`'s own raw-asm content
+has zero genuine mismatches** in the checked range — every difference
+is either a `jal` call-target address (expected, downstream symbol
+resolution) or an immediate-value difference on a `lui`/`addiu` pair
+that's itself just a data-pointer address shifted by the same
+drift amount. Same for `func_100093CC`'s own body once past the
+leading tail-of-previous-function noise.
+
+**Strategic reframe, not yet confirmed**: a wider scan
+(`find_drift.py 0x10009000 0x10017100`) shows a *large* number of
+separate-looking drift-introduction points (~18, in files spanning
+far beyond `init_8180.c` and `init_8F90.c`) — but given `func_10008F90`
+and `func_100093CC` themselves check out clean, it's plausible a
+substantial fraction of this "large cluster" is not 18 independent
+bugs at all, but **alignment-padding amplification** of the two
+already-known, still-unresolved `init_8180.c` residuals
+(`func_10008660.arg3`, `func_10008C04`'s reload timing) as they
+propagate through `SUBALIGN(16)`-governed section/object boundaries
+in `conker.ld`. This is a hypothesis, not a confirmed finding — it
+would need to be tested by either (a) actually resolving the two
+`init_8180.c` residuals and seeing how much of the downstream cluster
+evaporates as a side effect (the same pattern that's happened
+repeatedly this whole investigation — fixing one real bug silently
+"fixes" several downstream symptom reports), or (b) individually
+verifying each of the ~18 points the same careful way
+`func_10008F90`/`func_100093CC` were just checked. `func_1000E704`
+within this range is a confirmed exception — genuinely hard, already
+flagged, not an alignment artifact (it calls the already-known
+non-matching `func_10008C6C`).
+
+**No source changes this round** — investigation and a course
+correction only. Given the pattern of "downstream drift reports often
+resolve themselves once the real upstream bug is fixed" has now held
+up repeatedly (`func_10017E4C`, `func_10008A94`, `func_10008F90`/
+`func_100093CC` this round), **the highest-leverage next move is
+probably going back to properly solve `func_10008660`'s `arg3` and/or
+`func_10008C04`'s reload-timing residual** (both previously attempted
+and reverted, documented several rounds back) rather than continuing
+to chase what may turn out to be their downstream shadows across a
+dozen other functions. If those two get solved, re-run
+`find_drift.py` over this whole wide range before investigating any
+of the ~18 points individually — most of them may simply disappear.
