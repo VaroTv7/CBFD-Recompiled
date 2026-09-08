@@ -34,7 +34,7 @@ struct225 *func_151619A0();
 s32  func_15161A68();
 struct225 *func_15161E24();
 void func_15161F2C();
-struct225 *func_15162034();
+struct225 *func_15162034(s32 arg0, u8 arg1, s32 arg2);
 void func_15162110();
 struct225 *func_15162740();
 struct225 *func_1516284C();
@@ -609,7 +609,7 @@ void func_15161F2C(struct225 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_15161F4C.s")
 
-struct225 *func_15162034(s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15162034(s32 arg0, u8 arg1, s32 arg2) {
     struct225 *temp_v0;
     Header header;
     f32 src[8];
