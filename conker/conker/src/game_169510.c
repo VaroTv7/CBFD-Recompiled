@@ -64,7 +64,7 @@ struct210 *func_1513C4EC(s32 arg0, s32 arg1, u8 arg2, u8 arg3, f32 arg4, f32 arg
     if (temp_v0 == 0) {
         return 0;
     }
-    func_1513E13C(temp_v0, arg4, arg5, arg6, arg7, arg8, arg9);
+    func_1513E13C(temp_v0, *(s32 *) &arg4, *(s32 *) &arg5, *(s32 *) &arg6, *(s32 *) &arg7, *(s32 *) &arg8, arg9);
     return temp_v0;
 }
 
@@ -73,7 +73,7 @@ struct210 *func_1513C5B0(s32 arg0, s32 arg1, u8 arg2, u8 arg3, f32 arg4, f32 arg
     if (tmp == 0) {
         return 0;
     }
-    func_1513E13C(tmp, arg4, arg5, arg6, arg7, arg8, arg9);
+    func_1513E13C(tmp, *(s32 *) &arg4, *(s32 *) &arg5, *(s32 *) &arg6, *(s32 *) &arg7, *(s32 *) &arg8, arg9);
     return tmp;
 }
 
@@ -90,7 +90,7 @@ struct210 *func_1513C650(s32 arg0, u8 arg1, u8 arg2, s32 arg3, f32 arg4, f32 arg
         return 0;
     }
 
-    if (func_1513E2AC(temp_v0, 0, arg3, arg4, arg5, arg6, arg7, arg8, arg9) == 0) {
+    if (func_1513E2AC(temp_v0, 0, arg3, *(s32 *) &arg4, *(s32 *) &arg5, *(s32 *) &arg6, *(s32 *) &arg7, *(s32 *) &arg8, arg9) == 0) {
         func_1516972C(temp_v0);
         return 0;
     }
@@ -103,7 +103,7 @@ struct210 *func_1513C73C(s32 arg0, u8 arg1, u8 arg2, s32 arg3, f32 arg4, f32 arg
         return 0;
     }
 
-    if (func_1513E2AC(tmp, 0, arg3, arg4, arg5, arg6, arg7, arg8, arg9) == 0) {
+    if (func_1513E2AC(tmp, 0, arg3, *(s32 *) &arg4, *(s32 *) &arg5, *(s32 *) &arg6, *(s32 *) &arg7, *(s32 *) &arg8, arg9) == 0) {
         func_1516972C(tmp);
         return 0;
     }
@@ -115,7 +115,7 @@ struct210 *func_1513C804(s32 arg0, s32 arg1, u8 arg2, u8 arg3, s32 arg4, f32 arg
     if (tmp == 0) {
         return 0;
     }
-    if (func_1513E2AC(tmp, 0, arg4, arg5, arg6, arg7, arg8, arg9, argA) == 0) {
+    if (func_1513E2AC(tmp, 0, arg4, *(s32 *) &arg5, *(s32 *) &arg6, *(s32 *) &arg7, *(s32 *) &arg8, *(s32 *) &arg9, argA) == 0) {
         func_1516972C(tmp);
         return 0;
     }
