@@ -46,8 +46,8 @@ struct225 *func_15163604(s32 arg0, u8 arg1, s8 arg2, s16 arg3, s8 arg4, s32 arg5
 s32  func_15163704();
 void func_1516381C();
 void func_1516387C();
-s32  func_151639D0();
-void func_15163A18();
+s32  func_151639D0(struct225 *arg0, s32 arg1, u8 arg2);
+void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2);
 struct225 *func_15163A60();
 s32  func_15163B98();
 struct225 *func_15163BE8();
@@ -1005,7 +1005,7 @@ void func_1516387C(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 offset,
 //     return 1;
 // }
 
-s32 func_151639D0(struct225 *arg0, s32 arg1, s32 arg2) {
+s32 func_151639D0(struct225 *arg0, s32 arg1, u8 arg2) {
     if (arg2 == 0x27) {
         arg0->unk14->unk9 = 1;
     } else if (arg2 == 0x28) {
@@ -1013,7 +1013,7 @@ s32 func_151639D0(struct225 *arg0, s32 arg1, s32 arg2) {
     }
 }
 
-void func_15163A18(struct225 *arg0, s32 arg1, s32 arg2) {
+void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2) {
     if (arg2 == 0x27) {
         arg0->unk14->unk9 = 0;
     } else if (arg2 == 0x28) {
