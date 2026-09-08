@@ -426,7 +426,7 @@ f32  func_1505A5CC();
 u16  func_1505A630(f32 arg0, f32 arg1, s32 arg2);
 f32  func_1505A6F8();
 s16  func_1505C140();
-void func_1505D2B8();
+void func_1505D2B8(struct127 *arg0, u8 arg1);
 f32  func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4);
 
 void func_15060B70();

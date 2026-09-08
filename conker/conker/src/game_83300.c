@@ -930,7 +930,7 @@ void func_1505D1C4(f32 arg0, f32 arg1, f32 arg2, s32 arg3, s32 arg4, u16 arg5, s
     gCurrentObjectIndex = tmp;
 }
 
-void func_1505D2B8(struct127 *arg0, s32 arg1) {
+void func_1505D2B8(struct127 *arg0, u8 arg1) {
     struct253 *temp_v0;
 
     temp_v0 = &D_8009A6D8[arg1];
