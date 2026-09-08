@@ -54,7 +54,7 @@ s32 func_1000EC24(struct251 *arg0, s32 arg1, s32 *arg2, struct11 *arg3, struct04
 
     if (temp_v1 <= 0) {
         if (*arg2 != 0) {
-            func_10010F30(arg0->unk1C, *arg2, arg3->unk3, arg4->unk2, *arg5);
+            func_10010F30(arg0->unk1C, *arg2 & 0xFFFF, arg3->unk3, arg4->unk2, *arg5);
         }
         return 1;
     }
@@ -157,7 +157,7 @@ void func_1000F248(s32 arg0) {
     if (arg0) {}
 }
 
-s32 func_1000F3D0( s32 arg0) {
+s32 func_1000F3D0( u16 arg0) {
     struct120 *temp_v1;
 
     temp_v1 = &D_800425E0[arg0 & 0xF];

@@ -80,7 +80,7 @@ s32  func_1000EB00();
 s32  func_1000EBC4();
 s32  func_1000EF40();
 void func_1000F248();
-s32  func_1000F3D0();
+s32  func_1000F3D0(u16 arg0);
 s32  func_1000F44C(u16 arg0);
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4, s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9);
 void func_1000F9D4(u16 arg0, s32 arg1, s32 arg2, s32 arg3);

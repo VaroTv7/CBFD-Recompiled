@@ -568,7 +568,7 @@ block_28:
     var_t0 = ((*(s32 *)((char *)(*(void **)&(arg0)) + 0xED)) * 0x38) + &D_8008D0B0;
     if (temp_a1 != 0) {
         sp70 = var_t0;
-        if (func_1000F3D0((*(void **)&var_f12), var_f14, temp_a1 & 0xFFFF, temp_a1) != 0) {
+        if (func_1000F3D0((*(void **)&var_f12)) != 0) {
             sp70 = var_t0;
             func_1000F91C((*(s32 *)((char *)(*(void **)&(arg0)) + 0xEE)), 0x7D00, 0, 0, 0, (s32) (*(s32 *)((char *)(*(void **)&(arg0)) + 0x98)), (s32) (*(s32 *)((char *)(*(void **)&(arg0)) + 0x9C)), (s32) (*(s32 *)((char *)(*(void **)&(arg0)) + 0xA0)), 0x3E8, 0xFA0);
         } else {

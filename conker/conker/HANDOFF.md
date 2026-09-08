@@ -4573,3 +4573,60 @@ considered disproven. **Next continuation**: same file,
 (`func_1000FA64`, `func_100107F8`, `func_100114D0`, `func_10011FA0`,
 `func_100127D0`, `func_10012934`, `func_10012E04`, `func_10015550`)
 with the same explicit-bounds-diff-plus-`find_drift.py` discipline.
+
+## Session log — two more real fixes, plus a process-discipline miss (2026-09-08, later)
+
+Continued from the exact lead above. Both `func_1000ECCC` and
+`func_1000EC24` confirmed clean on inspection (same "leaking-tail"
+pattern as before — their own bodies match exactly once past the
+preceding function's tail junk). Checked further into
+`func_1000EC24`'s full diff (past the ~30 lines viewed initially) and
+found the real bug hiding deeper in: `func_1000F3D0`.
+
+**`func_1000EC24`'s call to `func_10010F30`**: missing an `& 0xFFFF`
+mask on the 2nd argument (`*arg2`). Confirmed via multiple *other*
+call sites of `func_10010F30` elsewhere in the codebase
+(`game_20AE20.c`, and even a commented-out reconstruction attempt
+inside this same file) that already do `arg & 0xFFFF` at the call
+site — this specific call was just missing it. Fixed:
+`func_10010F30(arg0->unk1C, *arg2 & 0xFFFF, arg3->unk3, arg4->unk2,
+*arg5);`. Resolved `func_1000ECCC`'s reported drift as a side effect
+(same misattribution pattern as before — the bug was never in
+`func_1000ECCC` itself).
+
+**`func_1000F3D0`'s `arg0`**: `s32` → `u16`, same
+`struct127.unk8C`/`.unk8E` pattern as `func_1000F44C` and
+`func_1001123C` (all three take one of these two fields as their only
+real-world argument). Resolved `func_1000F44C`'s remaining reported
+drift as a side effect, confirming last round's hypothesis that its
+apparent -12 was leaking forward from here.
+
+**Process miss, caught and fixed within the same round**: forgot to
+run `fix_cross_file_arg_counts.py` after `restore_promotion_safe_
+signatures.py` for this specific fix (been running both together
+every round until this one — a genuine slip, not a new problem).
+Making `func_1000F3D0`'s prototype strict exposed a completely
+unrelated call site in `src/game/game_1A20A0.c:571` passing **4**
+arguments to a function that now strictly expects 1 — that call was
+only ever tolerated because the relaxed K&R prototype skipped arg-
+count checking; it's very likely wrong/leftover from an incomplete
+auto-decompilation there (passes a dereferenced `void**` as if it
+were the `u16` index), but fixing *that* file's own correctness is out
+of scope for this investigation. `fix_cross_file_arg_counts.py`
+mechanically trimmed it to the first argument, which is exactly the
+existing tolerate-it-and-move-on convention this whole pipeline is
+built around — restores buildability, doesn't touch that file's own
+(separate, unrelated) matching status. **Lesson**: always run both
+pipeline scripts together after any signature change, no exceptions,
+even for a single-line one-parameter fix — this project's codebase is
+large enough that "surely nothing else calls this with the wrong
+count" is not a safe assumption to skip verifying.
+
+Rebuilt clean after both fixes (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), confirmed via `find_drift.py` and direct diffs.
+
+**Continuation point unchanged from last round's list** minus the two
+now-resolved entries: `func_1000FA64`, `func_100107F8`,
+`func_100114D0`, `func_10011FA0`, `func_100127D0`, `func_10012934`,
+`func_10012E04`, `func_10015550` — same file family
+(`src/init_EB00.c` and neighbors), same discipline.
