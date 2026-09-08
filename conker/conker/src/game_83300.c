@@ -1012,7 +1012,7 @@ void func_15060B04(s32 arg0, struct127 *arg1, s32 arg2) {
 }
 
 void func_15060B70(s32 arg0, void *arg1) {
-    func_10010154(arg0, arg1, 0x6D60, 0x1F4, 0x9C4);
+    func_10010154((u16) arg0, arg1, 0x6D60, 0x1F4, 0x9C4);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15060BA4.s")
