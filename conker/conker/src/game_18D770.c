@@ -20,7 +20,7 @@ struct225 *func_15161334(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161408();
 struct225 *func_15161494(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161540();
-struct225 *func_151615F8();
+struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5);
 void func_151616D0();
 void func_15161714();
 void func_15161740();
@@ -374,7 +374,7 @@ struct225 *func_15161540(s32 arg0, s32 arg1, s32 arg2) {
     return temp_v0;
 }
 
-struct225 *func_151615F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5) {
     struct225 *temp_v0;
     Header header;
     struct232 tmp1;
