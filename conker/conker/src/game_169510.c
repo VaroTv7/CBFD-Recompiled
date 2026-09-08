@@ -513,7 +513,7 @@ s32 func_1513EDE4(s32 arg0, s16 arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F114.s")
 
-void func_1513F4B0(struct210 *arg0, s32 arg1) {
+void func_1513F4B0(struct210 *arg0, s16 arg1) {
     func_15140410(arg0, &arg0->unk110, &arg0->unk11C, arg1);
 }
 

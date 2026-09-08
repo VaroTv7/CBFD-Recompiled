@@ -774,7 +774,7 @@ void func_1513E134();
 void func_1513E2A4();
 void func_1513EDB4(s32 arg0, s16 arg1);
 s32 func_1513EDE4(s32 arg0, s16 arg1);
-void func_1513F4B0();
+void func_1513F4B0(struct210 *arg0, s16 arg1);
 void func_151403A8();
 void func_151403DC();
 void func_151411A4();
