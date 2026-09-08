@@ -747,6 +747,7 @@ f32 func_1505A6F8(struct127 *arg0, struct127 *arg1) {
     x *= x;
     z = arg0->z_position - arg1->z_position;
     z *= z;
+    return sqrtf(x + z);
 }
 
 // distance between two objects?
@@ -759,6 +760,7 @@ f32 func_1505A72C(struct127 *arg0, struct127 *arg1) {
     z *= z;
     y = arg0->y_position - arg1->y_position;
     y *= y;
+    return sqrtf((x + z) + y);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505A770.s")
