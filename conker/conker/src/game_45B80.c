@@ -6,6 +6,8 @@
 
 void* func_151674F8();
 
+typedef void (*func_1000D758_t)(f32, f32, s32);
+
 
 void func_150186D0(void) {
     func_10001444();
@@ -65,7 +67,7 @@ void *func_15018F08(void *arg0, s32 arg1) {
     return arg0;
 }
 
-void func_15018F80( s32 arg0) {
+void func_15018F80( s16 arg0) {
     struct108 *sp24 = &D_800DBFF0[arg0];
     D_8003C8E0 = 0xA000000;
     if ((func_1517F40C(arg0) == 0) && (D_800BEAC0 == 0)) {
@@ -88,7 +90,7 @@ void func_1501905C(void) {
     func_1501BB20();
     func_1502C380();
     if (0) {};
-    func_1000D758(D_800DBFF0->unk2A4, D_800DBFF0->unk2A8, D_800DBFF0->unk2AC);
+    ((func_1000D758_t) func_1000D758)(D_800DBFF0->unk2A4, D_800DBFF0->unk2A8, D_800DBFF0->unk2AC);
     func_10011BB8();
     if (D_800E0B94 == 2) {
         func_150ADACC(0x81280783); // 2166884227

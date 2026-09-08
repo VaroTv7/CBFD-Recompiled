@@ -352,7 +352,7 @@ s32  func_150150A4();
 s32  func_15015300();
 void func_15016370();
 void func_15016500();
-void func_15017300();
+void func_15017300(s32 arg0, s16 arg1);
 void func_150175E0();
 void func_15017790();
 void func_150177F8();
