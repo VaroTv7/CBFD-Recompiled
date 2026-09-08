@@ -1167,7 +1167,7 @@ block_5:
         var_a3 = 0x62D;
     }
     sp4C = var_a3;
-    func_150432FC(0x94, 0x46, &D_8008FE2C, var_a3);
+    func_150432FC(0x94, 0x46);
     temp_t1 = (sp54 * 0x10) + &D_800BE3F8;
     sp28 = temp_t1;
     if ((*(s32 *)((char *)(temp_t1) + 0x8)) == -1) {
@@ -2291,7 +2291,7 @@ block_7:
             }
             sp60 = (s8 *) var_a2_2;
             sp44 = var_t1_3;
-            func_150432FC((s16) (temp_v1_3 + (&sp8C[0])[temp_t0_2]), sp96, (s8 *) var_a2_2, (s32) temp_a3_2);
+            func_150432FC((s16) (temp_v1_3 + (&sp8C[0])[temp_t0_2]), sp96);
             temp_v0_10 = *var_t1_3;
             if (temp_v0_10 >= 0) {
                 sp60 = var_a2_2;
