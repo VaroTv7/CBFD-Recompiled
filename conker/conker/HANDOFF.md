@@ -5081,3 +5081,173 @@ source when that's suspected. Given the much larger scale here (143
 vs. the ~18 points that took this whole multi-round session), budget
 this as a substantially longer effort, likely spanning many further
 rounds.
+
+## Session log — starting the 0x15000000+ (.game/src/game/*) cluster (2026-09-08, new session)
+
+Began the new, much larger (143-entry) cluster documented in the
+previous entry. This region is linked very differently from the main
+segment: the linker script (`build/conker.ld`) places `.game` at
+`VMA 0x15000000 : AT(game_ROM_START)`, i.e. a genuine overlay whose
+ROM (file) position is *not* `VMA - 0x10000000` like the main segment
+— it's a separate, dynamically-computed link-time position. This
+means `diff.py`'s default binary-diff mode (and the naive
+`--adjust-vma=0x10000000` trick used for the main segment) do **not**
+work for anything in this region; a different, new technique was
+needed.
+
+**New technique for this region**: read the `.game` section's real
+ROM (LMA) position directly from the *current* build's own linked ELF
+— `mips-linux-gnu-objdump -h build/conker.us.elf | grep -A1 '\.game'`
+— which reports `VMA=0x15000000`, `LMA=<some value>`, `File
+off=<some other value>`. The LMA is what matters: for the *raw*
+target `.bin` (`conker.us.bin`, no ELF wrapper), a given VMA `V` in
+this segment corresponds to **file offset `LMA + (V - 0x15000000)`**.
+Empirically calibrated this session: `LMA = 0x0002d4b0` (found by
+trial: the raw `objdump -h` LMA column read `0x0002d4a0`, but
+prologue-pattern matching against several known-good current
+functions consistently required `+0x10` more — i.e. the true anchor
+is `0x2d4a0 + 0x10 = 0x2d4b0`, likely because the raw LMA column
+itself already has some small fixed header/alignment offset baked in
+that isn't relevant to matching a raw `.bin` byte-for-byte; the
+`+0x10`-corrected constant matched cleanly and consistently across
+every fix this round). **Formula, use this for all future work in
+0x15000000-range functions**:
+```
+target_file_offset(V) = 0x0002d4b0 + (V - 0x15000000)
+```
+then: `mips-linux-gnu-objdump -Dz -bbinary -EB -m mips:4300
+--start-address=<file_offset> --stop-address=<file_offset+size>
+conker.us.bin` (no `--adjust-vma` needed/wanted here — the addresses
+printed will be raw file offsets, not VMAs, which is fine for visual
+comparison purposes). As always with this whole investigation:
+compute `<file_offset>` using the function's **declared** VMA (its own
+name-encoded address) plus whatever cumulative drift shift is
+currently active — same discipline as the main segment's `-S` shift,
+just implemented by hand via the formula above since `diff.py -S`
+itself can't reach this segment's addressing at all.
+
+Six real bugs found and fixed, all in `src/game_2DF70.c` and
+`src/game_36680.c`:
+
+**`func_15001B5C`, `func_15001B8C`** (`src/game_2DF70.c`): both write
+through the global `u8 *D_800B0DE0` byte-stream pointer. `arg0` needed
+`s32`→`u8` (target masks with `andi a0,0xff`) and `s32`→`u16` (target
+masks with `andi a0,0xffff`) respectively — same narrow-parameter-type
+pattern from the main segment, just newly discovered here.
+
+**`func_15009BD0`, `func_15009C7C`, `func_15009F74`**
+(`src/game_36680.c`, three near-identical sibling functions): all
+three call `func_15187EC0(idx, floatThreshold, ..., 220, 220, 255)`
+with a **float literal** (`0.0f` or `0.1f`) as the second argument,
+but `func_15187EC0`'s only visible declaration from this file is
+`functions.h`'s fully relaxed `s32 func_15187EC0();` — causing K&R
+default float→double promotion at the call site, which target's real
+compiled code does not do (target passes the float's raw bit pattern
+through the plain integer arg register, matching a callee that
+actually treats it as an `s32`/similar, not a promoted double).
+
+This one took real iteration to solve *cleanly*:
+1. First tried a **local full-prototype re-declaration**
+   (`s32 func_15187EC0(s32, f32, ...);`) in `game_36680.c`, the same
+   technique used successfully in the previous session's round for
+   `func_150484A0`/`func_1001CF38`. **This triggered a genuine IDO
+   compiler bug/limitation**, confirmed via an isolated
+   minimal-reproduction test outside the real build: giving IDO5.3's
+   `cc` BOTH a K&R-relaxed declaration (`s32 f();`, from
+   `functions.h`, already visible) AND a later full-prototype
+   declaration for the *same* symbol in the *same* translation unit
+   produces a garbled, hard-to-read `cfe: Error` (two real diagnostic
+   messages appear to share/corrupt a static text buffer inside this
+   ~1990s compiler — reproduced identically both inside the real
+   parallel build and in complete single-file isolation, so this is
+   not a parallel-build output-interleaving artifact, it's a real bug
+   in the compiler itself). Removing the redundant K&R declaration
+   (i.e. giving *only* the full prototype, none at all otherwise) compiles
+   cleanly — but that's not an option here since `functions.h`'s
+   relaxed declaration is unavoidably visible already. **New lesson,
+   distinct from (and more specific than) the general
+   missing-prototype pattern**: if a function already has *any*
+   visible declaration (even a fully-relaxed K&R one) in the current
+   translation unit, do NOT attempt to locally re-declare it with a
+   fuller prototype — IDO5.3 cannot reliably handle that combination.
+   Reserve the local-forward-declaration technique for cases (like the
+   earlier `func_150484A0`/`func_1001CF38` session) where the file has
+   *zero* prior visible declaration of the target function.
+2. Tried casting through a function-pointer typedef instead
+   (`((func_15187EC0_t) func_15187EC0)(...)`), which compiles fine and
+   fixes the promotion bug — but produces an **indirect call**
+   (`lui`/`addiu` to materialize the address into `t9`, then `jalr
+   t9`) instead of target's direct `jal`, costing 2 extra instructions
+   per call site. Went from -8/-8/-8 (wrong promotion) down to net
+   +8/+8/+8ish after this change — an improvement in *correctness* but
+   not a byte-perfect fix, and worse, actually *masked* the real size
+   discrepancy since the extra indirect-call cost happened to roughly
+   cancel the promotion-removal savings in one case, making it easy to
+   misjudge as "done" from the byte-count alone without checking the
+   actual instruction stream.
+3. Tried a `union`/pointer-based bit-reinterpretation through a named
+   local `f32 threshold; threshold = 0.0f; *(s32*)&threshold` — this
+   avoids the indirect-call problem (calls the plain, unmodified,
+   already-K&R-declared symbol directly) and produces the *correct*
+   value, but taking `&threshold` forces IDO to spill the local to a
+   real stack slot, adding a `swc1`+reload round-trip that target
+   (which computes the value via FP registers and moves it directly
+   with `mtc1`+`mfc1`, no memory involved) doesn't have — a genuine,
+   unavoidable-in-plain-C 4-byte/1-instruction residual for the `0.0f`
+   cases, structurally the same kind of "C language can't express a
+   register-only bitcast, only compiler intrinsics can" limitation as
+   other closed residuals this investigation has hit.
+4. **Final, fully clean fix**: dumped target's real disassembly for
+   the `0.1f` call site specifically and found it does **no
+   floating-point instructions at all** for that argument — just
+   `lui a1,0x3dcc; ori a1,a1,0xcccd`, directly embedding 0.1f's
+   raw IEEE-754 bit pattern (`0x3DCCCCCD`) as a plain 32-bit integer
+   constant, i.e. target's compiler *constant-folded* the
+   bit-reinterpretation entirely at compile time because the source
+   value was a known compile-time constant. Replacing the whole
+   `f32 threshold = X; *(s32*)&threshold` dance with simply passing
+   the **precomputed IEEE-754 hex literal directly**
+   (`func_15187EC0(0, 0x00000000, ...)` for `0.0f`,
+   `func_15187EC0(1, 0x3DCCCCCD, ...)` for `0.1f`) compiles to the
+   exact same bit pattern via the *same* already-existing K&R
+   `s32 func_15187EC0();` declaration (an `int` literal argument needs
+   no promotion at all, sidestepping the whole problem), with **zero
+   extra instructions** — this is what target's own source almost
+   certainly does. Confirmed via rebuild+`find_drift.py`: all three
+   functions now match **exactly**, zero residual.
+
+**New general lesson for the rest of this investigation**: when a
+"missing prototype causes float→double promotion" bug involves a
+**compile-time-constant** float literal (not a runtime-computed
+value), don't reach for a prototype fix or a C-level bit-reinterpret
+trick at all — just precompute the literal's raw IEEE-754 bit pattern
+by hand and pass it as a plain hex integer literal. This sidesteps the
+whole promotion issue via the existing (even fully relaxed/K&R)
+declaration and, unlike every C-level workaround tried above, produces
+genuinely byte-identical output with no residual, matching what
+target's own compiler did via ordinary constant folding. Only fall
+back to a real prototype fix (and only when the file has *no* prior
+visible declaration of the callee at all, per the lesson above) when
+the float argument is a genuine runtime-computed value that can't be
+reduced to a compile-time constant.
+
+Rebuilt clean after all fixes (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+(single continuous range throughout, per the earlier
+non-address-named-symbol/range-continuity lesson). All entries from
+`func_15001B8C` through `func_1500A028` are now fully resolved.
+
+**Continuation point**: next entry is `func_1501748C` (-64 bytes, a
+substantial one — likely either several stacked narrow-type bugs or
+one bigger structural issue), followed by a long tail of further
+entries (`func_1501905C`, `func_15019130`, `func_15042D94`,
+`func_1504332C`, `func_15043384`, `func_15043D90`, `func_15043E68`,
+`func_15043EC8`, `func_15043FF0`, `func_150442C0`, `func_150486B8`,
+`func_15048720`, `func_15048864`, `func_150488C8`, `func_15048C30`,
+`func_150490A8`, `func_15049260`, `func_1504A620`, `func_1504BC38`,
+and many more beyond — this cluster is large, budget accordingly).
+Continue with the `target_file_offset(V) = 0x0002d4b0 + (V -
+0x15000000)` formula for this whole segment, the standard
+check-the-preceding-function discipline, and the new
+compile-time-constant-literal lesson above whenever a float-promotion
+bug is found.
