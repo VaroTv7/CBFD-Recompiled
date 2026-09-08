@@ -20,7 +20,7 @@ void func_1506AFE0(void) {
 
 void func_1506B020(void) {
     gCurrentObject->unk1CB = (u8)1;
-    func_1505E650(gCurrentObject, 0x39, 1.0f, 5.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x39, 0x3F800000, 0x40A00000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B070(void) {
@@ -39,29 +39,29 @@ void func_1506B078(void) {
 
 // triggered when entering water?
 void func_1506B100(s32 arg0, f32 arg1, f32 arg2) {
-    func_1505E650(gCurrentObject, arg0, arg1, arg2, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, arg0, *(s32 *) &arg1, *(s32 *) &arg2, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B14C(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, gCurrentObject->animation_speed, 3.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B198(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, gCurrentObject->animation_speed, 3.0f, 0.0f, 0.0f, 1);
+    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, *(s32 *) &gCurrentObject->animation_speed, 0x40400000, 0x00000000, 0x00000000, 1);
 }
 
 void func_1506B1E8(void) {
-    func_1505E650(gCurrentObject, 0x3C, 1.0f, 3.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x3C, 0x3F800000, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B228(void) {
-    func_1505E650(gCurrentObject, 0x54, 1.0f, 3.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x54, 0x3F800000, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B268(void) {
     gCurrentObject->unk83 = 0;
     gCurrentObject->disable_run = 0;
-    func_1505E650(gCurrentObject, 0xF, 1.0f, 6.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0xF, 0x3F800000, 0x40C00000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B2BC(void) {
@@ -73,7 +73,7 @@ void func_1506B2BC(void) {
 }
 
 void func_1506B328(void) {
-    func_1505E650(gCurrentObject, 0x3E, 1.0f, 5.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x3E, 0x3F800000, 0x40A00000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506B368(void) {
@@ -151,7 +151,7 @@ void func_1506B520(void) {
         } else {
             tmp = 240;
         }
-        func_1505E650(gCurrentObject, tmp, 1.5f, 3.0f, 0.0f, 0.0f, 0);
+        func_1505E650(gCurrentObject, tmp, 0x3FC00000, 0x40400000, 0x00000000, 0x00000000, 0);
     } else {
         func_1507CD64(gCurrentObject, 1);
     }
@@ -442,7 +442,7 @@ void func_1506C43C(void) {
 // }
 
 void func_1506D4F4(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh, 0.009999999776482582f, 0.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh, 0x3C23D70A, 0x00000000, 0x00000000, 0x00000000, 0);
 }
 
 void func_1506D538(void) {
@@ -462,7 +462,7 @@ void func_1506D570(void) {
 
 void func_1506D898(void) {
     gCurrentObject->y_position -= 80.0f;
-    func_1505E650(gCurrentObject, 663, 1.0f, 0.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 663, 0x3F800000, 0x00000000, 0x00000000, 0x00000000, 0);
     gCurrentObject->unk100 &= 0xFFDF;
     gCurrentObject->unk83 = 0;
     gCurrentObject->disable_run = 0;
@@ -1309,15 +1309,15 @@ void func_15071E3C(void) {
 void func_15071E58(void) {
     D_800D1878 = D_800D1580 & 0xFF;
     gCurrentObject->unk244 = (D_800D1580 >> 8) & 0xFF;
-    func_1505E650(gCurrentObject, gCurrentObject->unk244, 1.2000000476837158f, 3.0f, D_800D1878, 0.0f, 0);
+    func_1505E650(gCurrentObject, gCurrentObject->unk244, 0x3F99999A, 0x40400000, *(s32 *) &D_800D1878, 0x00000000, 0);
 }
 
 void func_15071ED4(void) {
-    func_1505E650(gCurrentObject, 0x59, 1.0f, 3.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x59, 0x3F800000, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_15071F14(void) {
-    func_1505E650(gCurrentObject, 0x24, 1.0f, 3.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 0x24, 0x3F800000, 0x40400000, 0x00000000, 0x00000000, 0);
 }
 
 void func_15071F54(void) {
@@ -1410,7 +1410,7 @@ void func_15072940(void) {
 }
 
 void func_15072968(void) {
-    func_1505E650(gCurrentObject, 44, 1.5f, 12.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, 44, 0x3FC00000, 0x41400000, 0x00000000, 0x00000000, 0);
     gCurrentObject->disable_run = 25;
 }
 
@@ -1439,13 +1439,13 @@ void func_15072A7C(void) {
     if (gCurrentObject->unk31C != 0) {
         gCurrentObject->unk31C->unk1A9++;
         if ((random_u32() & 7) < (u32) gCurrentObject->unk31C->unk1A9) {
-            func_1505E650(gCurrentObject, 394, 1.0f, 4.0f, 0.0f, 0.0f, 0);
+            func_1505E650(gCurrentObject, 394, 0x3F800000, 0x40800000, 0x00000000, 0x00000000, 0);
         }
     }
 }
 
 void func_15072AF8(void) {
-    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, 1.0f, 6.0f, 0.0f, 0.0f, 0);
+    func_1505E650(gCurrentObject, gCurrentObject->unk84.uh + 1, 0x3F800000, 0x40C00000, 0x00000000, 0x00000000, 0);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15072B44.s")
@@ -1535,7 +1535,7 @@ void func_150738E8(void) {
         gObjects[temp_v0].unk218 = 0;
         gObjects[temp_v0].stunned = 0;
         gObjects[temp_v0].unk7A = 0xE000;
-        func_1505E650(gCurrentObject, 0x97, 1.0f, 5.0f, 0.0f, 0.0f, 0);
+        func_1505E650(gCurrentObject, 0x97, 0x3F800000, 0x40A00000, 0x00000000, 0x00000000, 0);
     }
 }
 
