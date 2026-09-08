@@ -501,11 +501,11 @@ void func_1513E2A4(void) {
 // ???
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513EAD8.s")
 
-void func_1513EDB4(s32 arg0, s32 arg1) {
+void func_1513EDB4(s32 arg0, s16 arg1) {
     func_1513EAD8(arg0, 0, arg1);
 }
 
-s32 func_1513EDE4(s32 arg0, s32 arg1) {
+s32 func_1513EDE4(s32 arg0, s16 arg1) {
     return func_1513EAD8(arg0, 1, arg1);
 }
 

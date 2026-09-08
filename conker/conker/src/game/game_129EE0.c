@@ -544,7 +544,7 @@ void func_150FDB0C(void *arg0, void *arg1, s32 arg2) {
 void *func_150FDBA0(void *arg0, s32 arg1) {
     void *temp_v0;
 
-    temp_v0 = func_1513EDE4(arg1);
+    temp_v0 = func_1513EDE4(arg1, 0);
     if (temp_v0 != NULL) {
         (*(s16 *)((char *)(temp_v0) + 0x8)) = (s16) (s32) (*(s16 *)((char *)(arg0) + 0x124));
         (*(s16 *)((char *)(temp_v0) + 0x18)) = (s16) (s32) (*(s16 *)((char *)(arg0) + 0x128));
