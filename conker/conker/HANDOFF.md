@@ -5713,3 +5713,92 @@ skip), `func_150593C4`'s remaining struct-field-offset bug (documented
 several rounds back, still unresolved), and the long tail through
 `func_1513EDE4`/`EE14`/`F4E4`/`F6C0` and beyond, which have not been
 individually investigated yet this round.
+
+## Session log — new bug class: narrow-typed parameters not masked at entry (2026-09-08, later still)
+
+Investigated the standing "raw-asm-adjacent drift might be a formula
+calibration artifact" open question first. Traced `func_15049260`'s
+-12 byte "introduced" reading (misattributed by `find_drift.py` to the
+symbol *after* the real gap, as always) back to `func_150491EC` in
+`src/game_75FC0.c` — confirmed via direct `objdump` comparison that
+this function's *body* is byte-identical to target, but target has 16
+bytes of extra `nop` padding after it that our build doesn't produce.
+`func_150491EC` is the last function in its source file, i.e. this is
+an object-file-boundary padding artifact (`SUBALIGN(16)`-adjacent, per
+the standing caveat), not a source-level bug — confirmed not worth
+chasing, left as-is. Skipped the rest of the raw-asm-adjacent entries
+in that immediate area for the same reason (real code, but the
+mismatch traces to inter-object padding rather than anything
+fixable at the C level).
+
+**New, more productive discovery**: a bug class not seen before this
+session — parameters typed too wide (`s32`) where target's real type
+is `u8`/`s8`/`s16`, confirmed via a consistent tell: target masks the
+argument register with `andi reg,0xff` (or loads it with
+`lbu`/`lh`/`lb` instead of `lw`) immediately at function entry, before
+using it. This shifts BOTH the instruction selection (extra `andi`/
+narrower load) AND the local stack-frame layout (since narrower
+incoming register spills take less implied width in the calling
+convention's own reasoning, changing subsequent stack offsets) —
+producing much larger residuals (12-16 bytes) than the pure
+float-promotion bugs from earlier rounds. Distinguish this from a
+missing-prototype bug: this is a *declared*, prototyped function whose
+parameter type itself is simply too wide, not a missing/relaxed
+declaration issue.
+
+Found and fixed **7 instances**, all in `src/game_18D770.c` (a big
+overlay file with many small "spawn effect" wrapper functions sharing
+a couple of common call shapes into `func_1516037C`/`func_151602C0`):
+
+- `func_15163604`: `arg1`→`u8`, plus `arg2`→`s8`, `arg3`→`s16`,
+  `arg4`→`s8` (all three matched `Header` struct's real field types
+  exactly — `s8 unk0, s8 unk1, s16 unk2, s8 unk4`). Fully resolved a
+  `-16` residual.
+- `func_151643A8`: `arg2`→`u8` (compared against 64/65). Fully
+  resolved a `-16` residual.
+- `func_151639D0` and `func_15163A18`: `arg2`→`u8` (compared against
+  0x27/0x28) in both — same shape, found together. Fully resolved
+  (cleared a downstream `-12` on `func_15163A60` too).
+- `func_15163A60`: `arg0`→`u8`.
+- `func_15161334` and `func_15161494`: `arg1`→`u8` in both — same
+  "spawn wrapper" call shape forwarding into `func_1516037C`'s 4th
+  parameter.
+- `func_151615F8`: `arg2`→`u8` (0 <= arg2 < 9 range check, loaded via
+  `lbu` in target vs `lw` in ours).
+
+All confirmed via direct `objdump` comparison before editing (never
+applied blindly), all called only with literal integer constants from
+`src/game_36680.c` (no cross-file promotion risk), all resolved by
+`restore_promotion_safe_signatures.py`'s usual forward-declaration
+sync afterward. One attempt this round (`func_15161408`'s own
+signature) turned out to already be correct — the fix belonged to the
+*preceding* function per the usual misattribution pattern, confirmed
+via the map-file address-order cross-check before touching anything.
+
+**Lesson for future rounds**: when a residual is large (8+ bytes) and
+the function is a genuine, already-fully-prototyped C function (not a
+missing-declaration case), check whether target masks/narrows any
+argument register right at function entry — that's the signature of a
+too-wide parameter type, not a promotion bug, and struct field types
+(`grep` the destination struct in `structs.h`) are often the fastest
+way to guess the correct narrower type before confirming with
+`objdump`.
+
+Cluster is down to **96 entries** (from 104 at the start of this
+round, 143 when the `0x15000000+` segment investigation began).
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: `src/game_18D770.c` still has entries at
+`func_15161714`, `func_15162110`, `func_1516381C`, `func_15163DEC`,
+`func_151644F4`, `func_15164780`, `func_1516979C` (this last one in a
+different file, `game_1944C0.c`) not yet checked for the same
+narrow-parameter pattern — given how productive this file has been,
+worth a full pass checking every remaining wrapper function's argument
+types against target via `objdump` before moving to other files.
+Beyond that, the earlier continuation points from last round
+(`func_1504BC38` onward, `func_150593C4`'s struct-field bug, the
+`func_1513EDE4`/`EE14`/`F4E4`/`F6C0` region in `game_169510.c`) are
+still open.
