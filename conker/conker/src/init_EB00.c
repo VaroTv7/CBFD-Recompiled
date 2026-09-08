@@ -171,7 +171,7 @@ s32 func_1000F3D0( s32 arg0) {
     return 0;
 }
 
-s32 func_1000F44C( s32 arg0) {
+s32 func_1000F44C( u16 arg0) {
     u32 mask;
     struct120 *temp_a1;
     struct31 *temp_a2;
@@ -235,7 +235,7 @@ void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4,
     func_1000F85C(arg0, 16, arg2);
 }
 
-void func_1000F9D4( s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+void func_1000F9D4( u16 arg0, s32 arg1, s32 arg2, s32 arg3) {
     u32 tmp;
 
     func_1000F6B8(-1, arg1, arg2, arg3, &tmp, 32760, 32765);
@@ -451,15 +451,21 @@ void func_100111C8( s32 arg0) {
     }
 }
 
-void func_1001123C( s32 arg0) {
+void func_1001123C( u16 arg0) {
     struct120 *tmp = &D_800425E0[arg0 & 0xF];
+    struct31 *saved;
 
-    if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
-        if (func_100112BC(arg0, 1) == 0) {
-            func_10017594(tmp->unk8);
-            tmp->unk8 = 0;
-        }
+    if (tmp->unk8 == 0) {
+        return;
     }
+    if (tmp->unk0 != arg0) {
+        return;
+    }
+    saved = tmp->unk8;
+    tmp->unk0 = 0;
+    tmp->unk4 = 0;
+    func_10017594((void *) saved);
+    tmp->unk8 = 0;
 }
 
 s32 func_100112BC(s32 arg0, s32 arg1) {

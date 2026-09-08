@@ -4449,3 +4449,127 @@ solving these two first.
 
 Scratch `.s` files used for the `mips_to_c` experiments were temporary
 and have been deleted — not part of the repo.
+
+## Session log — testing the alignment-amplification hypothesis: mostly wrong, but very productive (2026-09-08)
+
+Went back to the ~18-point wide cluster from two rounds ago
+(`0x10009000`-`0x10017100`) to test whether it was mostly amplification
+of `init_8180.c`'s two residuals, or independent bugs. Checked several
+points directly with explicit-bounds diffs. **Verdict: mostly
+independent bugs, not amplification** — found and fixed four real
+issues this round, all confirmed via rebuild + re-diff:
+
+1. **`func_1000C530`'s missing prototype** (the actual root cause of
+   `func_1000BA18`'s huge, ~150-instruction "totally different
+   function" appearance from an earlier round). It's a
+   `#pragma GLOBAL_ASM` function with only a relaxed `s32
+   func_1000C530();` prototype in `functions.h`. Its two real callers
+   (`func_1000B8B8`, `func_1000BA18`) both pass `(s32, u8, f32, f32,
+   f32)` — but with no real prototype, C's default-argument-promotion
+   rules silently promoted the three `f32` arguments to `double` at
+   every call site, producing a `cvt.d.s`/`mfc1`/`sdc1` round-trip
+   target never does (target just loads the raw float bit patterns
+   into integer registers via `lw`/`lbu` — no float-register traffic
+   at all for this call). Added the real prototype
+   (`s32 func_1000C530(s32, u8, f32, f32, f32);`). This alone
+   resolved **both** `func_1000BA18` and `func_1000BAFC` (adjacent,
+   -48 bytes total) to zero drift — confirmed the entire ~150-
+   instruction body of `func_1000BA18` matches target exactly once
+   this one header line was fixed. **This is a new category** distinct
+   from every previous fix this investigation has found: not a
+   caller-side parameter width bug, but a *missing prototype on an
+   unconverted `GLOBAL_ASM` function* causing default float promotion.
+   Worth grepping `functions.h` for other relaxed prototypes of
+   functions with float-typed callers — same bug is plausible
+   elsewhere.
+
+2. **`func_1000F9D4`'s `arg0`**: `s32` → `u16` (`src/init_EB00.c`).
+   Callers explicitly pass `temp_v0 & 0xFFFF` (an unsigned 16-bit
+   mask), and target reloads it via `lhu` before the *first* of two
+   forwarded `func_1000F85C` calls where current used `lw`. Confirmed
+   the first `lhu` now matches exactly. A second, smaller scheduling-
+   only residual remains around the *second* call (a fresh spill slot
+   appears in current that isn't in target) — real but much smaller
+   than before the fix, and not chased further this round (same
+   "IDO scheduling, not a type bug" territory as `init_8180.c`'s two
+   residuals).
+
+3. **`func_1001123C`'s wrong logic, not a type bug** — the most
+   significant find of the session. The 12-byte "drift" hid an actual
+   *incorrect reconstruction*: our C called `func_100112BC(arg0, 1)`
+   (a real function with its own side effects, modifying a global
+   queue `D_80041F10`) inside a nested `if`, but **target never calls
+   `func_100112BC` here at all**. Confirmed via direct
+   `mips-linux-gnu-objdump` of our own compiled output side-by-side
+   with target's disassembly: target directly clears two `u16` struct
+   fields (`struct120.unk0` and `.unk4`, both confirmed `u16` in
+   `structs.h`) and calls `func_10017594` with the saved pointer —
+   no second function call, no return-value check. Rewrote the
+   function to match:
+   ```c
+   void func_1001123C(u16 arg0) {
+       struct120 *tmp = &D_800425E0[arg0 & 0xF];
+       struct31 *saved;
+       if (tmp->unk8 == 0) return;
+       if (tmp->unk0 != arg0) return;
+       saved = tmp->unk8;
+       tmp->unk0 = 0;
+       tmp->unk4 = 0;
+       func_10017594((void *) saved);
+       tmp->unk8 = 0;
+   }
+   ```
+   The early-return structure (rather than a combined `&&` condition)
+   was necessary to get IDO to emit the same `bnel`/`beqzl`
+   branch-likely instructions target uses — the `&&`-combined version
+   compiled to `bne` instead, an instruction-level mismatch on top of
+   the logic fix. `(N_ALUnknownStruct1 *)` (matching `func_10017594`'s
+   own declared parameter type, seen via grep) failed to compile —
+   that type isn't visible in this file's includes — used `(void *)`
+   instead, which is fine since C allows implicit `void*`↔any-pointer
+   conversion. This single fix **also resolved `func_100112BC`'s own
+   reported drift** as a side effect (it was never actually broken —
+   the "drift" was `func_1001123C`'s leaking-forward tail, same
+   pattern as several earlier finds this whole investigation). A tiny
+   (~4-byte) residual remains — one stack-slot offset differs
+   (`0x1c` vs `0x18`) — not chased further, likely a similar minor
+   IDO scheduling artifact to the other known-hard residuals.
+
+4. **`func_1000F44C`'s `arg0`**: `s32` → `u16` (`src/init_EB00.c`,
+   same file, same `D_800425E0[]` array as #3). Confirmed via the
+   caller: `struct127.unk8C`/`.unk8E` (both `u16` in `structs.h`) are
+   the only real-world values ever passed to this parameter. After the
+   fix, the function's *entire body* matches target exactly — verified
+   line by line via a fresh diff. `find_drift.py` still reports "-12
+   introduced at `func_1000F44C`" purely because that's an artifact of
+   which symbol name happens to sit at the point cumulative drift
+   changes — the actual unresolved bytes are leaking forward from
+   `func_1000ECCC`/`func_1000F248` (not yet checked this round), not
+   from `func_1000F44C` itself. **This is now a well-established
+   pattern in this investigation**: `find_drift.py`'s "introduced at
+   SYMBOL" label names whichever symbol is *next* after a drift
+   change, not necessarily the symbol *causing* it — always confirm
+   with a direct diff of that specific function's own body before
+   concluding it (rather than something upstream) is the source.
+
+Rebuilt clean after each of the four fixes (0 `cfe: Error`, 0
+`Signal 11`, 0 CRLF regressions), verified via `find_drift.py` and
+direct `diff.py`/`objdump` checks throughout.
+
+**Revised strategic picture**: the wide cluster is NOT primarily
+alignment amplification — most of the ~18 points investigated so far
+have turned out to be genuine, independent, fixable bugs (three
+confirmed fully resolved: `func_1000BA18`, `func_1000BAFC`,
+`func_100112BC`; two more with real fixes applied and a small residual
+each: `func_1000F9D4`, `func_1000F44C`). The two `init_8180.c`
+residuals (`func_10008660.arg3`, `func_10008C04`'s reload timing)
+remain genuinely closed per last round's `mips_to_c`-informed
+conclusion, but they are clearly NOT responsible for most of this
+downstream cluster as hypothesized — that hypothesis is now
+considered disproven. **Next continuation**: same file,
+`src/init_EB00.c` — check `func_1000ECCC` and `func_1000F248` next
+(the likely real source of the drift currently misattributed to
+`func_1000F44C`), then continue through the remaining unchecked points
+(`func_1000FA64`, `func_100107F8`, `func_100114D0`, `func_10011FA0`,
+`func_100127D0`, `func_10012934`, `func_10012E04`, `func_10015550`)
+with the same explicit-bounds-diff-plus-`find_drift.py` discipline.
