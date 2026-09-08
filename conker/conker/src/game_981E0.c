@@ -1200,7 +1200,7 @@ void func_150716EC(s32 arg0) {
     tmp.unk0 = temp_v0->x_position;
     tmp.unk4 = temp_v0->y_position;
     tmp.unk8 = temp_v0->z_position;
-    func_151D5404(&tmp, 1502.0f, 3000.0f, 0.00033333332976326346f, 0xC, 0xF, 0xFF, 0);
+    func_151D5404(&tmp, 0x44BBC000, 0x453B8000, 0x39AEC33E, 0xC, 0xF, 0xFF, 0);
 }
 
 void func_15071764(s32 arg0) {
