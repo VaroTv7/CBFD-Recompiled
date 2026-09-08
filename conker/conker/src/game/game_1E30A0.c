@@ -187,7 +187,7 @@ void func_151B5FCC(void *arg0) {
 
     temp_v0 = (*(s32 *)((char *)(arg0) + 0x88));
     if (temp_v0 != 0) {
-        func_100111C8(temp_v0 & 0xFFFF, arg0);
+        func_100111C8(temp_v0 & 0xFFFF);
         (*(s32 *)((char *)(arg0) + 0x88)) = 0;
     }
 }

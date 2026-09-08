@@ -492,7 +492,7 @@ void func_15178DA4(void *arg0) {
 
     temp_a1 = D_800DCF3C;
     sp20 = temp_a1;
-    func_100111C8((*(s32 *)((char *)(arg0) + 0x2E)), temp_a1);
+    func_100111C8((*(s32 *)((char *)(arg0) + 0x2E)));
     var_a1 = temp_a1;
     if (var_a1 != NULL) {
         do {

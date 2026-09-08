@@ -871,7 +871,7 @@ void func_150DA484(void *arg0) {
 
     temp_a1 = (*(s32 *)((char *)((*(s32 *)((char *)(arg0) + 0x98))) + 0x30));
     if (temp_a1 != 0) {
-        func_100111C8(temp_a1 & 0xFFFF, temp_a1);
+        func_100111C8(temp_a1 & 0xFFFF);
     }
 }
 

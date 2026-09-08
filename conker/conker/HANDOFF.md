@@ -4774,3 +4774,81 @@ discipline (**always compute and pass the right `-S` value, or
 cross-check with raw `objdump -bbinary --adjust-vma=0x10000000`,
 before trusting a `diff.py` result past the first unresolved drift
 point**).
+
+## Session log — important correction: an earlier "logic rewrite" fix was itself wrong (2026-09-08, later still)
+
+Continued down the list with the corrected `-S`-shifted diff technique
+from the entry above. Two more clean wins, then a significant
+correction to a much earlier round's work:
+
+**`func_1001147C`**: same `struct120.unk0`-comparison pattern as
+several previous fixes this whole investigation — `arg0` was `s32`,
+needed `u16` (target's prologue does the `andi a0,0xffff` mask idiom).
+Fixed. Fully resolved `func_100114D0`'s entire reported drift (the
+misattribution pattern again — `func_100114D0` itself is still raw
+`GLOBAL_ASM` and was never the real cause).
+
+**`func_100111C8`**: identical pattern, same fix (`s32`→`u16` on
+`arg0`). This one has ~9 call sites across 8 different files (only 8 of
+them in `init_EB00.c` itself); `restore_promotion_safe_signatures.py`
++ `fix_cross_file_arg_counts.py` correctly trimmed 11 excess-argument
+call sites down to the new strict 1-parameter signature across
+`game_100810.c`, `game_105FC0.c`, `game_142560.c`, `game_1A5440.c`,
+`game_1C2C60.c`, `game_1D6E80.c`, `game_1E30A0.c`, and this file — all
+verified as harmless (each site was passing extra unused trailing
+arguments that were only ever tolerated by the old relaxed K&R
+declaration). Fully resolved `func_1001123C`'s remaining reported
+drift as a side effect.
+
+**Important correction — `func_1001123C` itself was still ~12 bytes
+short even after the above, and investigating why uncovered a real
+mistake from an earlier round**: a *previous* session had rewritten
+`func_1001123C`'s body from a version that called `func_100112BC(arg0,
+1)` to a version that manipulates `tmp->unk0`/`tmp->unk4` directly
+instaed, on the belief (documented at the time as "confirmed via direct
+objdump") that target's real compiled code never calls
+`func_100112BC` at this point. That belief was **wrong** — it was
+almost certainly reached using the same pre-existing-drift-blind
+`diff.py` comparison this round's `-S`-shift discovery fixes. With the
+correctly shifted/aligned disassembly, target's real code at this
+address **does** call `func_100112BC(a0, 1)` (`li a1,1` immediately
+before the `jal`, using the original `a0` register untouched since
+function entry), then conditionally does the `func_10017594` +
+`tmp->unk8 = 0` cleanup based on its return value — and does **not**
+touch `unk0`/`unk4` at all in this path. This is exactly the original,
+pre-rewrite version. Restored it:
+```c
+void func_1001123C(u16 arg0) {
+    struct120 *tmp = &D_800425E0[arg0 & 0xF];
+    if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
+        if (func_100112BC(arg0, 1) == 0) {
+            func_10017594(tmp->unk8);
+            tmp->unk8 = 0;
+        }
+    }
+}
+```
+(keeping the `u16 arg0` narrowing, which was independently correct and
+unrelated to this mistake). Rebuilt and confirmed:
+`func_100112BC`'s reported drift **disappeared entirely** — fully
+resolved. **Lesson, added to the standing discipline**: any
+"confirmed via objdump" conclusion from before this session's `-S`-
+shift / drift-alignment discovery should be treated as suspect if it
+involved a function past an unresolved upstream drift point at the
+time it was made, and should be re-verified with the corrected
+technique before being trusted further. This is now the second
+confirmed case (after this round's own `func_1000F91C` false lead,
+caught before being applied) where the alignment bug could have caused
+real damage — this one *did* ship as a real regression for at least
+one prior round before being caught here.
+
+Rebuilt clean after all three fixes (0 `cfe: Error`, 0 `Signal 11`, 0
+CRLF regressions), verified via `find_drift.py`.
+
+**Continuation point**: `func_100127D0`, `func_10012934`,
+`func_10012E04`, `func_10015550` remain from the original list — same
+file family, same corrected `-S`-shift discipline. Given the
+`func_1001123C` finding above, when picking up any OLDER previously-
+"resolved" or "closed" residual from before this round in this same
+cluster, it would be worth a quick re-verification pass with the
+corrected technique rather than assuming past conclusions still hold.

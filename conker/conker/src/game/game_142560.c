@@ -487,7 +487,7 @@ void func_1511575C(void *arg0) {
                     sp68 = 0;
                     sp7A = (s16) temp_t4;
                     sp72 = -0x64;
-                    func_100111C8(var_s1 & 0xFFFF, temp_a1, temp_a2, var_a3);
+                    func_100111C8(var_s1 & 0xFFFF);
                     var_s1 = 0;
                     func_10010F88(1.84e-43f, 2.8699e-41f, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0xC8, 0x3E8);
                     var_t3 = sp68;
@@ -827,7 +827,7 @@ void func_1511650C(void *arg0, s32 arg1, s32 arg2, f32 arg3) {
                 func_1000F91C(temp_f12, temp_f14, temp_a0, temp_a1, (s16) (s32) temp_f12, 0, -1, (s32) (*(s16 *)((char *)(arg0) + 0x10)), (s32) (*(s16 *)((char *)(arg0) + 0x12)), (s32) (*(s16 *)((char *)(arg0) + 0x14)));
                 return;
             }
-            func_100111C8((s32) temp_f12, (s16) temp_f14, (s16) temp_a0, temp_a1);
+            func_100111C8((s32) temp_f12);
             (*(s32 *)((char *)(arg0) + 0x74)) = 0U;
         }
     }

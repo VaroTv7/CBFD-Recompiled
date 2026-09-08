@@ -261,7 +261,7 @@ void func_1000F9D4( u16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 //         temp_a0 = temp_v1->unk24;
 //         if (temp_a0 != 0) {
 //             sp1C = temp_v1;
-//             func_100111C8(temp_a0, arg0);
+//             func_100111C8(temp_a0);
 //         }
 //         (arg0 + temp_t7)->unk10 = (s32) ((arg0 + temp_t7)->unk10 | 0x80);
 //         phi_return = 0;
@@ -439,7 +439,7 @@ s32 func_10010F30(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010F88.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010FFC.s")
 
-void func_100111C8( s32 arg0) {
+void func_100111C8( u16 arg0) {
     struct120 *tmp = &D_800425E0[arg0 & 0xF];
 
     if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
@@ -452,19 +452,13 @@ void func_100111C8( s32 arg0) {
 
 void func_1001123C( u16 arg0) {
     struct120 *tmp = &D_800425E0[arg0 & 0xF];
-    struct31 *saved;
 
-    if (tmp->unk8 == 0) {
-        return;
+    if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
+        if (func_100112BC(arg0, 1) == 0) {
+            func_10017594(tmp->unk8);
+            tmp->unk8 = 0;
+        }
     }
-    if (tmp->unk0 != arg0) {
-        return;
-    }
-    saved = tmp->unk8;
-    tmp->unk0 = 0;
-    tmp->unk4 = 0;
-    func_10017594((void *) saved);
-    tmp->unk8 = 0;
 }
 
 s32 func_100112BC(s32 arg0, s32 arg1) {
@@ -485,7 +479,7 @@ s32 func_100112BC(s32 arg0, s32 arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10011310.s")
 
-s32 func_1001147C( s32 arg0) {
+s32 func_1001147C( u16 arg0) {
     struct120 *tmp;
 
     if (arg0 != 0) {

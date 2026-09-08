@@ -1289,7 +1289,7 @@ block_36:
     if (*arg2 == 0) {
         temp_a0 = (*(s32 *)((char *)(arg0) + 0x24));
         if (temp_a0 != 0) {
-            func_100111C8(temp_a0, var_a1, var_a3);
+            func_100111C8(temp_a0);
             (*(s32 *)((char *)(arg0) + 0x24)) = 0U;
         }
         *arg6 = 0;

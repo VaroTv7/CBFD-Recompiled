@@ -1120,7 +1120,7 @@ u8 func_151AB6B8(void *arg0) {
         temp_v1 = (char *)(arg0) + 0x58;
         sp2F = 1;
         sp24 = temp_v1;
-        func_100111C8((*(s32 *)((char *)(temp_v1) + 0x6)), arg0);
+        func_100111C8((*(s32 *)((char *)(temp_v1) + 0x6)));
         var_v1 = temp_v1;
         var_t0 = 1;
         (*(s32 *)((char *)(var_v1) + 0x6)) = 0U;
@@ -1144,7 +1144,7 @@ void func_151AB788(void *arg0) {
     temp_v0 = (*(s32 *)((char *)(arg0) + 0x58)) + 0x58;
     if ((*(s32 *)((char *)(arg0) + 0x5E)) != 0) {
         sp18 = temp_v0;
-        func_100111C8((*(s32 *)((char *)(arg0) + 0x5E)), arg0);
+        func_100111C8((*(s32 *)((char *)(arg0) + 0x5E)));
     }
     (*(s32 *)((char *)(temp_v0) + 0x1C)) = 0;
     func_151346EC(arg0, arg0);
@@ -1157,7 +1157,7 @@ void func_151AB7D8(void *arg0) {
     temp_v0 = (*(s32 *)((char *)(arg0) + 0x58)) + 0x58;
     if ((*(s32 *)((char *)(arg0) + 0x5E)) != 0) {
         sp18 = temp_v0;
-        func_100111C8((*(s32 *)((char *)(arg0) + 0x5E)), arg0);
+        func_100111C8((*(s32 *)((char *)(arg0) + 0x5E)));
     }
     (*(s32 *)((char *)(temp_v0) + 0x1C)) = 0;
     func_1513470C(arg0, arg0);
