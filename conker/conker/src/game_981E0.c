@@ -3,6 +3,7 @@
 #include "functions.h"
 #include "variables.h"
 
+f32 random_float();                                /* extern */
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506AD30.s")
 
