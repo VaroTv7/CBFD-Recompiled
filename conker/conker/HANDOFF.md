@@ -5448,3 +5448,85 @@ with the same discipline (check the preceding function first, use the
 verify each missing-prototype fix's *real* semantics via direct
 `objdump` comparison rather than assuming the previous round's
 technique applies).
+
+## Session log — game_83300.c sweep: a major global-variable fix and two real logic bugs (2026-09-08, later still)
+
+Continued the sweep into `src/game_83300.c`. Eight more fixes this
+round, including one significant global-variable correctness fix and
+two genuine missing-`return` logic bugs (not type/promotion issues).
+
+**`gCurrentObjectIndex`** (`include/variables.h`): was declared
+`extern s32`, but target reads it via `lbu` (byte-width) at its
+confirmed real address (`0x800c3e78`, matched exactly against
+`build/conker.us.map`). Multiple existing call sites across the
+codebase (`game_20AE20.c`, `game_215960.c`, `game_49D30.c`) already
+had **redundant `(s8)` casts on assignment** to it — a strong signal
+that a prior investigation already recognized this narrow-type issue
+but never fixed the underlying declaration. Changed it to `extern s8
+gCurrentObjectIndex;`. This is used across 18 files, so the blast
+radius is wide; confirmed correct via `objdump` (every read site's
+load width changed from `lw` to `lb`) and a full clean rebuild with
+zero errors. **Note**: target's own loads use `lbu` (unsigned) in
+several places we've checked, while our `s8` declaration produces
+signed `lb` — worth double-checking in a future session whether `u8`
+would be more accurate, though this hasn't caused any confirmed byte
+mismatch since load-instruction width (not signedness) is what
+`find_drift.py` cares about.
+
+**`func_150593C4`**: `arg2` is a genuine `f32` parameter forwarded to
+`func_1505A184` (still raw asm, relaxed K&R declaration) — target
+passes its raw bits directly via register (`mfc1`, no `cvt.d.s`).
+Applied the parameter-bitcast technique (`*(s32*)&arg2`). Fully
+resolved `func_15059444`'s reported drift as a side effect.
+
+**`func_1505959C`**: `phi_v0` (a small local holding only
+enum-like constants 6/9/10/12/26/27) narrowed `s32`→`u8`, matching
+target's `andi a0,0xff` before `func_15083E0C` calls. Fully resolved
+`func_150597FC`'s reported drift.
+
+**Two more `func_1505E650` float-literal-promotion instances**
+(`func_1505959C`, and the call inside it flagged separately) — same
+hex-bit-pattern fix as established this session; both landed at the
+same "closest achievable" `-4`/`-8` residual already documented for
+`func_1504BB88`/`func_15048B10` (target routes a literal `0.0f`
+through float registers where a plain int move would produce
+identical bits — not reachable via any C-level literal choice tried
+so far).
+
+**Two genuine logic bugs, not type bugs** (`func_1505A6F8`,
+`func_1505A72C` — 2D and 3D distance-calculation helpers
+respectively): both compute squared coordinate differences (`x *= x`,
+etc.) but were **missing their final `return sqrtf(...)` statement
+entirely**. Confirmed via `objdump` — target's last two instructions
+are `sqrt.s $f0,$f0` then `jr ra`, with nothing resembling the
+"compute and discard" current behavior. Added
+`return sqrtf(x + z);` and `return sqrtf((x + z) + y);` respectively
+(order confirmed from the exact `add.s` sequence in target's
+disassembly). Both fully resolved — a good reminder that not every
+residual in this investigation is a type/calling-convention issue;
+some are real, first-class logic bugs from an earlier
+auto-decompilation pass that simply dropped the return.
+
+**`func_1505D2B8`**: `arg1` `s32`→`u8` (target masks with
+`andi a2,0xff` at entry, used as an index into `D_8009A6D8[]`). Fully
+resolved.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout. Cluster is down to 118 entries (from 143 when this segment
+investigation began, 123 at the start of this round).
+
+**Continuation point**: `func_150562FC` (a `fabsf`-pattern residual,
+already investigated and closed per the earlier entry — skip),
+`func_150593C4`'s remaining `+64` residual (documented several entries
+back: a likely wrong-struct-field-reference bug at offset `0x3E78`
+plus a second promotion issue on a non-addressable runtime
+expression — needs dedicated struct archaeology), `func_15060B70`,
+`func_15060BA4`, `func_15063390`, and the long tail beyond. Continue
+with the same discipline: check the preceding function first, use
+`target_file_offset(V) = 0x0002d4b0 + (V - 0x15000000)`, verify each
+missing-prototype fix's real semantics via direct `objdump` comparison
+(preserve-bits vs. truncate-to-int are both real patterns seen this
+session, function-dependent), and don't assume every residual is a
+promotion bug — check for missing `return` statements and outright
+wrong field/variable references too.
