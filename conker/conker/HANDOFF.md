@@ -5613,3 +5613,103 @@ they share `func_1506F8F0`'s pattern or are independent),
 worth a dedicated pass through the other 6 files with confirmed-but-
 unverified `func_1505E650` float-literal calls listed above, checked
 individually against `find_drift.py` rather than blindly batch-fixed.
+
+## Session log — random_float() missing-prototype bug, and closing out func_1513C350's wrapper family (2026-09-08, later still)
+
+Revisited `func_1506F8F0`'s "+8 scheduling residual" flagged as
+unresolved at the end of the last round, and found the real cause:
+this round's diagnosis of "genuine IDO instruction-scheduling
+difference" was **wrong**. It's actually the *same* missing-prototype
+family bug as everywhere else this session, just manifesting on a
+function's **return value** instead of an argument.
+
+**`random_float()`** is a real `f32`-returning function, but has no
+visible declaration in `src/game_981E0.c` — no local forward decl, and
+nothing in `functions.h` either. IDO's K&R rules therefore default it
+to `int random_float()`. Every call site that used its result in a
+float expression got an extra `mtc1 v0,$fN` + `cvt.s.w` to convert the
+(wrongly-typed) integer return value, and the multiply/add used the
+converted register instead of `$f0` directly — costing exactly 8 bytes
+per call site and producing visibly different code (confirmed via
+direct `objdump` comparison against target, which uses `$f0` straight
+away with no conversion).
+
+The fix pattern already exists **~90 times** across `src/game/*.c`:
+a local `f32 random_float();  /* extern */` declaration in each file
+that calls it. `game_981E0.c` (and `src/game_16EE20.c`,
+`src/game_18D770.c`, `src/game_2062D0.c`, found via a codebase-wide
+sweep for the same missing-declaration pattern) were simply missing
+this declaration. Added it to all 4. This retroactively fixed
+`func_1506F8F0`/`func_1506F9C0`/`func_1506FA90` (all three now exact)
+plus 6 more call sites across the other 3 files. Cluster dropped from
+114 to 106.
+
+**Lesson**: before writing off a residual as "genuine IDO scheduling
+difference," check whether *every* callee involved — including
+plain-looking utility calls like `random_float()` — actually has a
+visible prototype in the file. A wrong-register-class return value
+looks superficially like a scheduling reorder (extra float-register
+shuffling) but is really the same missing-prototype family bug applied
+to a return type instead of a parameter type.
+
+**Also fixed**: `src/game_169510.c`'s `func_1513C350` wrapper family
+(`func_1513C4EC`/`5B0`/`650`/`73C`/`804`). These all forward genuine
+`f32` parameters to `func_1513E13C`/`func_1513E2AC`, both still raw
+asm with only relaxed K&R prototypes visible via `functions.h` (a
+commented-out `NON-MATCHING` prototype at line 417 confirms the real
+signature is all-`f32`). Applied the parameter-bitcast technique
+(`*(s32*)&argN`) to every forwarded float argument across all 5 call
+sites. `func_1513C73C` and `func_1513C804` are now exact matches;
+`func_1513C5B0`/`650`/`8D4` dropped from `+28`/`+28`/`+16` residuals to
+a much smaller `-8` each — direct `objdump` comparison shows the
+remaining gap is target masking+swapping its `u8 arg2`/`arg3` register
+order (`andi a2,0xff` / `andi a3,0xff` then a register swap) before
+forwarding to `func_1513C350`, which doesn't correspond to any
+straightforward source-level change; left as a small residual rather
+than chasing further.
+
+Cluster is down to **104 entries** (from 114 at the start of this
+round, 143 when the `0x15000000+` segment investigation began).
+
+Also did a systematic codebase-wide sweep for OTHER `f32`-returning
+functions that use this same per-file `f32 NAME(); /* extern */`
+pattern (18 distinct names found), checking every caller in the
+segment for a missing declaration. Found and ruled out 2 false leads:
+`func_150489B0` in `game_75E60.c` is missing the declaration too, but
+already produces byte-exact code as-is (adding the declaration would
+risk regressing it, so left alone — not every missing declaration is
+actually causing a mismatch); `func_150497E0` in `game_20AE20.c`/
+`game_49D30.c` looked missing by a narrow regex but both files already
+carry a *fuller* (if mutually inconsistent) prototype, so it's not
+this bug at all.
+
+**New observation, not yet chased down**: several entries near
+`func_1504A620` (`src/game_77AD0.c`) and `func_15049260`
+(`src/game_76710.c`) show real introduced deltas (-48, -12) at
+functions that are themselves **still raw `GLOBAL_ASM` blocks**, not
+C code. Since `asm_processor.py`'s placeholder mechanism should make
+raw-asm blocks byte-exact by construction, a drift "introduced" at one
+of these is almost certainly mis-attributed further back — but tracing
+it hit only more raw-asm blocks before reaching real C code
+(`func_150490A8`, `src/game_75FC0.c:153`), which itself only shows a
+small `+4`. Possible this is a `.game`-segment file-offset-formula
+calibration artifact this deep into the segment (per the standing
+caveat about needing prologue-byte recalibration for functions far
+from the segment start) rather than a real bug — worth re-verifying
+with fresh prologue-byte matching before investigating further, rather
+than assuming a C-level fix applies.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: re-calibrate the `.game` segment file-offset
+formula via fresh prologue-byte matching around `0x1504xxxx`-
+`0x1505xxxx` before trusting the `func_1504A620`/`func_15049260`
+raw-asm-adjacent drift readings above. Then continue the general sweep
+from `func_1504BC38` onward (`-4`), `func_15052F58`, `func_15054A0C`,
+`func_15055B64`, `func_150562FC` (`+8`, already-known `fabsf` pattern —
+skip), `func_150593C4`'s remaining struct-field-offset bug (documented
+several rounds back, still unresolved), and the long tail through
+`func_1513EDE4`/`EE14`/`F4E4`/`F6C0` and beyond, which have not been
+individually investigated yet this round.
