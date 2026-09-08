@@ -475,7 +475,7 @@ void func_1504C854(struct127 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_77AD0/func_1504C8BC.s")
 
-void func_1504C9E4(struct127 *arg0, s32 arg1, s32 arg2) {
+void func_1504C9E4(struct127 *arg0, s8 arg1, u8 arg2) {
     u8 phi_a2;
     s32 tmp0;
     s32 tmp1;
@@ -573,7 +573,7 @@ void func_1505250C(struct127 *arg0, s32 arg1) {
 void func_15052EF0(struct127 *arg0) {
     arg0->immune = 100;
     arg0->unk40 =  ((s16) (arg0->unk7A + 16384)) * 0.005493164f;
-    func_1505E650(arg0, 0, 1.0f, 0.0f, 0.0f, 0.0f, 0);
+    func_1505E650(arg0, 0, 0x3F800000, 0x00000000, 0x00000000, 0x00000000, 0);
 }
 
 struct127 *func_15052F58(s32 arg0, s32 arg1) {
@@ -1063,12 +1063,12 @@ void func_15055A2C(s32 arg0, f32 arg1, f32 arg2, f32 arg3, s32 arg4) {
     } else {
         phi_a0 = D_8009919C[random_u32() % 6U];
     }
-    func_10010F88(phi_a0, 32700, random_u32() % 500U, 0, 0, arg1,  arg2, arg3, phi_v1, 3000);
+    func_10010F88(phi_a0, 32700, (s16) (random_u32() % 500U), 0, 0, (s32) arg1, (s32) arg2, (s32) arg3, phi_v1, 3000);
 }
 
 void func_15055B0C(struct127 *arg0, s32 arg1) {
     arg0->interaction_state = 39;
-    func_1505E650(arg0, arg0->unk84.uh, 0, 0.0f, 0.0f, 0.0f, 0);
+    func_1505E650(arg0, arg0->unk84.uh, 0, 0x00000000, 0x00000000, 0x00000000, 0);
     arg0->unkE4 = 0;
     arg0->unkE6 = 0;
     arg0->unk21C = arg1;
