@@ -1431,6 +1431,6 @@ extern s32  D_1FC007FC;
 
 extern struct127 gObjects[25];
 extern struct127 *gCurrentObject;
-extern s8 gCurrentObjectIndex;
+extern u8 gCurrentObjectIndex;
 
 #endif
