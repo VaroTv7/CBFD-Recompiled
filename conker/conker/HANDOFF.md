@@ -5363,3 +5363,88 @@ compounding at object-file boundaries between current and target), and
 prefer the parameter-bit-reinterpretation technique over
 pointer-cast-indirect-call for any further missing-prototype
 float-promotion bugs involving runtime parameter values.
+
+## Session log — further sweep, key discovery about per-function calling conventions (2026-09-08, later still)
+
+Continued down the list with the same discipline. Six more real fixes,
+one important methodology correction, and one deeper investigation
+flagged for a future session.
+
+**`func_1504C9E4`** (`src/game_77AD0.c`): `arg1` `s32`→`s8` (target
+sign-extends by 24 bits, not the usual 16 — confirming an `s8`, not
+`s16`), `arg2` `s32`→`u8` (0xff mask). Fully resolved.
+
+**`func_15052EF0`, func_15055B0C's `func_1505E650` call**: same
+missing-prototype float-promotion pattern as the previous round's
+`func_1504BB88` fix — replaced float literals with their raw
+IEEE-754 hex bit patterns. `func_1505E650` now has this fix applied
+at 4 of its 6 call sites in this file (2 remain as dead/commented-out
+code, not touched).
+
+**`func_15055A2C`** (misattributed to `func_15055B0C`, the usual
+pattern): its call to `func_10010F88` forwards 3 float parameters.
+**Important correction to the established technique**: tried the
+parameter-bitcast approach (`*(s32*)&arg1`) that worked cleanly for
+`func_150A8050`/`func_150A9B0C` in the previous round — this made
+things *worse* here (+8 bytes), not better. Direct `objdump`
+comparison revealed why: `func_10010F88` doesn't want the *bit
+pattern* preserved at all — target genuinely **truncates** these
+float arguments to integers (`trunc.w.s` + `mfc1`, i.e. C's `(s32)`
+cast), unlike `func_1505E650`/`func_150A8050` which want the *raw
+bits* preserved. Switched to plain `(s32)` casts — clean, exact
+match. **Lesson reinforced yet again**: never assume the same
+missing-prototype workaround applies uniformly across different
+unprototyped functions — each one's real parameter semantics must be
+independently confirmed via `objdump`, since the visible symptom
+(extra `cvt.d.s` instructions) is identical whether the fix should be
+"preserve bits" or "truncate to int." Also found and fixed a
+*second*, independent bug in the same function: `func_10010F88`'s 3rd
+argument (`random_u32() % 500U`) needed an explicit `(s16)` cast
+(target sign-extends it). Fully resolved.
+
+**`func_15058F24`** (`src/game_83300.c`, within the large
+`func_15059140`): same `func_1505E650`-style pattern — its `1.0f`
+compile-time-constant 3rd argument replaced with `0x3F800000`.
+Partial improvement (+72 → +64 residual) — this function has
+*multiple* independent bugs stacked together (see below), this fixes
+only one.
+
+**Investigated, NOT fixed — flagged for a dedicated future
+session**: `func_15059140` (`src/game_83300.c`) has at least two more
+distinct issues found via direct `objdump` comparison but not
+resolved this round:
+1. Its call `func_15058898(arg0, arg0->old_y_position)` — target
+   reads the second argument via `lbu` (an 8-bit unsigned byte load)
+   from struct offset **0x3E78** (15992 decimal), but
+   `old_y_position` is a completely different `f32` field at offset
+   **0x30**. This means the current C source is very likely
+   referencing the **wrong struct field entirely** — not a
+   type/promotion bug at all, a genuine logic error. Properly fixing
+   this requires identifying what real field (or discovering an
+   as-yet-unnamed one) exists at offset 0x3E78 in `struct127` — likely
+   a substantial struct-archaeology task given how large this struct
+   is (0x3E78+ bytes), out of scope for a quick fix.
+2. `func_15058F24`'s first (non-literal) argument
+   (`arg0->unkB0 * D_800994A8`) is *also* still being double-promoted
+   — same missing-prototype issue, but this one is a genuine
+   runtime-computed expression (not addressable, not a compile-time
+   constant), so neither the hex-literal trick nor the
+   parameter-bitcast trick directly applies; would need either a
+   `(s32)`-truncation check (per the `func_10010F88` lesson above —
+   confirm via `objdump` whether target wants truncation or bit
+   preservation here specifically) or acceptance as a residual.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout.
+
+**Continuation point**: `func_150562FC` (+8), the remainder of
+`func_15059140`'s bugs (flagged above), `func_15059444`,
+`func_1504A620`/`tanf` region (flagged in the previous entry as
+needing real `sinf`/`cosf` implementations — substantial separate
+task), and the long tail beyond. This cluster is still large; continue
+with the same discipline (check the preceding function first, use the
+`target_file_offset(V) = 0x0002d4b0 + (V - 0x15000000)` formula,
+verify each missing-prototype fix's *real* semantics via direct
+`objdump` comparison rather than assuming the previous round's
+technique applies).

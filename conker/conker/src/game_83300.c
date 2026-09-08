@@ -510,7 +510,7 @@ void func_15059140(struct127 *arg0) {
         }
     }
     if (arg0->unkB0 != 0) {
-        func_15058F24(arg0, arg0->unkB0 * D_800994A8, 1.0f);
+        func_15058F24(arg0, arg0->unkB0 * D_800994A8, 0x3F800000);
     }
     if (arg0->unkF8 & 0x20000) {
         func_15056258(arg0);
