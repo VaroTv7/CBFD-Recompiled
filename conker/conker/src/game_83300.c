@@ -502,7 +502,7 @@ void func_15059140(struct127 *arg0) {
         func_15056150(arg0);
     }
     if (arg0->unk13D < 0x64) {
-        func_15058898(arg0, arg0->old_y_position);
+        func_15058898(arg0, *(s32 *) &arg0->old_y_position);
     }
     if (arg0->unkF4 & 0x40000) {
         if (((arg0->unkF4 & 0x12000) != 0) || (D_800CC268 != 0)) {
