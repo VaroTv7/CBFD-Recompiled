@@ -353,7 +353,7 @@ void func_1504BB88(struct127 *arg0) {
         arg0->unk83 = 0xFF;
         arg0->disable_run = 0xFF;
         if (arg0->interaction_state == 1) {
-            func_1505E650(arg0, 0xD6, 1.149999976158142f, 3.0f, 0.0f, 0.0f, 0);
+            func_1505E650(arg0, 0xD6, 0x3F933333, 0x40400000, 0x00000000, 0x00000000, 0);
         }
         arg0->unk25C &= ~0x10;
     }
