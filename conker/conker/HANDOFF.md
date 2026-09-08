@@ -5028,3 +5028,56 @@ genuine IDO register-allocation heuristics. No further known
 continuation point in this immediate area; a fresh `find_drift.py`
 scan starting past `0x10020000` would be needed to find the next area
 of interest, if any, whenever this investigation resumes.
+
+## Session log — full segment sweep confirms 0x10009000-0x15000000 clean; new 0x15000000+ cluster found (2026-09-08, later still)
+
+With the `init_EB00.c`-area cluster (and its extension) fully
+resolved, swept `find_drift.py` across progressively larger ranges to
+look for the next area of interest:
+
+- `find_drift.py 0x10009000 0x10030000` → same 6 entries as before
+  (the two closed residuals and their causal chain), nothing new.
+- `find_drift.py 0x10009000 0x10080000` → identical, still just 6.
+- `find_drift.py 0x10009000 0x10200000` → identical, still just 6.
+- `find_drift.py 0x10009000 0x15000000` → **identical, still just 6**,
+  across the entire main code segment (241 `func_ADDR`/`D_ADDR`-named
+  symbols checked in that range, zero unexpected drift beyond the two
+  closed residuals).
+
+**This confirms the entire `0x10009000`-`0x15000000` primary code
+segment is fully resolved** except for the two long-closed
+`func_1000F91C`/`func_1000F9D4` IDO register-allocation residuals.
+(Caveat, per the non-address-named-symbol lesson two entries above:
+this only covers symbols that follow the `func_ADDR` naming
+convention — a real, undiscovered bug hiding entirely inside one or
+more hand-named SDK/library functions in this range, with no
+`func_ADDR`-named neighbor ever reporting the accumulated drift,
+remains theoretically possible but has no automated way to surface it
+short of manually prologue-matching every hand-named function in a
+~20,000-function range, which is not practical.)
+
+**New, much larger cluster found**: `find_drift.py 0x15000000
+0x16010000` (the `chunk0`/`src/game/*` code region — a completely
+different, apparently never-swept-this-way area) returns **143 drift
+entries**, spanning roughly `0x15001B8C` through `0x16001700` and
+beyond. This is an order of magnitude larger than the cluster this
+whole session's work has been resolving, and represents a substantial,
+previously-uninvestigated body of work in a different part of the
+codebase (`src/game/*.c` files rather than `src/init_*.c`/
+`src/libultra/*`).
+
+**Recommended next continuation** (a new investigation, not a
+continuation of the `init_EB00.c` cluster): start with
+`python3 find_drift.py 0x15000000 0x16010000` (or a narrower opening
+sub-range like `0x15000000 0x15010000` to keep the list manageable),
+and apply the exact same discipline established this whole session:
+check the function immediately *preceding* any reported point first
+(most drift is misattributed to the next-named symbol, not the actual
+cause), use `-S <shift>` or dual `objdump -bbinary
+--adjust-vma=0x10000000` comparison instead of a bare `diff.py` call,
+and watch for hand-named (non-`func_ADDR`) functions hiding drift
+invisibly — use direct prologue-pattern matching to isolate the true
+source when that's suspected. Given the much larger scale here (143
+vs. the ~18 points that took this whole multi-round session), budget
+this as a substantially longer effort, likely spanning many further
+rounds.
