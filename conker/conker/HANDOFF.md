@@ -5802,3 +5802,114 @@ Beyond that, the earlier continuation points from last round
 (`func_1504BC38` onward, `func_150593C4`'s struct-field bug, the
 `func_1513EDE4`/`EE14`/`F4E4`/`F6C0` region in `game_169510.c`) are
 still open.
+
+## Session log — more narrow-parameter fixes, gCurrentObjectIndex signedness, and closing out func_15059140 (2026-09-08, later still)
+
+Continued the narrow-parameter-type sweep in `src/game_18D770.c`:
+
+- `func_151616D0`: `arg0`→`s8` first (matching `struct234.unk0`'s
+  declared type exactly, following the precedent set by
+  `func_15163604`) — this made things WORSE (`-4`→`+8`), confirmed via
+  objdump: `s8` produces `sll`+`sra` sign-extension (2 extra
+  instructions) where target uses a plain `andi` (zero-extend, 1
+  instruction). Reverted to `u8`, which matched exactly. **New
+  lesson**: when target's masking instruction is `andi` (zero-extend),
+  match `u8` regardless of what the destination struct field is
+  declared as — the field's own signedness only matters for the
+  *store*, not for how the *parameter itself* should be typed if the
+  two disagree. Confirmed by a second-order effect: guessing wrong
+  here didn't just fail to fix anything, it actively regressed a
+  previously-fixed neighbor (`func_15161714`), which is why re-running
+  `find_drift.py` after every single edit (not batching several before
+  checking) matters even for "obviously same pattern" fixes.
+- `func_15162034`, `func_15161334`, `func_15161494`: `arg1`→`u8`,
+  the by-now-familiar "spawn wrapper" call shape forwarding into
+  `func_1516037C`. All confirmed via objdump, all fully resolved.
+- `func_151615F8`: `arg2`→`u8` (0 <= arg2 < 9 range check, `lbu` in
+  target vs `lw` in ours).
+
+Cluster dropped from 96 to 95 over this batch (some of these
+resolved residuals that had already partially improved from prior
+rounds, so the net count delta understates the real progress — same
+caveat noted in earlier rounds).
+
+**Resolved a long-standing open question**: `gCurrentObjectIndex`
+(`include/variables.h`) was fixed from `s32`→`s8` several rounds ago,
+with a note flagging "target's own loads use `lbu` (unsigned) in
+places checked, while our `s8` declaration produces signed `lb` —
+worth double-checking." Investigating `func_150593C4`'s `+64`
+residual (see below) required staring directly at this exact load,
+and confirmed conclusively: target uses `lbu`, not `lb`. Changed to
+`u8`. This doesn't move `find_drift.py`'s size-based count (both `lb`
+and `lbu` are 4-byte instructions), but it's a genuine byte-content
+fix at every one of this global's ~18 call sites — the kind of fix
+that's invisible to the drift tool but real progress toward
+byte-perfect matching. No existing `(s8)` casts at assignment sites
+needed changes (their computed values, 0-24, fit identically as signed
+or unsigned).
+
+**Fully diagnosed and mostly closed `func_150593C4`'s `+64` residual**
+(`src/game_83300.c`, flagged unresolved across several earlier
+rounds as a suspected "wrong struct field reference"). It was never a
+wrong-field bug — every earlier round's `find_drift.py` misattribution
+pointed at the wrong function; the real code is in `func_15059140`
+(the function immediately before it in the file, per the standing
+misattribution caveat). Direct instruction-by-instruction diffing
+(dump both sides to files, strip to opcode columns, `diff -u`) found
+**three separate, ordinary missing-prototype float-promotion bugs** in
+that one function, each fixed with the established parameter/field-
+bitcast technique:
+  1. `func_15058898(arg0, arg0->old_y_position)` — genuine `f32` struct
+     field, forwarded to a still-raw-asm callee. Field-bitcast fix,
+     clean.
+  2. `func_15058F24(arg0, arg0->unkB0 * D_800994A8, 0x3F800000)` — a
+     *computed* `f32` expression (not a bare field), which also
+     displaced the `0x3F800000` literal onto the stack as a side
+     effect of the double-promoted first argument eating both
+     remaining register slots. Materialized the product into a local
+     `f32 temp_f8` and bitcast that — reduced but did not fully
+     eliminate the residual (a `-8` byte gap remains: taking `&temp_f8`
+     forces IDO to round-trip the value through the stack — `swc1` +
+     `lw` — instead of `mfc1` directly, the same "freshly-computed
+     local" caveat documented earlier this investigation for
+     `temp_f12`/`negRoll`-style cases).
+  3. `func_1505B5F8(arg0, arg0->unk180)` — another genuine `f32` struct
+     field. Field-bitcast fix, clean.
+  Net effect: `func_150593C4`'s residual went `+64` → `+44` → `+32` →
+  `+16` across the three fixes.
+
+**Investigated, not fixed**: the remaining `+16` on `func_150593C4`
+traces to `func_1505A250(0, 0, sp2C, &arg0->unk164, &arg0->unk168)`.
+Target passes the literal `0, 0` via `$f12`/`$f14` (the o32 ABI's
+dedicated float-argument registers for a *prototyped* call's first two
+float parameters) — meaning target's real source almost certainly has
+`0.0f, 0.0f` there and a genuine full `f32` prototype for
+`func_1505A250` in scope. Confirmed via a second call site
+(`src/game/game_105FC0.c:527,537`) that passes computed `f32`
+expressions (`temp_f16 * temp_f2_3`, etc.) as the same two arguments —
+strong independent evidence the true signature is
+`f32,f32,f32,f32*,f32*`, not K&R-relaxed. But both files that call it
+already carry their own local K&R-relaxed declaration
+(`void func_1505A250();` / `void * func_1505A250();`), so adding a
+full prototype anywhere without first *removing* both existing relaxed
+declarations would hit the standing IDO redeclaration-bug rule. Fixing
+this properly means editing 2 files together (replace both local
+relaxed declarations with one shared full prototype, likely in
+`functions.h`), which is a larger, riskier change than the `+16` bytes
+at stake — left as an accepted residual, documented here in case a
+future round wants to take it on deliberately.
+
+Rebuilt clean after every fix (0 `cfe: Error`, 0 `Signal 11`, 0 CRLF
+regressions), verified via `find_drift.py 0x15000000 0x16010000`
+throughout. Cluster: **95 entries** (from 96 at the start of this
+round, 143 when the `0x15000000+` segment investigation began).
+
+**Continuation point**: `func_1504BC38` onward (the long tail of
+mostly-small `-4`/`-8`/`-12` entries starting around `game_77AD0.c`
+that haven't been individually diagnosed this whole 0x15000000+
+investigation — many may be the same narrow-parameter or missing-
+prototype patterns now well-established, worth a systematic pass using
+the same objdump-diff methodology used for `func_15059140` above), the
+`func_1513EDE4`/`EE14`/`F4E4`/`F6C0` region in `game_169510.c`, and
+(if ever revisited) the `func_1505A250` full-prototype cleanup
+described above.
