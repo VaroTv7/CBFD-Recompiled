@@ -34,8 +34,34 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516865C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168800.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168870.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168A2C.s")
+void func_15168B10(s32 arg0, s32 arg1);
+
+void func_15168A2C(s32 arg0) {
+    func_15168B10(arg0, 0);
+}
+extern u8 D_800DCE50[];
+
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. A bucket-list
+// insert: computes a slot in D_800DCE50 (stride 0x1A0, matching the
+// already-documented but uncompiled func_15168A9C's comment) indexed by
+// arg0->unk1 and arg1, splices arg0 onto the front of that slot's linked
+// list (unk8=old head, old head->unk4=arg0), then sets arg0->unk0=arg1,
+// arg0->unk4=0. Register allocation and instruction order differ
+// substantially from every offset/pointer-arithmetic variation tried.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168A4C.s")
+// void func_15168A4C(void *arg0, u8 arg1) {
+//     u8 unk1 = *((u8 *) arg0 + 1);
+//     void **slot = (void **) (D_800DCE50 + unk1 * 0x1A0 + arg1 * 4);
+//     void *t0 = *slot;
+//
+//     if (t0 != 0) {
+//         *(void **) ((char *) arg0 + 8) = t0;
+//         *(void **) ((char *) t0 + 4) = arg0;
+//     }
+//     *((u8 *) arg0 + 0) = arg1;
+//     *(s32 *) ((char *) arg0 + 4) = 0;
+//     *slot = arg0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168A9C.s")
 // void *func_15168A9C(struct12 *arg0) {
 //     void *temp_a1;

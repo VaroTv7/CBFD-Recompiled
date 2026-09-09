@@ -96,7 +96,18 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142838.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142914.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151429E0.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Returns 1 if
+// arg0->unk2D0->unk3C > 0, else 0 (unk2D0 is struct197*, but struct197
+// isn't currently mapped out to offset 0x3C, so used a raw pointer cast
+// instead of extending it speculatively). Register allocation differs
+// from target with both a ternary and an if/else source form - target
+// also sets v0=0 unconditionally before the branch rather than only in
+// the false path, suggesting a slightly different original structure
+// this round didn't find.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142A5C.s")
+// s32 func_15142A5C(struct127 *arg0) {
+//     return (*(s16 *) ((char *) arg0->unk2D0 + 0x3C) > 0) ? 1 : 0;
+// }
 extern f32 D_800A5624;
 
 f32 func_15142A80(f32 arg0) {
@@ -105,7 +116,9 @@ f32 func_15142A80(f32 arg0) {
 f32 func_15142AC0(f32 arg0) {
     return (arg0 + 1.0f) * (arg0 - 1.0f) * (arg0 - 2.0f) * 0.5f;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142B04.s")
+f32 func_15142B04(f32 arg0) {
+    return (2.0f - arg0) * (arg0 + 1.0f) * arg0 * 0.5f;
+}
 extern f32 D_800A5628;
 
 f32 func_15142B44(f32 arg0) {
@@ -184,7 +197,16 @@ void func_1514373C(f32 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
     *arg3 = arg1 * c;
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143794.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sign-extends arg0
+// and arg1 to s16 and forwards them with arg2 to the still-raw
+// func_15143794. Target round-trips arg2 through the FPU (mtc1 then
+// mfc1, same register) before the call - a single conversion - while
+// every source form tried here produced extra float instructions
+// instead of reproducing that exact one-step round-trip.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143834.s")
+// void func_15143834(s16 arg0, s16 arg1, f32 arg2) {
+//     func_15143794(arg0, arg1, arg2);
+// }
 void func_15143874(s16 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
     f32 sp1C = func_151423D8((u8) arg0);
     f32 sp18 = func_151423D8((u8) (arg0 - 0x40));
@@ -200,7 +222,24 @@ s32 func_15143E08(struct127 *arg0) {
     return (((s32) arg0->unk7A >> 8) + 64) & 0xFF;
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sibling of
+// func_15143E08 above - subtracts arg0->unk31C->unk12 from arg0->unk7A
+// when unk31C is non-null, else just uses unk7A, then returns the result
+// >>8. Target uses a branch-likely with the "else" value computed in the
+// (nullified-when-taken) delay slot, funneling both paths through a
+// shared >>8 epilogue; this reconstruction's if/else produced different
+// register allocation and instruction count throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143E24.s")
+// s16 func_15143E24(struct127 *arg0) {
+//     s32 v0;
+//
+//     if (arg0->unk31C != 0) {
+//         v0 = arg0->unk7A - arg0->unk31C->unk12;
+//     } else {
+//         v0 = arg0->unk7A;
+//     }
+//     return v0 >> 8;
+// }
 f32 func_15143E64(vertex *arg0) {
     return sqrtf(arg0->x * arg0->x + arg0->y * arg0->y + arg0->z * arg0->z);
 }

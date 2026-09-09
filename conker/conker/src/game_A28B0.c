@@ -1345,7 +1345,14 @@ void func_1507A3CC(void) {
 //     return (D_800D1890 << 0x18) | (D_800D1891 << 0x10) | (D_800D1892 << 8) | D_800D1893;
 // }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Packs four global
+// bytes into a 32-bit value, sets bit 0, inverts, and stores it to
+// gCurrentObject->unk94. Register allocation for the four byte loads and
+// shifts differs from target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A428.s")
+// void func_1507A428(void) {
+//     gCurrentObject->unk94 = ~(((D_800D1890 << 24) | (D_800D1891 << 16) | (D_800D1892 << 8) | D_800D1893) | 1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A47C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A4D4.s")
 // void func_1507A4D4(void) {
