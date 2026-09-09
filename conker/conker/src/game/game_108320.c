@@ -115,7 +115,7 @@ void func_150DAE70(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
                 sp74 = 0.0f;
                 sp70 = temp_f16 * temp_f2_2;
                 sp78 = temp_f14 * temp_f2_2;
-                temp_v0_2 = func_1513D524((s8 *)0x3F800000, temp_f14, &sp48, 9, 0, 0, 7, 0, 0x2C, (s32) arg2, arg3);
+                temp_v0_2 = func_1513D524(0x3F800000, temp_f14, &sp48, 9, 0, 0, 7, 0, 0x2C);
                 if (temp_v0_2 != NULL) {
                     (*(f32 *)((char *)(temp_v0_2) + 0x110)) = (f32) (*(f32 *)((char *)&(spA0) + 0x0));
                     (*(s32 *)((char *)(temp_v0_2) + 0x114)) = (s32) (*(s32 *)((char *)&(spA0) + 0x4));
@@ -260,7 +260,7 @@ void func_150DB518(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s
         sp4A = 0xC8;
         sp4B = 0xC8;
         sp3A = 0x401;
-        temp_v0 = func_1513D524(&sp38, 0.0f, (s8 *)0xA, 0, 8, 0, 0x14, (s32) arg6, arg7);
+        temp_v0 = func_1513D524(&sp38, 0.0f, 0xA, 0, 8, 0, 0x14, (s32) arg6, arg7);
         if (temp_v0 != NULL) {
             (*(s32 *)((char *)(temp_v0) + 0x110)) = arg0;
             (*(s32 *)((char *)(temp_v0) + 0x114)) = arg1;
