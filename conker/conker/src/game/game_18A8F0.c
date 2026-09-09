@@ -1265,7 +1265,7 @@ void func_1515F850(s32 arg0, void * arg1) {
     temp_f18 = (temp_f0 * 26.0f) + 26.0f;
     sp20 = temp_f18;
     D_800DCDA0 += D_800A6530 * D_800BE9A4;
-    D_800DCDA0 = func_15144B68(D_800DCDA0, temp_f14);
+    D_800DCDA0 = func_15144B68(D_800DCDA0);
     if (temp_f14 != D_800DCD94) {
         D_800DCD94 += (temp_f14 - D_800DCD94) * 0.5f;
         sp1C = (u8) (u32) D_800DCD94;

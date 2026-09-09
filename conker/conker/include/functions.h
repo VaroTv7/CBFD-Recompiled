@@ -1104,7 +1104,7 @@ s32  func_1513E2AC();
 f32  func_151423D8();
 f32  func_15144598();
 f32  func_1514462C();
-f32  func_15144B68();
+f32  func_15144B68(f32 arg0);
 void func_1514D3B0();
 void *  func_1515D6D0();
 void func_1515D4D4();

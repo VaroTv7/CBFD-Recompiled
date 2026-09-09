@@ -434,7 +434,7 @@ s32 func_150F7E20(void *arg0) {
     (*(s32 *)((char *)(arg0) + 0x30)) = temp_f2;
     (*(s32 *)((char *)(arg0) + 0x2C)) = temp_f2;
     sp1C = temp_v0;
-    (*(s32 *)((char *)(temp_v0) + 0x1C)) = func_15144B68((*(s32 *)((char *)(temp_v0) + 0x1C)) + ((*(s32 *)((char *)(temp_v0) + 0x20)) * D_800BE9A4), arg0);
+    (*(s32 *)((char *)(temp_v0) + 0x1C)) = func_15144B68((*(s32 *)((char *)(temp_v0) + 0x1C)) + ((*(s32 *)((char *)(temp_v0) + 0x20)) * D_800BE9A4));
     (*(f32 *)((char *)(temp_v0) + 0x18)) = (f32) ((*(f32 *)((char *)(temp_v0) + 0x18)) - D_800BE9A4);
     var_v0 = 1;
     if ((*(s32 *)((char *)(temp_v0) + 0x18)) < 0.0f) {
