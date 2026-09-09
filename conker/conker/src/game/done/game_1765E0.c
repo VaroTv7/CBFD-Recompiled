@@ -123,6 +123,6 @@ void func_151494E0(s32 arg0, u8 arg1) {
     func_15169260(&D_800A5770, 2, arg0, arg1);
 }
 
-void func_15149514(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
+void func_15149514(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4) {
     func_15169850(arg0, arg1, arg2, arg3, arg4);
 }
