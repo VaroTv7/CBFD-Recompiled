@@ -102,7 +102,9 @@ extern f32 D_800A5624;
 f32 func_15142A80(f32 arg0) {
     return (1.0f - arg0) * (arg0 - 2.0f) * arg0 * D_800A5624;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142AC0.s")
+f32 func_15142AC0(f32 arg0) {
+    return (arg0 + 1.0f) * (arg0 - 1.0f) * (arg0 - 2.0f) * 0.5f;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142B04.s")
 extern f32 D_800A5628;
 
@@ -114,7 +116,9 @@ f32 func_15142B44(f32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142CF0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142E24.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142FBC.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143044.s")
+s16 func_15143044(u8 arg0, s32 arg1) {
+    return 0x7FFF - arg0;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514306C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143134.s")
 

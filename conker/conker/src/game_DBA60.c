@@ -62,7 +62,30 @@ void func_150AED4C(struct114 *arg0) {
     arg0->unk36 = arg0->unk34;
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Scales arg0->unk1C
+// by 8, clamps to 0xFF, and stores it to (*arg0->unk98)+0x1B; the
+// clamp-check's else-branch (return 0) is provably unreachable in target
+// (it tests a value already masked to a byte against >=0, always true),
+// same class of dead-branch issue as func_1506196C above - reproducing it
+// explicitly still left register allocation different throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_DBA60/func_150AED9C.s")
+// s32 func_150AED9C(void *arg0) {
+//     s16 unk1C = *(s16 *) ((char *) arg0 + 0x1C);
+//     void *unk98 = *(void **) ((char *) arg0 + 0x98);
+//     s32 v1 = unk1C * 8;
+//     u8 byteVal;
+//
+//     if (v1 >= 0x100) {
+//         v1 = 0xFF;
+//     }
+//     byteVal = v1;
+//     if (byteVal >= 0) {
+//         *((u8 *) unk98 + 0x1B) = byteVal;
+//     } else {
+//         return 0;
+//     }
+//     return 1;
+// }
 
 s32 func_150AEDD8(struct202 *arg0) {
     if (arg0->unk1C < 0x20) {

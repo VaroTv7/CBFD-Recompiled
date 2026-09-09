@@ -1016,7 +1016,26 @@ void func_15060B70(s32 arg0, void *arg1) {
     func_10010154((u16) arg0, arg1, 0x6D60, 0x1F4, 0x9C4);
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Adds arg1 to a
+// counter byte at arg0+0x1CA, clamping to 6, with an early return if it
+// was already 6. Tried both an explicit local pointer (extra address
+// computation IDO doesn't reproduce) and repeated direct offset access
+// (register numbering still differs throughout) - neither matched.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15060BA4.s")
+// s32 func_15060BA4(void *arg0, s32 arg1) {
+//     u8 v0 = *((u8 *) arg0 + 0x1CA);
+//     s32 t6;
+//
+//     if (v0 == 6) {
+//         return 0;
+//     }
+//     t6 = v0 + arg1;
+//     *((u8 *) arg0 + 0x1CA) = t6;
+//     if ((u8) t6 >= 7) {
+//         *((u8 *) arg0 + 0x1CA) = 6;
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15060BE0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15060D54.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15060F28.s")
@@ -1035,7 +1054,22 @@ void func_150615DC(struct127 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1506160C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_150617BC.s")
 // ???
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Multiplies two bytes
+// (arg0[arg1+0xB], arg0[7]), special-cases the product 0xFE01 to 0xFF,
+// otherwise returns product>>8. Target's real structure includes a
+// provably-unreachable trailing `or v1,t9,zero` (dead code from how the
+// original compiled a bnel/b pair) that neither an if/else nor a ternary
+// reproduced - register allocation also differs throughout. Needs the
+// same kind of "faithfully reproduce a dead branch" treatment as
+// func_1513A594 above; didn't crack the exact source form this round.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1506196C.s")
+// s32 func_1506196C(void *arg0, s32 arg1) {
+//     u8 t7 = *((u8 *) arg0 + arg1 + 0xB);
+//     u8 t8 = *((u8 *) arg0 + 7);
+//     s32 v1 = t7 * t8;
+//
+//     return (v1 != 0xFE01) ? (v1 >> 8) : 0xFF;
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_150619A8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15061B4C.s")

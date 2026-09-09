@@ -5,7 +5,23 @@
 
 
 // need to figure out D_800D2460
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Zeroes two flag
+// bytes and offset 0xD of D_800D2460[2..5] (each a 16-byte element),
+// plus D_800D24C0. Target computes the D_800D2460[2] element address via
+// a runtime shift-and-add (idx=2 held in a register, shifted by 4, added
+// to the array base) rather than folding the constant index into each
+// store's displacement - tried an explicit `idx` local to force that,
+// but IDO still folded everything into direct combined offsets instead.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_BC510/func_1508F060.s")
+// void func_1508F060(void) {
+//     D_800D246D = 0;
+//     D_800D247D = 0;
+//     D_800D2460[3][0xD] = 0;
+//     D_800D2460[4][0xD] = 0;
+//     D_800D2460[5][0xD] = 0;
+//     D_800D2460[2][0xD] = 0;
+//     D_800D24C0 = 0;
+// }
 
 void func_1508F0A4(void) {
     func_1508F0D4();

@@ -258,6 +258,28 @@ s32 func_15137E10(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513ABB8.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Decrements a counter
+// at arg0+0x170 when arg2==0x45, OR-ing a flag bit at arg0+0x60 if it goes
+// negative. Also notable: target reads arg0+0x170 via plain `lw` (integer),
+// which directly contradicts struct210's speculative `f32 unk170` from the
+// never-confirmed func_15141564 - used raw pointer casts here instead of
+// asserting a struct210 field to avoid compounding that unresolved
+// conflict. Same root cause as func_15141564 above: IDO -O2 always
+// recomputes the arg0+0x170 offset directly instead of keeping a live
+// base-pointer register, even with an explicit local pointer in source.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513B0B8.s")
+// void func_1513B0B8(void *arg0, s32 arg1, u8 arg2) {
+//     s32 *p;
+//     s32 t8;
+//
+//     if (arg2 == 0x45) {
+//         p = (s32 *) ((char *) arg0 + 0x170);
+//         t8 = *p - 1;
+//         *p = t8;
+//         if (t8 < 0) {
+//             *(s32 *) ((char *) arg0 + 0x60) |= 0x80;
+//         }
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513B0F8.s")
