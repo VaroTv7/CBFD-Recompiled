@@ -2473,7 +2473,9 @@ typedef struct {
     s32 unk110;
     u8  pad114[0x8];
     s32 unk11C;
-    u8  pad120[0x38];
+    u8  pad120[0x8];
+    f32 unk128;
+    u8  pad12C[0x2C];
     f32 unk158;
     u8  pad15C[0x14];
     f32 unk170;

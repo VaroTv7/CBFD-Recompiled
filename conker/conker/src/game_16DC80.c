@@ -22,7 +22,25 @@ void func_151411C4(struct210 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151412BC.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Copies (unk34,
+// unk38, unk3C) into *unk154's (x, y, z) when unk154 is non-null. Target
+// reads unk3C via lwc1 (as f32) but struct210's unk3C is already
+// established as s32 elsewhere in this codebase - either arg0 isn't really
+// struct210 here, or unk3C is a union of s32/f32 depending on caller;
+// didn't resolve which this round, so the field types are guesses that
+// produced an int-to-float conversion (cvt.s.w) instead of matching
+// target's direct float load. Also uses arg0+0x110 as a live base-pointer
+// register (addiu v0,a0,0x110, reused across all three loads at v0+0x44)
+// rather than direct arg0+0x154 offsets, echoing the intermediate-pointer
+// pattern from func_15141564 above.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_1514143C.s")
+// void func_1514143C(struct210 *arg0) {
+//     if (arg0->unk154 != 0) {
+//         arg0->unk154->x = arg0->unk34;
+//         arg0->unk154->y = arg0->unk38;
+//         arg0->unk154->z = arg0->unk3C;
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_15141478.s")
 
@@ -46,7 +64,23 @@ void func_151411C4(struct210 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151416E8.s")
 
 // ???
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Copies D_8008A074
+// (s32[2]) into a stack-local, sets a stack-local byte to arg0's low byte,
+// then calls func_15169260(&local1, 2, &local2, arg1). Target's actual
+// register allocation is substantially different (loads both D_8008A074
+// words into scratch registers first, spills them to different stack
+// offsets, and computes the arg0-byte address differently) - this wasn't
+// close enough to be a simple ordering tweak, needs a fresh look.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151417C4.s")
+// void func_151417C4(s32 arg0, u8 arg1) {
+//     s32 local1[2];
+//     u8 local2;
+//
+//     local1[0] = D_8008A074[0];
+//     local1[1] = D_8008A074[1];
+//     local2 = (u8) arg0;
+//     func_15169260(local1, 2, &local2, arg1);
+// }
 
 s32 func_15141818(s32 arg0, s32 arg1) {
     return 0;

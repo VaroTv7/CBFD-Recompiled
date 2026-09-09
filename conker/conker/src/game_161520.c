@@ -153,7 +153,17 @@ f32 func_15135670(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136918.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136A1C.s")
+s32 func_15136A1C(struct102 *arg0) {
+    s32 v1;
+
+    if (arg0->unk1C < 0x20) {
+        v1 = arg0->unk1C * 8;
+        if (v1 < arg0->unk28) {
+            arg0->unk28 = v1;
+        }
+    }
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136A50.s")
 

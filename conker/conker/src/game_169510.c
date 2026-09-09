@@ -528,7 +528,11 @@ void func_1513F680(struct171 *arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F6C0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F6E8.s")
+s32 func_1513F6E8(struct210 *arg0) {
+    arg0->unk2C += arg0->unk128 * D_800BE9A4;
+    arg0->unk30 += arg0->unk128 * D_800BE9A4;
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F728.s")
 

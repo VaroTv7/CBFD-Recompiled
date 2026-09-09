@@ -64,7 +64,14 @@ void func_15168B10(s32 arg0, s32 arg1) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168B44.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168BAC.s")
+extern void (*D_8008CA20[])(void *);
+
+void func_15168BAC(void *arg0) {
+    u8 idx = *(u8 *)((char *) arg0 + 0xE4);
+    if (idx != 0) {
+        D_8008CA20[idx](arg0);
+    }
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168BE4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168C4C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168E34.s")
