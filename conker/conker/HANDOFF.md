@@ -6233,3 +6233,93 @@ diagnosed), the `func_1513C5B0`/`func_1513C650`/`func_1513C8D4` region
 (already-fixed with small accepted residuals — skip), and onward
 toward the `func_16000000`+ tail (the `.debugger` section boundary,
 not yet investigated at all this whole segment sweep).
+
+## Session log — the .debugger section isn't in the target ROM; a wide-blast-radius case flagged (2026-09-08, later still)
+
+**Important scope discovery**: reached the tail end of the
+`0x15000000-0x16010000` sweep range and found `func_16000000`
+(the `.debugger` linker section's start) showing a suspicious `+96`
+"introduced" delta that resets the cumulative offset to exactly zero.
+Investigated by trying to compute the `.debugger` section's own
+target-file-offset formula (same method used for `.game`) and
+discovered `conker.us.bin` (the reference target ROM) is only
+**2,467,288 bytes** — smaller than the `.debugger` section's own file
+offset (`0x280000` = 2,621,440) from the ELF's own section headers.
+**The `.debugger` section is not present in the target ROM at all** —
+it's debug-only code, stripped from the shipping build we're comparing
+against. There is no ground truth to verify anything at
+`0x16000000`+ against; the `+96`/`-36`/`+4` readings there are
+artifacts of the section boundary itself, not real or fixable drift.
+**Correction to the sweep range going forward**: use
+`find_drift.py 0x15000000 0x16000000` (not `0x16010000`) — the
+meaningful, verifiable range ends exactly at the `.game`/`.debugger`
+boundary. This trimmed 3 unverifiable entries off every future count.
+
+Three more fixes in the corrected range:
+
+- `func_1509B570`/`func_1509B704` — wait, already fixed prior round;
+  this round's fresh finds were:
+- `func_1510550C`, `func_15105548`, `func_15105848` — already covered
+  last round.
+- `func_15079390` (`game_A28B0.c`): a local `u16 tmp0` loaded from a
+  genuine `u8` global (`D_800D1890`) was passed to K&R-relaxed
+  `func_1514D3B0`, which target sign-extends to `s16` via `sll+sra`.
+  **Notable methodology point**: changing `tmp0`'s own declared type
+  to `s16` had *zero* effect on codegen (confirmed by rebuilding and
+  re-diffing — the byte-load itself doesn't need widening either way).
+  The fix that actually worked was an explicit `(s16)` cast at the
+  *call site* instead, matching the many `(u16)`/`(s16)`/`(u8)`
+  call-site-cast fixes from much earlier in this whole investigation.
+  Lesson: when a narrow-parameter-style fix (changing a variable's own
+  type) doesn't move the needle, don't assume the diagnosis was wrong
+  — try an explicit cast at the actual point of use instead, since
+  IDO's codegen decisions depend on where in the expression tree the
+  narrowing needs to happen, not just on any type declaration upstream
+  of it.
+
+**Flagged, not fixed — a wide-blast-radius case for deliberate future
+work**: `func_15144C8C` (`game_16EE20.c`, residual `-4`) calls
+K&R-relaxed `func_15144B68` twice, both showing what looks like a
+textbook double-promotion bug (`cvt.d.s` before the call). Applied the
+usual parameter-bitcast technique — and it made things *worse*
+(residual count went up), because direct `objdump` comparison showed
+target passes the argument with **zero transformation instructions**
+at all (straight into `$f12`, not even a `nop`-delay-slot difference),
+which only happens for a genuinely prototyped single-float-parameter
+call — not reachable via the bitcast trick, which forces an *integer*
+register pass instead. This function is called from **over 20 files**,
+and grep'ing those call sites shows most already use the
+`*(s32*)&expr` bitcast pattern themselves — meaning either those were
+fixed by an earlier, different investigation using the same technique
+that turns out to be wrong for this function, or there's a mix of
+correct and incorrect fixes already in place across those 20+ files.
+Properly fixing this means: (1) determining `func_15144B68`'s one true
+parameter type by checking `objdump` at several of the 20+ call sites,
+not just one, since some may already be right and others wrong; (2)
+giving it a single real prototype (likely in `functions.h`, since no
+file has a competing local declaration) rather than bitcasting at
+each call site; (3) checking whether removing existing bitcast casts
+at sites that turn out to already be "accidentally correct" is needed.
+Reverted the local attempt; left at the original `-4` residual.
+Documented here rather than rushed, per the standing discipline of not
+forcing wide, high-risk changes for a single-digit-byte gain without
+verifying the full blast radius first.
+
+Cluster in the corrected, verifiable range: **73 entries** (down from
+74 at the start of this round; 144 when the `0x15000000+` segment
+investigation began, now measured over the correct `0x15000000-
+0x16000000` span).
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: `func_15144B68`'s real signature (flagged
+above — worth a dedicated session checking multiple call sites' real
+codegen before touching it, given the 20+-file blast radius), then
+whatever remains after a fresh full sweep of
+`find_drift.py 0x15000000 0x16000000` to find the next unexplored
+entries (most of the previously-listed cluster has now been
+individually diagnosed as either fixed, accepted IDO-scheduling
+residuals, or `SUBALIGN` object-boundary padding — a fresh listing is
+needed to see what, if anything, is left unexamined).
