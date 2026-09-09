@@ -6680,3 +6680,72 @@ K&R-relaxed function with zero local declarations — the same
 implicated in the current cluster, might turn up more of these
 higher-leverage fixes before falling back to per-function
 investigation.
+
+## Session log — testing the real-prototype technique's limits: func_1505E650 does NOT qualify (2026-09-09)
+
+Following up on the previous round's breakthrough, checked whether the
+same "give it a real prototype" technique could close the
+pervasive `func_1505E650`-with-`0.0f` residual that's been documented
+as an accepted, unfixable `-4`/`-8` gap at dozens of call sites
+throughout this whole investigation. `func_1505E650` has 40 call
+sites and, like `func_1506C460`/`func_15144B68` before the previous
+round's fixes, has zero local declarations anywhere (only
+`functions.h`'s relaxed one) — on the surface, a candidate for the
+same fix.
+
+**Investigated carefully before touching anything, and concluded it
+does NOT qualify.** Direct `objdump` comparison at `func_1504BB88`
+(one of the -4-residual call sites) shows the *non-zero* hex-literal
+arguments (`0x3F933333`/`1.15f`, `0x40400000`/`3.0f`) **already
+compile identically in current and target** — both load them via
+`lui`+`ori` directly into integer registers `a2`/`a3`, no promotion,
+no register-class mismatch. The *only* difference is the two
+`0x00000000` arguments: target routes them through `mtc1 zero,$f0` +
+two `swc1` (the well-documented "0.0f specifically goes through a
+float register" quirk), while current uses plain `sw zero` twice —
+one instruction shorter, hence the `-4`.
+
+This is a fundamentally different situation from `func_1506C460`/
+`func_15144B68`, where *every* calling convention detail was wrong
+before the fix (wrong register class or double-promotion) and a real
+prototype fixed all of it uniformly. Here, the calling convention is
+**already correct** for the actual float-bit-pattern arguments; only
+a single specific literal value (`0.0f`) triggers different opcode
+selection in the original compiler for reasons that don't depend on
+prototyping. Giving `func_1505E650` a real `f32` prototype now would
+require reverting the hex-literal representation back to plain float
+literals at all ~24 call sites currently using hex (since a real f32
+parameter receiving a raw hex-int literal would trigger a genuine
+*value* conversion — turning `0x3F933333` into the float value
+`~1.07×10⁹`, corrupting the bit pattern rather than preserving it) —
+a much larger, riskier change for what would likely still leave the
+same `0.0f`-specific residual unresolved (per the earlier-established
+finding that trying `0.0f` as a literal, even without a prototype,
+made things worse via double-promotion; the real-prototype version of
+that experiment hasn't been tried, but the blast radius of reverting
+24+ working call sites to test it isn't justified by a `-4`-byte
+per-site payoff). **Left completely untouched.**
+
+**Refined understanding of when the real-prototype technique applies**:
+it's a strong candidate when a K&R-relaxed function's calling
+convention is *uniformly wrong* at every observed call site (visible
+as consistent double-promotion, or a consistent wrong-register-class
+symptom) — not when it's already *mostly correct* with a narrow,
+literal-value-specific residual. The tell is in the `objdump` evidence
+gathered before touching anything: if the *non-problematic* parts of
+an argument list already match target's register choices, the
+function's calling convention is not the thing that's broken.
+
+No fixes this round; cluster holds at **66 entries**. Working tree
+clean, no changes to commit beyond this documentation.
+
+**Continuation point**: unchanged from last round —
+`func_1501905C`'s indirect-call target mismatch (main segment,
+`0x1001D748`) and the `sinf`/`cosf`/`tanf` implementation gap remain
+the two concrete open items. The `func_1505E650`-with-`0.0f` residual
+(confirmed this round as NOT fixable via real-prototype, and
+already established earlier as not fixable via literal-choice either)
+should now be considered a **closed, permanently-accepted** residual
+class rather than something to keep re-investigating — it appears at
+a large fraction of the remaining ~66 entries and is not going to
+move further with the techniques available in this toolchain.
