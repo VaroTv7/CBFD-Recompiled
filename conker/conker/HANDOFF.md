@@ -6174,3 +6174,62 @@ spill space), `func_1513D524`'s remaining `-8`, then continue past
 diagnosed), the `func_15105548`/`func_1510558C`/`func_151058B4`/
 `func_1512623C` cluster, and toward the `func_16000000`+ tail of the
 segment (the `.debugger` section boundary).
+
+## Session log — narrow-parameter sweep continues, a missing-call bug found (2026-09-08, later still)
+
+Continued the systematic sweep past `func_1509B5AC` toward
+`func_1512623C`, following the same discipline: check the preceding
+map symbol per the misattribution pattern, confirm via direct
+`objdump` comparison before editing.
+
+Six more narrow-parameter fixes, all the same `andi 0xff`/`sll+sra`
+signature-width pattern established over the last several rounds:
+
+- `func_1509B570` (`game_C8950.c`): `arg0`→`s16` (sign-extend).
+- `func_1509B704` (same file): `arg0`→`s16` — corroborated by an
+  existing explicit `(s16)` cast at one of its call sites in
+  `game_44C40.c`, giving extra confidence before committing.
+- `func_1510550C`, `func_15105548`, `func_15105848` (`game_131F30.c`):
+  all `arg2`→`u8` (compared against small constants 0x38/0x39/0x4B).
+  These three cleared out the entire `func_15105xxx` cluster —
+  `func_1510558C`/`func_151058B4`'s downstream residuals resolved as
+  a side effect.
+
+One entry (`func_1509DDFC`, misattributed to `func_1509DDC4`) turned
+out to be a genuine unfixable IDO scheduling quirk confirmed via
+direct comparison: target computes the same masked value through an
+extra redundant `move` (4 instructions total) where our code achieves
+the identical result in 3 by filling the branch-delay slot with the
+`andi` directly — our codegen is actually *more* efficient than
+target's here, which is not reachable via any straightforward source
+change. Left as an accepted residual, same class as other "closest
+achievable" cases documented throughout this investigation.
+
+**New bug class found**: `func_15126138` (`game_14FF90.c`) was
+missing an entire statement — a call to `func_151247C0(arg0)` that
+should be the very first thing the function does. Found via direct
+`objdump` diffing (an extra `jal` appeared at the very start of
+target's version with no counterpart in ours); resolved the jal's
+target address by hand (`(PC+4 & 0xF0000000) | (imm26 << 2)`) to
+confirm it pointed at `func_151247C0` — a raw-asm function in the same
+file that had **zero callers anywhere** before this fix, an orphaned
+function hint that turned out to be a real, load-bearing tell. This
+is the same class as the earlier `func_1505A6F8`/`func_1505A72C`
+missing-`return` bugs from the main-segment investigation: not every
+residual is a type/promotion issue, and an unreferenced raw-asm
+function in the same file as a residual-bearing one is worth checking
+as a "did we forget to call this" signal.
+
+Cluster dropped from 86 to **77 entries** this round (144→77 across
+the full `0x15000000+` segment investigation to date — roughly
+half-way closed from where this specific investigation began).
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16010000` throughout.
+
+**Continuation point**: `func_151287E0` (`-4`, not yet individually
+diagnosed), the `func_1513C5B0`/`func_1513C650`/`func_1513C8D4` region
+(already-fixed with small accepted residuals — skip), and onward
+toward the `func_16000000`+ tail (the `.debugger` section boundary,
+not yet investigated at all this whole segment sweep).
