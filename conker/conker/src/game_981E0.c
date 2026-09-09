@@ -1453,7 +1453,7 @@ void func_15072AF8(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15072DA0.s")
 
 void func_15072DD8(void) {
-    func_15083568(gCurrentObject, D_800D1580, 1.0f, 0);
+    func_15083568(gCurrentObject, D_800D1580, 0x3F800000, 0);
 
     if ((gCurrentObject->unk31C != 0) && (gCurrentObject->unk31C->unk11A == 1)) {
         gCurrentObject->unk31C->unk11A = (u8)2U;
