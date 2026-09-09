@@ -1032,7 +1032,7 @@ extern f32 D_800D136C;
 extern s32 D_800D1510;
 extern f32 D_800D1550[];
 extern s32 D_800D1580; // array?
-extern s16 D_800D1582;
+extern u16 D_800D1582;
 extern u8  D_800D1583;
 extern s32 D_800D1588[187];  // 748 bytes
 extern s32 D_800D1548;

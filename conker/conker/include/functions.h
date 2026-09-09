@@ -474,7 +474,7 @@ void func_1506B984();
 void func_1506B9AC();
 void func_1506BA4C();
 void func_1506BAD8();
-void func_1506BB64();
+void func_1506BB64(s16 arg0, s32 arg1);
 void func_1506BBA8();
 void func_1506BC24();
 void func_1506BCA0();
