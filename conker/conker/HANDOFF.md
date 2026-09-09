@@ -7027,3 +7027,64 @@ through `src/game/done/*.c` beyond the 2 files already found to have
 real bugs this session (`game_122650.c`, `game_1765E0.c`) — the
 "done" label has now been shown twice to be unreliable, and the
 directory has 87 files total, most never individually checked.
+
+## Session log — searched for more tanf-style stub bugs; found the search space is exhausted (2026-09-09)
+
+Followed up on the `tanf` discovery by searching the entire `src/`
+tree (not just `done/`) for other functions with the same
+"non-`void`-returning, completely empty body" pattern — a class of
+bug that's invisible to `find_drift.py`'s size-based detection when
+(as with `tanf` before the fix) the stub happens to compile to the
+same byte count as target, or ironically becomes newly *visible* only
+once actually investigated by hand.
+
+Found exactly one other match: `func_151EF080` in
+`src/game/game_21C4F0.c` (`f32 func_151EF080(f32 arg0) { }`, same
+missing-return shape as `tanf`). Investigated it the same way — but
+this one turned out to be a **false lead, and a genuinely interesting
+one**: our current build's "empty" body already compiles to
+`jr ra` / `sqrt.s $f0,$f12` (IDO's specific, deterministic codegen for
+an `f32`-returning function that falls off the end without a `return`,
+apparently reusing whatever's queued for the delay slot in a fixed
+way), and direct `objdump` comparison against target at the correctly
+recalibrated file offset shows **the exact same two instructions,
+byte-for-byte**. This function's original 1990s source almost
+certainly had the *same* missing-return bug the developers never
+caught, and IDO reproduces it identically both then and now — so our
+"empty" `{}` is not a bug to fix here, it's the *correct* transcription
+of a real bug in the original game. No change made.
+
+Re-ran the search with a broader recursive sweep of all of `src/`
+(not just the directories checked before) and found no further
+matches — `tanf` and this one confirmed-fine case are the only two
+functions with this exact stub shape anywhere in the current
+codebase. This specific search avenue (stub-pattern scanning) is now
+exhausted.
+
+**Lesson reinforced**: an empty or suspiciously trivial function body
+is worth checking, but isn't automatically a bug — sometimes it's a
+faithful (if unintuitive) reproduction of a defect that was *already
+present* in the original shipped game. The only way to tell the
+difference is the same one used throughout this whole investigation:
+direct `objdump` comparison against target, never assumption from
+source appearance alone.
+
+No source changes this round (the one lead found was confirmed
+already-correct). Cluster unchanged at **62 entries**.
+
+**Where this leaves things**: every low-risk, quick-turnaround avenue
+within the *already-decompiled* portion of this segment has now been
+explored across this whole multi-round investigation — narrow-type
+fixes, missing-prototype float promotion, missing statements, wrong
+argument mappings, real-prototype fixes for wide-blast-radius
+functions, the `.game`-vs-`.debugger` segment scope correction, the
+`done/` directory's reliability, and now stub-body scanning. Further
+progress in this specific range would require either (a) picking
+specific still-raw-`GLOBAL_ASM` functions and running them through
+`tools/mips_to_c` for a first-draft C reconstruction (a materially
+bigger task than anything attempted this session — real decompilation
+work, not verification-and-fix of existing C), or (b) moving to a
+different segment/region entirely. Both are reasonable directions for
+a future session with more explicit scope/time allocated to them, but
+represent a different kind of work than this whole investigation has
+been doing.
