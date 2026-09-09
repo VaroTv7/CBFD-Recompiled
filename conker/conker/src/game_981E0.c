@@ -1339,6 +1339,17 @@ void func_15071FB0(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071FDC.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150721A4.s")
+// NON-MATCHING: identical instructions, ordering, and size (0x44 bytes) to
+// target across every source variation tried (direct global reads, a
+// hoisted color local, inline casts, swapped declaration order) - only the
+// specific register NUMBERS IDO -O2 picks for the loaded D_800D1580 value
+// and the two sra results differ (v0/v1/t0 here vs target's v1/t6/t7).
+// void func_150721A4(void) {
+//     u8 tmp2 = D_800D1580 >> 8;
+//     u8 tmp0 = D_800D1580 >> 16;
+//     u8 tmp1 = D_800D1580;
+//     func_1506160C(gCurrentObject, tmp0, tmp1, tmp2, 0);
+// }
 
 struct127 *func_150721E8(struct127 *arg0) {
     return func_15072208(arg0, 0);
