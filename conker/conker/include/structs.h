@@ -2473,6 +2473,13 @@ typedef struct {
     s32 unk110;
     u8  pad114[0x8];
     s32 unk11C;
+    u8  pad120[0x38];
+    f32 unk158;
+    u8  pad15C[0x14];
+    f32 unk170;
+    f32 unk174;
+    f32 unk178;
+    f32 unk17C;
 } struct210;
 
 typedef struct {

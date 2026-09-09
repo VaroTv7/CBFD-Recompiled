@@ -27,6 +27,19 @@ void func_151411C4(struct210 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_15141478.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_15141564.s")
+// NON-MATCHING: semantically correct (mips_to_c reconstruction, hand-typed), but
+// IDO -O2 always rematerializes these offsets directly off arg0 instead of
+// keeping a live base-pointer register for arg0->unk170, so the compiled
+// frame is 8 bytes smaller than target's and several float registers differ.
+// s32 func_15141564(struct210 *arg0) {
+//     f32 *sp18;
+//
+//     arg0->unk158 = arg0->unk170 + arg0->unk174 * sinf(arg0->unk178);
+//     sp18 = &arg0->unk170;
+//     sp18[2] = sp18[2] + sp18[3] * D_800BE9A4;
+//     sp18[2] = func_15144B68(sp18[2]);
+//     return 1;
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151415D4.s")
 
