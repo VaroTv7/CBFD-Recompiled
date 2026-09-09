@@ -3,7 +3,7 @@
 #include "variables.h"
 
 
-struct249 *func_1509B704();
+struct249 *func_1509B704(s16 arg0);
 void func_1509C120();
 void func_1509C3A0();
 s32 func_1509C2A4();
@@ -42,7 +42,7 @@ u16 *func_1509B570(s16 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B5AC.s")
 
-struct249 *func_1509B704( s32 arg0) {
+struct249 *func_1509B704( s16 arg0) {
     struct249 *tmp;
     s32 mask = 0xFFFF03FF;
     s32 i;
