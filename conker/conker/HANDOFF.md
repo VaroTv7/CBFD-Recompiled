@@ -7182,3 +7182,81 @@ materialized. `find_drift.py`'s cumulative count won't flag this kind
 of single-function regression on its own (same caveat documented
 earlier for `func_151EF080`); the direct objdump comparison remains
 the only way to catch it.
+
+## mips_to_c batch rounds: 18 functions attempted, 18 landed (13 byte-perfect, 5 near-misses folded into the existing pair, net new documented)
+
+Continued the mips_to_c line of work in larger batches (10-11 functions
+per round) rather than one at a time, per explicit user request to move
+faster. Two batches this round: 11 functions (9 byte-perfect) and 11
+more (5 byte-perfect), for **14 more byte-perfect decompiles** and **11
+more documented near-misses** on top of the single-function rounds
+earlier. Full verification discipline unchanged — every round still
+gets a direct objdump comparison per function, a clean 4-version build,
+and a `find_drift.py` check before committing (cluster still unchanged
+at 62 — expected, since none of these were themselves drift sources).
+
+**New recurring failure patterns identified** (beyond the already-
+documented "IDO won't keep an intermediate pointer materialized" issue
+from `func_15141564`):
+
+1. **Provably-unreachable dead branches**: several target functions
+   contain a branch that is logically always-taken or always-not-taken
+   at the machine level (e.g. `bgez` on a value that was just masked
+   with `andi ...,0xff`, so it's always non-negative) but the compiled
+   target still contains the dead path's instructions. Neither an
+   if/else nor the "faithfully declare the redundant check" trick that
+   worked for `func_1513A594`'s *empty* dead branch reproduces this
+   reliably when the dead path has real content (a differing
+   store/return) rather than nothing — `func_1506196C`, `func_150AED9C`,
+   and `func_150C251C` (an exact duplicate of `func_150AED9C`'s pattern)
+   all hit this and stayed undocumented-solution near-misses. Recognize
+   the pattern early (an `andi`/`lbu`-then-signed-compare where the
+   signed compare can't ever go the "wrong" way) and consider skipping
+   rather than spending a full attempt.
+
+2. **Struct-name collisions with existing globals**: activating a prior
+   contributor's own draft for `func_150A7B80` (a `struct WORD`/
+   `struct SHORTS` union pattern) triggered the `cfe: l Error` macro-
+   corruption pattern — not from *re*declaring the same function, but
+   because those exact tag names already existed in `structs.h` for
+   unrelated, incompatibly-laid-out structs. De-collided the names but
+   still couldn't reproduce target's `sd` (64-bit store)-based zeroing.
+   **Lesson**: before reusing ANY struct/union tag name suggested by an
+   old draft or by m2c, grep `structs.h` for that exact tag first.
+
+3. **Calling an already-defined-later-in-file function**: `func_15168A2C`
+   calling `func_15168B10` (whose real definition appears *after* the
+   call site in the same source file) hit the same "K&R-relaxed-then-
+   full" `cfe: l Error` corruption as always, but from a new trigger:
+   not a second *hand-written* declaration, but the *implicit* one IDO
+   creates at the call site before it later sees the real definition.
+   **Fix**: add an explicit forward declaration (matching the real
+   definition's signature exactly) immediately before any call to a
+   not-yet-textually-defined function in the same file.
+
+4. **Speculative struct field types getting directly contradicted by a
+   later function**: `struct210`'s `unk170` was added as `f32` based on
+   `func_15141564`'s (never-confirmed) reconstruction; `func_1513B0B8`
+   later showed the same offset read via `lw` (plain integer) with
+   clear decrement/counter semantics — direct evidence the field is
+   `s32`, not `f32`, contradicting the earlier guess. Used raw pointer
+   casts instead of resolving the conflict either way. **Lesson**: a
+   struct field added from an unconfirmed (near-miss) function's
+   reconstruction is genuinely provisional — a later function
+   contradicting it is real signal, not noise, and shouldn't be
+   ignored in favor of the earlier guess just because it came first.
+
+**Two-way lesson on intermediate pointers** (refines the `func_15141564`
+finding): it's not simply "IDO never keeps a pointer live" — sometimes
+the *opposite* mistake happens. `func_15060BA4`'s first attempt used an
+explicit local pointer and IDO added an *extra*, unwanted address
+computation target doesn't have; direct repeated offset access (no
+local pointer at all) was closer but still didn't fully match. Whether
+an intermediate pointer helps or hurts appears to depend on the
+specific function and isn't predictable from source structure alone —
+try both when a first attempt is close but not exact.
+
+Renaming: none of the 13 new byte-perfect functions this round were
+renamed — every one is referenced by name from at least one raw
+`asm/*.s` file (data table or `jal` call site), consistent with the
+standing gitignored-`asm/`-tree constraint.
