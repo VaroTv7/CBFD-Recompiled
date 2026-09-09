@@ -969,7 +969,30 @@ f32 func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DDA8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DF10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DFDC.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Saves several
+// fields into a "+2" shifted shadow copy (unk4->unk6, unk8->unkC, etc,
+// a save-previous-frame pattern), then bcopy's a 0x1D0-byte block from
+// +0x40 to +0x210. Register allocation differs substantially from
+// target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E060.s")
+// void func_1505E060(void *arg0) {
+//     u16 unk4 = *(u16 *) ((char *) arg0 + 4);
+//     f32 unk8 = *(f32 *) ((char *) arg0 + 8);
+//     f32 unk10 = *(f32 *) ((char *) arg0 + 0x10);
+//     f32 unk20 = *(f32 *) ((char *) arg0 + 0x20);
+//     f32 unk18 = *(f32 *) ((char *) arg0 + 0x18);
+//     s8 unk38 = *(s8 *) ((char *) arg0 + 0x38);
+//     s32 unk28 = *(s32 *) ((char *) arg0 + 0x28);
+//
+//     *(u16 *) ((char *) arg0 + 6) = unk4;
+//     *(f32 *) ((char *) arg0 + 0xC) = unk8;
+//     *(f32 *) ((char *) arg0 + 0x14) = unk10;
+//     *(f32 *) ((char *) arg0 + 0x24) = unk20;
+//     *(f32 *) ((char *) arg0 + 0x1C) = unk18;
+//     *(s8 *) ((char *) arg0 + 0x39) = unk38;
+//     bcopy((char *) arg0 + 0x40, (char *) arg0 + 0x210, 0x1D0);
+//     *(s32 *) ((char *) arg0 + 0x2C) = unk28;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E0C4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E650.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E7CC.s")

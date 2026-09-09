@@ -216,7 +216,32 @@ void func_15143874(s16 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151438D8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143D18.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Clamps *arg0 into
+// [min(arg1,arg2), max(arg1,arg2)], swapping arg1/arg2 first if needed
+// (target genuinely uses an XOR swap, confirmed from the raw asm - tried
+// matching it exactly, still didn't converge). Register allocation and
+// a missing dead prologue spill differ from target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143DA8.s")
+// s32 func_15143DA8(s32 *arg0, s32 arg1, s32 arg2) {
+//     s32 v0;
+//     s32 tmp;
+//
+//     if (arg2 < arg1) {
+//         tmp = arg1;
+//         arg1 = arg2;
+//         arg2 = tmp;
+//     }
+//     v0 = *arg0;
+//     if (v0 < arg1) {
+//         *arg0 = arg1;
+//         return 1;
+//     }
+//     if (arg2 < v0) {
+//         *arg0 = arg2;
+//         return 2;
+//     }
+//     return 0;
+// }
 
 s32 func_15143E08(struct127 *arg0) {
     return (((s32) arg0->unk7A >> 8) + 64) & 0xFF;
@@ -282,7 +307,26 @@ f32 func_15144A74(vertex *arg0, vertex *arg1) {
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144AA8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B34.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Angle-wrap into
+// [0, D_800A56A4): subtract while >D_800A56A4 (strict - confirmed from
+// target's c.lt.s, an off-by-one from my first >= attempt), add while
+// <0. Even with the condition direction fixed, register allocation
+// (which value lives in $f2 vs $f12) and instruction scheduling differ
+// from target throughout the branch-likely loop structure. Widely
+// referenced (real prototype already in functions.h from an earlier
+// session's "real prototype" fix) - many other functions depend on its
+// correct *behavior*, which this reconstruction has, just not matching
+// bytes.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B68.s")
+// f32 func_15144B68(f32 arg0) {
+//     while (arg0 > D_800A56A4) {
+//         arg0 -= D_800A56A4;
+//     }
+//     while (arg0 < 0.0f) {
+//         arg0 += D_800A56A4;
+//     }
+//     return arg0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144BC8.s")
 
 s32 func_15144C2C( s32 arg0) {

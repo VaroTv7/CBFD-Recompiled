@@ -141,7 +141,13 @@ void func_15135424(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15135480.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513555C.s")
+void func_1513555C(void *arg0, void *arg1, u8 arg2) {
+    if (arg2 == 0 || arg2 == 0x12) {
+        if (*(s32 *) arg1 == *(s32 *) ((char *) arg0 + 0x1C) || *((u8 *) arg1 + 4) == *((u8 *) arg0 + 0x18)) {
+            func_1516972C((struct102 *) arg0);
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151355B8.s")
 
@@ -162,7 +168,30 @@ f32 func_15135670(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136698.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sibling of
+// func_1513F6E8 above (same arg0->unk2C/unk30 += arg0->unk128 *
+// D_800BE9A4 tail), gated by a clamp check on arg0->unk1C/unk5C first.
+// Target keeps arg0+0x128 as a live pointer across the shared tail
+// (needed since it's referenced from multiple converging branches);
+// same "IDO won't keep an intermediate pointer" issue as
+// func_15141564/func_1513B0B8/func_1516434C above - direct field
+// access (which worked for func_1513F6E8, no branching there) didn't
+// reproduce it here.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151368A8.s")
+// s32 func_151368A8(struct210 *arg0) {
+//     f32 *ptr;
+//
+//     if (arg0->unk1C < 0x20) {
+//         s32 v1 = arg0->unk1C * 8;
+//         if (v1 >= arg0->unk5C) {
+//             arg0->unk5C = v1;
+//         }
+//     }
+//     ptr = &arg0->unk128;
+//     arg0->unk2C += *ptr * D_800BE9A4;
+//     arg0->unk30 += *ptr * D_800BE9A4;
+//     return 1;
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136918.s")
 

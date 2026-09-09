@@ -2430,7 +2430,7 @@ typedef struct {
         struct UBYTES4 b;
         struct WORD    i;
     } unk18;
-    u8  unk1C[0x2];
+    s16 unk1C;
     u8  unk1E;
     u8  unk1F;
     u8  pad20[0xC];
@@ -2448,7 +2448,8 @@ typedef struct {
     s16 unk54;
     s16 pad56;
     s32 unk58;
-    u8  pad5C[0x4];
+    u8  unk5C;
+    u8  pad5D[0x3];
     s16 unk60;
     s16 unk62;
     s16 unk64;

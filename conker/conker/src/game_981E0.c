@@ -1600,7 +1600,18 @@ void func_15073C48(void) {
 }
 
 // ???
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Adds
+// D_800CC2E8[gCurrentObject->unk222] (stride 812, like the
+// gObjects-indexing pattern elsewhere) to (f32)D_800D1580, truncates,
+// stores to gCurrentObject->unk224. Register allocation differs
+// substantially from target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15073C50.s")
+// void func_15073C50(void) {
+//     u8 idx = *((u8 *) gCurrentObject + 0x222);
+//     f32 val = *(f32 *) ((char *) D_800CC2E8 + idx * 812) + (f32) D_800D1580;
+//
+//     *(s16 *) ((char *) gCurrentObject + 0x224) = (s32) val;
+// }
 
 void func_15073CB8(void) {
     struct127 *tmp = func_1505F0AC(0x53);
@@ -1673,7 +1684,22 @@ void func_15074644(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15074664.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150746F0.s")
 // ?
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Zeroes
+// gObjects[gCurrentObject->unk65 - 1].unk218 and sets its unk232 to the
+// low byte of D_800D1580, gated on unk65 != 0. Register allocation and
+// instruction ordering differ substantially from target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150747E4.s")
+// void func_150747E4(void) {
+//     u8 idx;
+//     struct127 *obj;
+//
+//     if (gCurrentObject->unk65 != 0) {
+//         idx = gCurrentObject->unk65 - 1;
+//         obj = &gObjects[idx];
+//         *(s32 *) ((char *) obj + 0x218) = 0;
+//         *(u8 *) ((char *) obj + 0x232) = D_800D1580;
+//     }
+// }
 
 void func_15074840(void) {
     if (gCurrentObject->unk31C != 0) {
@@ -1686,7 +1712,29 @@ void func_15074870(void) {
 }
 
 // ??
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Looks up a bit
+// flag from an array at gCurrentObject+0x2E4 (indexed by a byte of the
+// packed D_800D1580 color) XORed with another packed bit, and if set,
+// adjusts gCurrentObject->unk138 by the packed color's high byte.
+// Register allocation differs substantially from target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1507488C.s")
+// void func_1507488C(void) {
+//     s32 packed = D_800D1580;
+//     u8 byte2 = packed >> 16;
+//     u8 byte1 = packed >> 8;
+//     s32 bit0 = packed & 1;
+//     s32 flag;
+//     s32 arrElem = *(s32 *) ((char *) gCurrentObject + 0x2E4 + byte2 * 4);
+//
+//     if ((arrElem & byte1) != 0) {
+//         flag = !bit0;
+//     } else {
+//         flag = bit0;
+//     }
+//     if (flag) {
+//         *((u8 *) gCurrentObject + 0x138) += (s8) (packed >> 24);
+//     }
+// }
 
 void func_150748F4(void) {
     D_800CC3D7 = (s8) D_800D1580;

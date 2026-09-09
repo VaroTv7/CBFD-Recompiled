@@ -1280,7 +1280,18 @@ void func_15079F50(void) {
 // }
 
 // D_800D2104!
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Writes a packed
+// (D_800D1892, D_800D1893) halfword into a nested lookup: base =
+// D_800D2104[gCurrentObject->unk13F], offset by D_800D1890*8 +
+// D_800D1891*2 + 8. Register allocation differs substantially from
+// target throughout.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A100.s")
+// void func_1507A100(void) {
+//     void *base = (void *) D_800D2104[gCurrentObject->unk13F];
+//     s16 packed = ((s8) D_800D1892 << 8) | D_800D1893;
+//
+//     *(s16 *) ((char *) base + D_800D1890 * 8 + D_800D1891 * 2 + 8) = packed;
+// }
 
 s32 func_1507A164(void) {
     s32 tmp = D_800CC30C[0] + (s8)D_800D1892;
