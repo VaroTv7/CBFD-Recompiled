@@ -97,6 +97,16 @@ void func_1513477C(struct102 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151349D0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134C98.s")
+// NON-MATCHING: semantically correct and same compiled size (0x38 bytes),
+// but IDO -O2 orders the ra/a2 prologue stores and the arg2-mask timing
+// differently than target for every source variation tried (direct
+// forward, redundant temp, s32-typed arg2 with explicit (u8) cast at the
+// call site, hoisting the arg0->unk28 condition into a temp first).
+// void func_15134C98(struct102 *arg0, void *arg1, u8 arg2) {
+//     if (arg0->unk28 == 1) {
+//         func_151BC5A4(arg0, arg1, arg2);
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134CD4.s")
 

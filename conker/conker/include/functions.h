@@ -1118,6 +1118,7 @@ void func_15178E14();
 s32  func_15187EC0();
 void *func_15195AA8();
 void func_151B8DB0();
+void func_151BC5A4(void *arg0, void *arg1, s32 arg2);
 void func_151D5404();
 void func_151D5714();
 void func_151D9B8C();
