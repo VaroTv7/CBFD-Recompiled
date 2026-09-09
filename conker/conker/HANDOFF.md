@@ -6473,3 +6473,60 @@ same mixed-signature risk as `func_1506C460`). A fresh
 `find_drift.py 0x15000000 0x16000000` listing should be pulled at the
 start of the next round to re-survey what (if anything) remains
 unexamined outside these four flagged items.
+
+## Session log — more literal/local-narrowing fixes in game_981E0.c, a partial win on func_1513D594 (2026-09-08, later still)
+
+Continued the sweep of the corrected `0x15000000-0x16000000` range,
+picking through entries not yet individually triaged.
+
+- `func_15072DD8` (`game_981E0.c`): another `1.0f`-literal-to-K&R-
+  relaxed-function promotion bug (`func_15083568`). Hex-literal fix
+  (`0x3F800000`). Fully resolved.
+- `func_150722F0` (`game_981E0.c`): `tmp0`/`tmp1`, both derived from
+  the same byte-pair-packed-in-an-`s32` global (`D_800D1580`) and
+  forwarded to `func_1506160C`, were declared `s32`/`u16`; target
+  masks both with `andi 0xff` (`u8`). Changed both locals to `u8`.
+  Fully resolved.
+- `func_1513D594` (`game_169510.c`): two genuine `f32` parameters
+  (`arg7`, `arg8`) forwarded to K&R-relaxed `func_1513D6FC` were
+  double-promoted. Applied the parameter-bitcast technique — improved
+  the residual substantially (`+12` → `-8`) but didn't fully close it.
+  Investigated the remainder: target additionally masks `arg2`/`arg3`
+  (already-`u8`-typed) with `andi 0xff` *at function entry*, re-storing
+  the masked value back into the same registers — the same
+  defensive-remask-because-still-called-relaxed-elsewhere pattern
+  documented for `func_1513C5B0` much earlier in this investigation,
+  not reachable via a straightforward type change. Left as a partial,
+  accepted improvement.
+  **Process note**: while investigating this residual, made a
+  self-caught measurement error — diffed current vs. target using two
+  *equal-length* windows (both 204 bytes) without first confirming
+  target's real end boundary from its own declared-symbol arithmetic,
+  which trivially produces an all-different, same-length diff that
+  looks alarming but proves nothing. Recomputed target's true stop
+  address from `func_1513D668`'s declared position (`0x16ab18`, not
+  the wrongly-assumed `0x16ab10`) before re-diffing. Worth restating
+  the standing rule this mistake illustrates: when comparing current
+  vs. target byte ranges, always derive target's window from the
+  *next declared symbol's* file offset, never by assuming both windows
+  are the same size — an 8-byte residual means the windows are NOT
+  the same size by definition.
+
+Cluster down to **68 entries** in the verified range (from 69 at the
+start of this round; 144 when the whole `0x15000000+` segment
+investigation began).
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: still open from earlier rounds —
+`func_15144B68` (20+ callers), `func_1506C460` (confirmed mixed
+callers), `func_1501905C`'s indirect-call target mismatch (main
+segment), and the `tanf`/`sinf`/`cosf` implementation gap. In the
+freshly-verified range, `func_150729B4`/`func_15072AF8`/
+`func_15072B44` are confirmed instances of the already-accepted
+`func_1505E650`-with-`0.0f` residual (re-verified this round, not
+fresh bugs). `func_151407D0` and onward through the
+`func_1516xxx`/`func_151DA08C`+ tail have not been individually
+re-checked since the last full listing — worth a fresh pass.
