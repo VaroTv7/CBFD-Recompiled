@@ -936,7 +936,7 @@ s32 func_1000C530(s32 arg0, u8 arg1, f32 arg2, f32 arg3, f32 arg4);
 //func_1000CDA0
 //func_1000CEAC
 //func_1000D2F8
-void func_1000D758();
+void func_1000D758(f32 arg0, f32 arg1, s32 arg2);
 //func_1000D96C
 //func_1000DE1C
 //func_1000DEC4
