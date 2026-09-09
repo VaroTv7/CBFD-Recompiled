@@ -19,7 +19,29 @@
 //     }
 // }
 
+extern void (*D_8008CB64[])(void);
+extern void (*D_8008CB70)(void);
+
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Walks the
+// function-pointer table D_8008CB64..D_8008CB70, calling each non-null
+// entry. Extremely close - identical byte-for-byte except the prologue's
+// two `lui` instructions (computing D_8008CB64's and D_8008CB70's upper
+// halves) are swapped relative to target (target: lui D_8008CB64, lui
+// D_8008CB70, addiu D_8008CB70, addiu D_8008CB64). Tried declaring the
+// end pointer first (fixed the `addiu` order but swapped the `lui`
+// order instead) and a `for` loop (worse - different register entirely).
+// No source order tried got both right simultaneously.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516706C.s")
+// void func_1516706C(void) {
+//     void (**p)(void) = D_8008CB64;
+//
+//     do {
+//         if (*p != 0) {
+//             (*p)();
+//         }
+//         p++;
+//     } while (p != &D_8008CB70);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151670C0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151671E8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167310.s")
@@ -120,8 +142,37 @@ void *func_15169668(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
     D_800D2DAB = 1;
     return arg0;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516968C.s")
+void func_1516968C(struct102 *arg0, u8 *arg1, u8 arg2) {
+    if ((arg2 == 0xF || arg2 == 0x10) && (*arg1 == *((u8 *) arg0 + 0xC))) {
+        func_1516972C(arg0);
+    }
+}
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Scans D_800DD198
+// (a "*4" raw-index array per this codebase's established convention for
+// it) for an entry matching arg0, replacing it with arg0->unk8 - but
+// arg0 here is an IMPLICIT passthrough (both existing call sites, inside
+// func_1516972C below, call func_151696DC() with zero explicit
+// arguments; a0 is whatever the caller's own first parameter happens to
+// be). Declaring a real `arg0` parameter here conflicts with those
+// existing zero-arg call sites (yacc stack overflow at parse time) -
+// fixing it properly would mean also touching those call sites, which
+// is riskier than a single-function revert.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151696DC.s")
+// s32 func_151696DC(void *arg0) {
+//     s8 v0 = 0;
+//     void *elem;
+//
+//     if (D_800DD190 > 0) {
+//         do {
+//             elem = (v0 * 4) + D_800DD198;
+//             v0++;
+//             if (arg0 == *(void **) elem) {
+//                 *(s32 *) elem = *(s32 *) ((char *) arg0 + 8);
+//             }
+//         } while (v0 < D_800DD190);
+//     }
+//     return v0;
+// }
 
 s32 func_1516972C(struct102 *arg0) {
     void (*func)(struct102 *arg0);

@@ -247,7 +247,32 @@ f32 func_15143E64(vertex *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514401C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151441A4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151442FC.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. A wraparound-range
+// clamp: subtracts (arg1-arg2+1) from arg0 while arg0>arg1, then adds it
+// back while arg0<arg2. Matches target's control-flow shape (subtract-
+// or-add once unconditionally, then loop) but compiles to noticeably
+// more instructions than target throughout both loops - didn't find the
+// exact source form this round.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151444DC.s")
+// s32 func_151444DC(s32 arg0, s32 arg1, s32 arg2) {
+//     s32 v0;
+//
+//     if (arg1 < arg0) {
+//         v0 = arg1 - arg2 + 1;
+//         arg0 -= v0;
+//         while (arg1 < arg0) {
+//             arg0 -= v0;
+//         }
+//     }
+//     if (arg0 < arg2) {
+//         v0 = arg1 - arg2 + 1;
+//         arg0 += v0;
+//         while (arg0 < arg2) {
+//             arg0 += v0;
+//         }
+//     }
+//     return arg0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144528.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144598.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514462C.s")
@@ -403,7 +428,26 @@ u8 func_15145C90(s32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145EA4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15146078.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151462C8.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Builds a bitmask
+// of the low (D_80082FA0+1) bits (0 if D_80082FA0<0), then returns
+// whether that mask has no bits in common with *(arg0+2) (s16). Tried
+// referencing arg0 directly and through a local copy (matching target's
+// early `or a2,a0,zero`) - the copy fixed the missing initial instruction
+// but the final field-access register allocation still differs.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151464B8.s")
+// s32 func_151464B8(void *arg0) {
+//     s32 v0 = 0;
+//     s32 v1 = 0;
+//
+//     if (D_80082FA0 >= 0) {
+//         do {
+//             v1 |= 1 << v0;
+//             v0 += 1;
+//             v1 = (s16) v1;
+//         } while (v0 <= D_80082FA0);
+//     }
+//     return (*(s16 *) ((char *) arg0 + 2) & v1) < 1;
+// }
 
 void func_15146508(struct127 *arg0, struct127 *arg1) {
     struct193 tmp;

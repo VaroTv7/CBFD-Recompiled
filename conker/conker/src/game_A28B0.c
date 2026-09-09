@@ -1353,7 +1353,14 @@ void func_1507A3CC(void) {
 // void func_1507A428(void) {
 //     gCurrentObject->unk94 = ~(((D_800D1890 << 24) | (D_800D1891 << 16) | (D_800D1892 << 8) | D_800D1893) | 1);
 // }
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sibling of
+// func_1507A428 above - ANDs gCurrentObject->unk94 with the inverse of
+// the same packed 4 bytes, instead of assigning it. Same register-
+// allocation mismatch as func_1507A428.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A47C.s")
+// void func_1507A47C(void) {
+//     gCurrentObject->unk94 &= ~((D_800D1890 << 24) | (D_800D1891 << 16) | (D_800D1892 << 8) | D_800D1893);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A4D4.s")
 // void func_1507A4D4(void) {
 //     gCurrentObject->unk94 |= (D_800D1890 << 0x18) | (D_800D1891 << 0x10) | (D_800D1892 << 8) | D_800D1893;

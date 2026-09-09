@@ -182,7 +182,33 @@ void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA08C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA368.s")
 // TODO when we know what arg0 is...
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. When
+// arg0->unk58 & 1, multiplies arg0->unk138 (f32) by arg0->unk13C
+// (D_800BE9E4 - 1) times. Target compiles this to a tight, un-unrolled
+// loop (0x5C bytes total), but IDO -O2 unrolled this reconstruction's
+// do-while by 4 into a much larger sequence (with an `andi ...,0x3`
+// remainder-count prologue) - a real loop-unrolling-heuristic mismatch,
+// not a simple register/ordering issue. Needs a source structure that
+// discourages unrolling; didn't find one this round.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA6A8.s")
+// s32 func_151DA6A8(struct210 *arg0) {
+//     s32 count;
+//     f32 *unk138 = (f32 *) ((char *) arg0 + 0x138);
+//     f32 unk13C;
+//
+//     if ((arg0->unk58 & 1) != 0) {
+//         count = D_800BE9E4;
+//         if (count != 0) {
+//             unk13C = *(f32 *) ((char *) arg0 + 0x13C);
+//             count--;
+//             do {
+//                 *unk138 *= unk13C;
+//                 count--;
+//             } while (count != 0);
+//         }
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA6F8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA938.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAA88.s")

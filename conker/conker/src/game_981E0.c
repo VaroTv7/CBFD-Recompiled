@@ -832,7 +832,23 @@ void func_1506EEF4(void) {
 }
 
 // TBD whats goins on here
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sets
+// gCurrentObject->unk282 (u16) and unk276 (u8), then unpacks two bytes of
+// D_800D1580 (the packed-color global from func_150721A4/func_15072DA0
+// earlier this session) into a 2-byte slot at unk284, indexed by the
+// color's high byte doubled. Register allocation substantially different
+// from target throughout, particularly the repeated gCurrentObject
+// pointer reloads.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506EF5C.s")
+// void func_1506EF5C(void) {
+//     s32 idx;
+//
+//     *(u16 *) ((char *) gCurrentObject + 0x282) = 0xFFFF;
+//     *(u8 *) ((char *) gCurrentObject + 0x276) = 5;
+//     idx = (u8) (D_800D1580 >> 16) << 1;
+//     *(u8 *) ((char *) gCurrentObject + 0x284 + idx) = D_800D1580 >> 8;
+//     *(u8 *) ((char *) gCurrentObject + 0x285 + idx) = D_800D1580;
+// }
 
 void func_1506EFB4(void) {
     gCurrentObject->unk282 = (u16)0;
