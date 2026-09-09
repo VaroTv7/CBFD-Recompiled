@@ -662,7 +662,7 @@ void func_15077174(void) {
 }
 
 void func_15077190(void) {
-    s32 tmp0 = (D_800D1890 << 8) | D_800D1891;
+    u16 tmp0 = (D_800D1890 << 8) | D_800D1891;
     if (tmp0 != 0) {
         s32 tmp1 = D_800D1892 << 7;
         func_10010630(tmp0, gCurrentObject, tmp1, 0x1F4, 0x9C4);
