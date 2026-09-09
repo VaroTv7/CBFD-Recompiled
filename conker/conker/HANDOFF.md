@@ -6831,3 +6831,59 @@ way to find whatever's left — most of the previously-catalogued
 cluster has been individually triaged at this point into fixed,
 `func_1505E650`-class accepted residuals, or `SUBALIGN` object-
 boundary padding.
+
+## Session log — systematic triage of the remaining cluster; one more fix found (2026-09-09)
+
+With both wide-blast-radius cases and the indirect-call mismatch
+closed, did a systematic triage of the current 64-entry cluster:
+wrote a small script cross-referencing every `find_drift.py`
+change-point's preceding function against whether its body calls
+`func_1505E650` or `func_15144B68` (the two large accepted-residual
+families), to separate "already-understood, accepted" entries from
+anything still worth individually investigating. Most of the cluster
+sorted into those two families, or into functions already touched in
+earlier rounds (`func_1513Cxxx`/`func_1513Dxxx` wrapper family,
+`func_15048Bxx`/`negRoll` fabsf-pattern family, `func_151D9FC0`/
+`func_151DBBD4`, etc.) with their residuals already at documented,
+accepted minimums.
+
+One genuinely fresh entry survived the triage: **`func_1506BB64`**
+(`game_981E0.c`). Direct `objdump` comparison found two real issues:
+
+- The global `D_800D1582` was declared `s16`, but target loads it via
+  `lhu` (unsigned) at every observed use — corroborated by an existing
+  explicit `(u16)` cast at one of its 6 usage sites in the same file.
+  Changed to `u16`.
+- `func_1506BB64`'s own `arg0` needed `s16` (target sign-extends it).
+  Applying this produced a *correct-value* fix but via a different
+  instruction sequence than target's (register-based `sll`+`sra` vs.
+  target's stack-round-trip `sw`+`lh`) — a smaller residual remains
+  from that instruction-selection difference, not chased further
+  (same class of gap as `func_151616D0`'s `s8`-vs-`u8` lesson from
+  several rounds back, just for sequence choice rather than
+  signedness this time).
+
+Net: cluster down from 64 to 63. Spot-checked two other candidates
+from the triage (`func_151467A4`/`func_15146890` boundary,
+`func_150718E4`) and confirmed both are `SUBALIGN` object-boundary
+padding or already-accepted positive-delta carryover, not fresh bugs.
+
+Rebuilt clean after every change (0 `cfe: Error` *and* 0 bare non-
+warning `cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: the cluster is now almost entirely triaged.
+What remains is: the `func_1505E650`/`func_15144B68` accepted-residual
+families (confirmed unfixable, don't re-investigate), `SUBALIGN`
+object-boundary padding (confirmed unfixable), a handful of already-
+documented partial fixes at their accepted minimums
+(`func_15048B10`'s `negRoll` case, `func_1513Dxxx` wrapper family,
+`func_151D9FC0`/`func_151DBBD4`), and the genuinely out-of-scope
+`sinf`/`cosf`/`tanf` implementation gap. A future round should
+prioritize either (a) the trig implementation, which is the only
+remaining *concrete* unimplemented-functionality item, or (b) a fresh,
+careful re-derivation of whether any entry not yet explicitly named in
+this HANDOFF log is hiding a real bug — the triage script used this
+round (cross-referencing `find_drift.py` against function-body text
+for known-accepted-pattern calls) is a good starting point to rerun
+and extend if the remaining count changes.
