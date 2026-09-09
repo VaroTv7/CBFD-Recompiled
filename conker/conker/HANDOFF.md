@@ -6389,3 +6389,87 @@ to find what's left after this round's fixes — the previously-known
 cluster has now been almost entirely triaged into: fixed, accepted
 IDO-scheduling residuals, `SUBALIGN` object-boundary padding, or one
 of the two flagged wide-blast-radius cases above.
+
+## Session log — investigating without forcing: func_1506C460 confirmed mixed, an indirect-call mismatch found, tanf re-confirmed as a stub (2026-09-08, later still)
+
+An investigation-heavy round: dug into several flagged items, found real
+and useful information, but made no net fixes — every concrete lead
+either turned out to be too risky to force or too large to rush.
+Recording the findings so the next round doesn't have to re-derive
+them.
+
+**`func_1506C460` (flagged last round) — empirically confirmed
+mixed-callers, not chased further.** Applied the exact bitcast+hex-
+literal technique that's already proven correct in
+`game/game_1048D0.c` (confirmed via that file's function showing
+*zero* introduced drift) to `func_15073DA4` in `game_981E0.c`. Result:
+made things measurably *worse* (`+12` → `-16`, cluster count 69→70),
+immediately reverted. This is a real, experimentally-confirmed data
+point (not just a hunch): the exact same fix is correct at one call
+site and wrong at another for the same K&R-relaxed function. Whatever
+`func_1506C460`'s real signature is, it cannot be resolved by picking
+one technique and applying it everywhere — a proper fix needs
+`objdump` verification at *every* call site individually before
+touching any of them, and possibly separate handling per site if the
+underlying asm genuinely branches on argument types (unusual, but the
+only explanation left standing). Left completely untouched.
+
+**New finding: `func_1501905C`'s `+8` residual is an indirect-call
+target mismatch, not a promotion/type issue.** This function has an
+existing, already-accepted `func_1000D758_t` function-pointer-cast
+workaround from an earlier (pre-`.game`-segment) investigation phase.
+Direct `objdump` diffing found something new: target calls through an
+indirect `jalr` to address `0x1001D748` (materialized via `lui`+
+`addiu` into `$t9` immediately before the call), while our current
+build calls `func_1000D758` directly via `jal` — a **different target
+address entirely**, not just a different calling convention. `0x1001D748`
+doesn't correspond to any named symbol in our current build's map, so
+it's not immediately clear what function it should be. This sits in
+the *main* segment (`0x10000000+` range, not `.game`), which was the
+subject of a much earlier, separate investigation phase in this whole
+project — worth revisiting with that context rather than treating it
+as a `.game`-segment issue. Left as the already-accepted partial
+residual; did not attempt a fix given the unfamiliar territory
+(resolving what real function belongs at that address needs the main-
+segment tooling/context, not this session's `.game`-segment formula).
+
+**Re-confirmed (not new, but worth restating plainly): `tanf` is a
+literal stub.** `src/game/done/game_77A90.c`: `f32 tanf(f32 arg0) { }`
+— an empty body, no `return`, for a non-`void` function. This is the
+root cause of the `func_1504A620`-adjacent raw-asm-chain drift flagged
+several rounds back as "raw-asm-adjacent, possibly a formula
+calibration artifact" — it isn't a formula issue at all, it's that
+`tanf` (a hand-named SDK-style symbol, invisible to `find_drift.py`'s
+`func_XXXXXXXX` regex, per the standing caveat about non-address-named
+symbols) is simply unimplemented. Confirms the "implement real
+`sinf`/`cosf` so `tanf` can be properly implemented" task flagged as
+out-of-scope very early in this whole investigation is still exactly
+that: out of scope for a quick fix, needs a dedicated session to
+reconstruct the trig routines properly (`sinf`/`cosf` are completely
+absent from the codebase, not just `tanf`).
+
+Cluster unchanged at **69 entries** this round (no regressions, no net
+fixes — a deliberately conservative round given three separate
+"looks fixable but isn't, safely, right now" outcomes).
+
+Rebuilt clean after every experiment (0 `cfe: Error` *and* 0 bare
+non-warning `cfe`, 0 `Signal 11`), verified via
+`find_drift.py 0x15000000 0x16000000` throughout; working tree is
+clean (no uncommitted changes) at the end of this round.
+
+**Continuation point**: three concrete, well-scoped follow-on tasks
+now stand, none suitable for a quick fix:
+1. `func_1506C460` — needs per-call-site `objdump` verification (5
+   known call sites) before any change.
+2. `func_1501905C`'s indirect-call target (`0x1001D748` in the main
+   segment) — needs main-segment investigation context/tooling to
+   identify what function that really is.
+3. Implementing real `sinf`/`cosf`/`tanf` — a from-scratch trig
+   routine reconstruction, unrelated to the promotion/narrow-type bug
+   patterns this whole investigation has otherwise focused on.
+
+Also still open from earlier rounds: `func_15144B68` (20+ callers,
+same mixed-signature risk as `func_1506C460`). A fresh
+`find_drift.py 0x15000000 0x16000000` listing should be pulled at the
+start of the next round to re-survey what (if anything) remains
+unexamined outside these four flagged items.
