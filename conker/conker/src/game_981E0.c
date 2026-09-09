@@ -1349,8 +1349,8 @@ struct127 *func_150721E8(struct127 *arg0) {
 void func_150722F0(void) {
     struct127 *temp_v0 = func_150721E8(gCurrentObject);
     if (temp_v0 != 0) {
-        s32 tmp0 = D_800D1580 >> 8;
-        u16 tmp1 = D_800D1580;
+        u8 tmp0 = D_800D1580 >> 8;
+        u8 tmp1 = D_800D1580;
         func_1506160C(temp_v0, 2, tmp0, tmp1, 0);
     }
 }
