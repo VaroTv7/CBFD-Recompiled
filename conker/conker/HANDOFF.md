@@ -6022,3 +6022,77 @@ continue the systematic sweep past `func_15149550`,
 individually diagnosed), and whatever remains toward
 `func_151DA08C`/`func_151DBCBC`/`func_151DC6A0` and the
 `func_16000000`+ tail of the segment.
+
+## Session log — a real bug in a "done" file, and a build-verification blind spot (2026-09-08, later still)
+
+Followed up on last round's flagged `func_151491F4`/`func_15149130`
+finding in `src/game/done/game_1765E0.c`. Worked out the exact
+per-argument types by cross-referencing target's `objdump` output
+(`sll`+`sra` for sign-extend widths, `andi`/`lbu` for zero-extend)
+against `struct260`'s real field types (`unkE`=`s16`,
+`unk10`/`unk11`/`unk12`=`s8`, `unkD`/`unk13`=`u8`) — all consistent
+with each other, giving high confidence.
+
+While mapping out `func_151491F4`'s own stack-offset reads, found this
+isn't just a type-width bug: **the current C source's call from
+`func_151491F4` to `func_15149130` is structurally wrong**. It
+currently forwards `func_151491F4`'s 8 arguments 1:1 into
+`func_15149130`'s first 8 parameters. Target instead passes a
+**hardcoded `-1`** for `func_15149130`'s 4th parameter (which becomes
+`temp_v0->unk12`) and shifts `func_151491F4`'s own `arg3..arg7` down
+into `func_15149130`'s `arg4..arg8`. This means every call through
+`func_151491F4` (13 files) was writing whatever the caller passed as
+its own "arg3" into `unk12`, when target always writes `-1` there
+regardless of caller input — a genuine functional bug in the existing
+decompilation, not merely a byte-drift cosmetic issue. Fixed both
+signatures and the forwarding call to match.
+
+**Important process lesson, worth internalizing for every future
+round**: the first attempt to verify this rebuild via
+`grep 'cfe: Error'` on the make log reported clean, but `find_drift.py`
+showed *zero change* afterward. Investigation found the object file
+was stale — untouched since before the edit. The actual compiler
+output was the redeclaration-corruption bug (documented earlier this
+whole investigation) doing exactly what it does: garbling
+`cfe: Error` into `cfe: l Error` by interleaving it with an unrelated
+diagnostic, which meant my exact-match grep pattern found nothing and
+reported false-clean. The real trigger, confirmed via isolated
+single-file compilation and a binary-search test (narrowing even ONE
+parameter from `s32` to `s16` was enough): **narrowing a function's
+own parameter types while `functions.h` still has the old K&R-relaxed
+declaration visible triggers the same corruption bug as adding a
+fuller prototype does** — this project's `restore_promotion_safe_signatures.py`
+step isn't just cosmetic bookkeeping, it's load-bearing for avoiding
+this exact compiler bug, and it must run *before* the verification
+build, not just before pushing. Two takeaways: (1) always run
+`restore_promotion_safe_signatures.py --apply` immediately after any
+signature edit, before even a quick sanity build; (2) when checking a
+build log for errors, grep bare `cfe` and manually inspect anything
+that isn't `cfe: Warning`, since `cfe: Error` alone can silently miss
+the corrupted-text variant.
+
+Promoting `functions.h`'s two declarations to strict also surfaced 2
+more pre-existing bugs via `fix_cross_file_arg_counts.py`:
+`game/game_204660.c` and `game/game_FF5C0.c` were each calling
+`func_15149130` directly with one extra trailing argument beyond its
+real 9-parameter signature; both trimmed automatically and verified
+via `find_drift.py` (no regressions in either file's region).
+
+`func_15149264`'s `-48` residual (misattributed to the following
+symbol per the standing pattern — the real bug was in the preceding
+`func_151491F4`/`func_15149130`) is now fully resolved. Cluster down
+to **87 entries** (from 143 when the `0x15000000+` segment
+investigation began).
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16010000` throughout.
+
+**Continuation point**: the `src/game/done/` directory finding from
+last round stands — worth a systematic sweep of other files under it
+against the current drift list, now that `game_1765E0.c` turned out to
+have a real, non-cosmetic bug despite its "done" label. Beyond that,
+continue past `func_15149550`, `func_1516979C`/`func_15169900` (in
+`game_1944C0.c`, not yet individually diagnosed), and the
+`func_151DA08C`/`func_151DBCBC`/`func_151DC6A0` region toward the
+`func_16000000`+ tail of the segment.
