@@ -6749,3 +6749,85 @@ should now be considered a **closed, permanently-accepted** residual
 class rather than something to keep re-investigating — it appears at
 a large fraction of the remaining ~66 entries and is not going to
 move further with the techniques available in this toolchain.
+
+## Session log — resolving the func_1501905C indirect-call mismatch (and catching two of my own analysis errors along the way) (2026-09-09)
+
+Went back to `func_1501905C`'s indirect-call residual (`+8`, flagged
+several rounds ago as needing main-segment context). Found and fixed
+it this round — but the path there involved catching two separate
+mistakes from the original investigation, both worth recording
+clearly since they're easy to repeat.
+
+**Error #1**: the original finding computed the `jalr` target address
+as `0x1001D748` by treating the `addiu` instruction's 16-bit immediate
+(`0xD748`) as an unsigned offset added to `0x10010000`. `addiu`'s
+immediate is **signed** — `0xD748` as signed 16-bit is `-10424`, so
+the real target is `0x10010000 - 10424 = 0x1000D748`, not
+`0x1001D748`. That's a full `0x10000` (64KB) off, and it sent the
+investigation looking at unrelated libultra audio code instead of the
+right function. Lesson: when hand-decoding a `lui`+`addiu`
+address-materialization pair, always sign-extend the `addiu`
+immediate before adding — this class of instruction is used
+specifically *because* small negative offsets from a page-aligned
+`lui` are cheaper than a full 32-bit load, so a signed low half is the
+common case, not the exception.
+
+**Error #2** (worse, and specific to this toolchain): once
+corrected, `0x1000D748` turned out to exactly match `func_1000D758`'s
+own *actual* linked position in our build's map (a pre-existing `-16`
+byte offset from its declared name, unrelated to anything in this
+`.game`-segment investigation). Re-verifying which instruction form
+(`jal` vs `jalr`) target *actually* uses at this call site required
+comparing `objdump` output for target's raw binary — and
+**`mips-linux-gnu-objdump -bbinary` has no real VMA to compute against,
+so any `jal`/`jalr` target address it prints for a raw binary dump is
+silently meaningless** (it computes the target from the file offset
+treated as if it were address zero, not the real ROM address). Reading
+that bogus decoded target as if it were real led to an initial
+re-check that seemed to confirm the wrong conclusion. The fix: for a
+raw-binary dump, only trust the **raw instruction word** (e.g.
+`0c0035d6`) and decode call targets by hand using the *real* VMA of
+that instruction (`(real_PC+4 & 0xF0000000) | (imm26 << 2)` for `jal`),
+never objdump's own printed disassembly-target annotation in this
+mode. This should be added to the standing methodology: **objdump's
+symbolic/target annotations are only trustworthy for the current
+(ELF) build; for target's raw-binary dumps, read opcodes and raw
+immediates only.**
+
+**The actual fix**, once analysis was solid: target calls
+`func_1000D758` via a plain direct `jal`. Our source called it through
+a function-pointer cast (`((func_1000D758_t) func_1000D758)(...)`,
+a pre-existing workaround from a much earlier investigation phase,
+predating this whole `.game`-segment sweep) — and IDO compiles that
+construct as an **indirect call unconditionally**, materializing the
+address via `lui`+`addiu` into a register regardless of whether the
+target is a compile-time-known symbol. Confirmed `func_1000D758` has
+exactly one caller and no conflicting declarations (same precondition
+as the `func_1506C460`/`func_15144B68` fixes two rounds ago), gave it
+its real prototype (`f32, f32, s32`, matching the typedef that existed
+solely to enable the now-unnecessary pointer-cast) directly in
+`functions.h`, and replaced the cast-call with a plain direct call.
+This eliminated the indirect-call overhead *and* presumably whatever
+promotion issue motivated the original workaround. Fully resolved —
+both `func_15019130` and `func_1501A220`'s downstream residuals
+cleared as a side effect.
+
+Cluster down to **64 entries** (from 66 at the start of this round;
+144 when the whole `0x15000000+` segment investigation began). Both
+concrete open items flagged in HANDOFF as of last round are now
+closed except the `sinf`/`cosf`/`tanf` implementation gap.
+
+Rebuilt clean after every change (0 `cfe: Error` *and* 0 bare non-
+warning `cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: only one concrete named item remains open —
+implementing real `sinf`/`cosf` so `tanf` can be properly implemented
+(a from-scratch trig routine reconstruction, unrelated to this
+investigation's usual bug patterns). Beyond that, a fresh
+`find_drift.py 0x15000000 0x16000000` listing plus the "check for
+zero local declarations" technique (now validated three times) is the
+way to find whatever's left — most of the previously-catalogued
+cluster has been individually triaged at this point into fixed,
+`func_1505E650`-class accepted residuals, or `SUBALIGN` object-
+boundary padding.
