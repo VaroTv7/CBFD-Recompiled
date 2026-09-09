@@ -17,7 +17,7 @@ void func_1510550C(struct102 *arg0, s32 arg1, u8 arg2) {
     }
 }
 
-void func_15105548(struct207 *arg0, s32 *arg1, s32 arg2) {
+void func_15105548(struct207 *arg0, s32 *arg1, u8 arg2) {
     struct206 *temp_v0 = &arg0->unk28;
     if ((arg2 == 0x38) && (temp_v0->unk0->unk14 == 1)) {
         temp_v0->unk70 = *arg1;
@@ -27,7 +27,7 @@ void func_15105548(struct207 *arg0, s32 *arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_1510558C.s")
 
-void func_15105848(struct207 *arg0, s32 arg1, s32 arg2) {
+void func_15105848(struct207 *arg0, s32 arg1, u8 arg2) {
     struct206 *temp_v0;
 
     if (arg2 == 0x38) {
