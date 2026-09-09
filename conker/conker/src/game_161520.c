@@ -213,7 +213,34 @@ s32 func_15137E10(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A48C.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Two unresolved gaps:
+// (1) target re-masks arg3 to u8 a second time at the func_1513A5E0 call
+// site (andi a1,a3,0xff) even though it was already masked once in the
+// prologue - every variation collapsed to a single mask, reused; (2) the
+// arg0->unk1D4 check has a genuinely empty body in target (reads the field,
+// branches, then falls through to the same epilogue either way) but IDO
+// -O2 dead-code-eliminates the entire read+branch when the if-body is
+// empty in source, unlike the tanf/func_151EF080 precedent where an empty
+// body still got reproduced (that involved a real return, not a no-op).
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Two unresolved gaps:
+// (1) target masks arg3 to u8 once in the prologue (spilled + andi) then
+// re-masks it a second time at the func_1513A5E0 call site for the a1 slot
+// (andi a1,a3,0xff) while implicitly forwarding the same masked value as
+// a3 too - tried arg3 as u8 (single mask, reused, no re-mask), as s32 with
+// one explicit (u8) cast (drops the prologue mask entirely, matches the
+// call-site andi but not the early spill), and as s32 with two explicit
+// (u8) casts (compiler switches to spilling+lbu instead of andi/move,
+// worse). (2) the arg0->unk1D4 check has a genuinely empty body in target
+// (reads the field, branches, falls through to the same epilogue either
+// way) but IDO -O2 dead-code-eliminates the entire read+branch when the
+// if-body is empty in source - unlike the tanf/func_151EF080 precedent
+// (that involved a real return, not a no-op).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A594.s")
+// void func_1513A594(struct127 *arg0, void *arg1, s32 arg2, u8 arg3, s32 arg4) {
+//     func_1513A5E0(arg1, arg3, arg4);
+//     if (arg0->unk1D4 != 0) {
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A5E0.s")
 
