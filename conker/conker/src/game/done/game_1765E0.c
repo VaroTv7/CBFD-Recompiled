@@ -3,7 +3,7 @@
 #include "variables.h"
 
 
-struct260 *func_15149130( s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, struct37 *arg6, s32 arg7, s32 arg8) {
+struct260 *func_15149130( s16 arg0, s8 arg1, s8 arg2, s8 arg3, u8 arg4, u8 arg5, struct37 *arg6, u8 arg7, s32 arg8) {
     struct260 *temp_v0;
     u8 phi_v0;
     s32 sp24;
@@ -36,8 +36,8 @@ struct260 *func_15149130( s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 
     return temp_v0;
 }
 
-struct260 *func_151491F4( s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
-    return func_15149130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, 0);
+struct260 *func_151491F4( s16 arg0, s8 arg1, s8 arg2, u8 arg3, u8 arg4, struct37 *arg5, u8 arg6, s32 arg7) {
+    return func_15149130(arg0, arg1, arg2, -1, arg3, arg4, arg5, arg6, arg7);
 }
 
 void func_15149264(struct260 *arg0) {

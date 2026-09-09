@@ -33,7 +33,7 @@ void func_150D2110(s16 arg0, f32 arg1, f32 arg2, u8 arg3, u8 arg4, u8 arg5, s32 
     sp3C = 0.0f;
     sp4C = arg3;
     sp4D = arg4;
-    temp_v0 = func_15149130(arg1, arg2, arg0, -1, 0x2F, 2, 1, 0x26, 0x18, (s32) arg5, arg6);
+    temp_v0 = func_15149130(arg1, arg2, arg0, -1, 0x2F, 2, 1, 0x26, 0x18);
     if (temp_v0 != 0) {
         memcpy(temp_v0 + 0x28, &sp38, 0x18);
     }

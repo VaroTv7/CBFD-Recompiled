@@ -59,7 +59,7 @@ s32 func_151D71B0(s16 arg0, u8 arg1, u8 arg2, f32 arg3, s32 arg4, u8 arg5, s32 a
     sp44 = 0.0f;
     sp48 = arg3;
     sp38 = arg2;
-    temp_v0 = func_15149130(arg3, arg0, -1, 0x42, -1, (s32) arg1, 0x36, arg4 + 0x18, (s32) arg5, arg6);
+    temp_v0 = func_15149130(arg3, arg0, -1, 0x42, -1, (s32) arg1, 0x36, arg4 + 0x18, (s32) arg5);
     var_v1 = temp_v0;
     if (temp_v0 != 0) {
         sp4C = temp_v0;
