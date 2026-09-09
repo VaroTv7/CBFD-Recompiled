@@ -6581,3 +6581,102 @@ downstream of these flagged cases (`func_15163CF8`'s call into
 independently-fixable bugs — a fresh `find_drift.py` listing plus
 spot-checks is the way to confirm whether anything new has surfaced
 before assuming so.
+
+## Session log — breakthrough: resolved both flagged wide-blast-radius cases with a real-prototype technique (2026-09-09)
+
+Went back to `func_1506C460`, the smaller of the two flagged
+wide-blast-radius cases from earlier rounds, determined to actually
+understand it rather than defer it again. This paid off with a
+technique that resolved *both* outstanding flagged cases cleanly.
+
+**The investigation.** Re-examined the "already correct" caller in
+`game/game_1048D0.c` very carefully via direct `objdump` (not just
+trusting "the enclosing function shows zero drift" as proof) and
+confirmed: its bitcast-style argument (`*(s32 *)((char *)(arg0) +
+0x40)`) really does compile to a direct `lwc1` into `$f12` with zero
+promotion, matching target exactly. Then re-tried the identical
+bitcast technique against `game_981E0.c`'s calls (this time using the
+*exact* same `(char *)`-pointer-arithmetic syntax, not the
+`*(s32*)&expr` form tried two rounds ago) — and it *still* regressed,
+this time producing correct-bit-value-but-wrong-register-class code
+(`a0`/`a1` integer registers instead of `$f12`/`$f14`). Tried a third
+combination (natural field access + hex-literal second argument) —
+also wrong, and for an illuminating reason: it produced *mismatched*
+register classes for the two arguments (one promoted-double via
+`cvt.d.s`, the other pushed into a GPR), worse than either pure
+approach. **Three different plausible-looking source patterns, three
+different wrong outputs** — strong evidence this wasn't a
+call-site-syntax problem at all, but a genuine missing-prototype
+problem whose visible symptom (which register class IDO happens to
+pick) is sensitive to incidental factors in a way that makes
+per-call-site pattern-matching unreliable.
+
+**The fix.** Checked whether `func_1506C460` has *any* local
+declaration anywhere in the codebase — it doesn't; `functions.h`'s
+K&R-relaxed declaration is the only one. That means giving it a real,
+fully-typed prototype is safe: there's no second declaration to
+collide with (the redeclaration-corruption bug needs *two*
+declarations of differing fullness in the same translation unit; a
+single point of declaration, however it's phrased, is never a
+conflict). Inferred the real signature from all 5 call sites'
+argument shapes (`f32,f32,s32,s32,s32,s32,f32,f32,s32,s32,s32`) and
+changed `functions.h`'s declaration directly — **zero changes needed
+at any of the 5 call sites**. Rebuilt clean; all 3 previously-`+12`
+`game_981E0.c` sites dropped to a `-4` residual each, confirmed via
+`objdump` to be the already-well-understood
+"`0.0f`-routed-through-a-float-register" pattern (not further
+fixable). The 2 other call sites (which happened to already produce
+correct code under the relaxed declaration, by IDO quirk) kept working
+identically under the new strict one.
+
+**Applying the same technique to `func_15144B68`** (the other flagged
+case, ~25 calling files) worked just as cleanly: no local declarations
+anywhere to conflict with, so `f32 func_15144B68(f32 arg0);` went
+straight into `functions.h`. Promoting to strict surfaced 6
+pre-existing over-long calls (an extra, unused second argument) across
+3 files, auto-trimmed by `fix_cross_file_arg_counts.py` as usual.
+`func_15144CEC`'s residual dropped from `+20` to `+8`, and
+`func_15163DEC`'s downstream residual (traced last round to a
+`func_15144B68` call inside `func_15163CF8`) cleared entirely. No
+regressions in any of the ~20 other calling files.
+
+**New standing technique, worth applying proactively in future
+rounds**: when a K&R-relaxed function shows drift at multiple call
+sites with inconsistent-looking symptoms (some sites "just work,"
+others don't respond to the usual bitcast/hex-literal fixes, or
+respond differently depending on exact source syntax), **check first
+whether it has zero local declarations anywhere in the codebase**
+(`grep -rn` for the function name across all files, filtering out call
+sites and the `#pragma GLOBAL_ASM` line — if the only hit besides call
+sites is in `functions.h`, it's a single-declaration-point function).
+If so, inferring its real signature from calling-convention evidence
+(which registers target actually uses: `$f12`/`$f14` vs `a0`-`a3`,
+`sll+sra` vs `andi` widths, etc. — the same evidence already gathered
+for narrow-parameter fixes) and giving it directly to `functions.h` is
+**safe, often the actual root-cause fix, and requires zero per-call-
+site changes** — strictly better than guessing at bitcast syntax
+variations. This should have been tried before the per-call-site
+bitcast attempts in earlier rounds, not after; the wide "blast radius"
+that made these look risky was actually the reason the fix was *safer
+and higher-leverage* than usual, since one `functions.h` edit fixes
+every caller at once instead of requiring 5-25 individual edits.
+
+Cluster down to **66 entries** in the verified range (from 68 at the
+start of this round; 144 when the whole `0x15000000+` segment
+investigation began — both flagged wide-blast-radius items from
+several rounds of deferral are now fully closed).
+
+Rebuilt clean after every change (0 `cfe: Error` *and* 0 bare non-
+warning `cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: two open items remain from earlier rounds —
+`func_1501905C`'s indirect-call target mismatch (main segment,
+`0x1001D748`) and the `sinf`/`cosf`/`tanf` implementation gap. Given
+this round's breakthrough, worth checking whether *any other* entries
+in the current drift list trace back to a similarly-situated
+K&R-relaxed function with zero local declarations — the same
+`grep -rn` check, applied systematically to whatever functions remain
+implicated in the current cluster, might turn up more of these
+higher-leverage fixes before falling back to per-function
+investigation.
