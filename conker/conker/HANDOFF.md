@@ -6530,3 +6530,54 @@ freshly-verified range, `func_150729B4`/`func_15072AF8`/
 fresh bugs). `func_151407D0` and onward through the
 `func_1516xxx`/`func_151DA08C`+ tail have not been individually
 re-checked since the last full listing — worth a fresh pass.
+
+## Session log — one more win, one more instructive revert (2026-09-09)
+
+Continued triaging entries not yet individually checked. Two
+computed-local bitcast attempts this round, with opposite outcomes —
+useful concrete data for judging this technique's cost/benefit going
+forward.
+
+**Reverted**: `func_151644A8` (`game_18D770.c`) forwards two computed
+`f32` products to raw-asm `func_151644F4`. Applied the established
+bitcast-via-temp technique to both. Result: made the residual *worse*
+(`+4` → `+8`) — confirmed via `objdump` that materializing *two*
+computed locals each cost a `swc1`+`lw` stack round-trip that, added
+together, exceeded the `cvt.d.s`+`mfc1`×2 cost of the original
+double-promotion. Reverted cleanly.
+
+**Kept**: `func_151DBBD4` (`game_2062D0.c`) forwards *one* computed
+`f32` expression to raw-asm `func_151D9B8C`. Same technique, opposite
+result: reduced the residual from `+8` to `-4`, a clear net win.
+
+**Working conclusion from these two data points**: the "freshly-
+computed local" bitcast technique's cost scales with *how many*
+computed values need materializing in the same call, not just whether
+one is computed at all. A single computed-and-bitcast argument is
+often still a net win (the `cvt.d.s`+two-`mfc1` promotion cost it
+avoids is real); two or more in the same call risk costing more in
+stack round-trips than they save. When applying this technique to a
+call with multiple computed float arguments, verify each one's net
+effect via `find_drift.py` before assuming they compound favorably —
+they may not.
+
+Cluster steady-ish at **68 entries** (one function fully improved,
+offsetting the other's attempted-then-reverted change — net effect a
+small real improvement once the revert is accounted for, since the
+`func_151DBBD4` fix alone moved a `+8` down to `-4`).
+
+Rebuilt clean after every change including the revert (0 `cfe: Error`
+*and* 0 bare non-warning `cfe`, 0 `Signal 11`, 0 CRLF regressions),
+verified via `find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: same as last round — `func_15144B68` (20+
+callers), `func_1506C460` (confirmed mixed callers), `func_1501905C`'s
+indirect-call target mismatch (main segment), and the
+`sinf`/`cosf`/`tanf` implementation gap remain the open wide-scope
+items. `func_151407D0`, `func_15164780`, and the tail toward
+`func_15169900`/`func_151DA08C`+ are mostly object-boundary entries
+downstream of these flagged cases (`func_15163CF8`'s call into
+`func_15144B68` confirmed as one concrete source) rather than fresh,
+independently-fixable bugs — a fresh `find_drift.py` listing plus
+spot-checks is the way to confirm whether anything new has surfaced
+before assuming so.
