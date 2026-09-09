@@ -7088,3 +7088,97 @@ different segment/region entirely. Both are reasonable directions for
 a future session with more explicit scope/time allocated to them, but
 represent a different kind of work than this whole investigation has
 been doing.
+
+## mips_to_c experiments: two raw-asm functions attempted
+
+Acted on the suggestion above and picked two still-raw `GLOBAL_ASM`
+functions in the `.game` segment to run through `tools/mips_to_c`
+(m2c) as first-draft C reconstructions. Neither ended up committed as
+active C, but both were valuable — one revealed a whole class of
+functions that are unsafe to convert, the other confirmed real struct
+field offsets even though the byte-exact form eluded a few tries.
+
+**Working m2c recipe for this project** (established this round):
+1. Write a minimal context file: `#include <ultra64.h>` /
+   `"functions.h"` / `"variables.h"`.
+2. Preprocess with the same include paths the Makefile uses: `cpp
+   -nostdinc -D_LANGUAGE_C -D_FINALROM -DF3DEX_GBI_2 -D_MIPS_SZLONG=32
+   -I . -I include -I include/2.0L -I include/2.0L/PR -I include/libc
+   -I src/libultra/os -I src/libultra/audio -I src/libultra/io <ctx.c>
+   -o <ctx_pre.c>`.
+3. `python3 ../tools/mips_to_c/m2c.py --context <ctx_pre.c>
+   <target.s> [<jumptable-data.s> ...]` — a `jr $reg` jump table needs
+   its data section passed as an extra positional arg (find it via
+   `grep -rl "jtbl_NAME" asm/`).
+4. **Infrastructure gotcha**: the `Bash` tool in this environment is
+   Git Bash, not WSL — its `/tmp` is a different filesystem than what
+   `wsl.exe` calls see. Do the heredoc-write, `cpp`, and `m2c.py` run
+   all inside one combined `wsl.exe -e bash -c "..."` invocation, not
+   split across separate tool calls, or files vanish between steps.
+
+**Attempt 1 — `func_1513DF9C`** (`game_169510.c`, a 13-case
+switch-to-function-pointer dispatcher): m2c resolved the jump table
+fine and the hand-typed C reconstruction compiled cleanly and matched
+two sibling functions' exact `struct210`/`unk18.b.unk1` access
+pattern. But the link failed: `jtbl_800A5188` in the *shared* rodata
+file `asm/data/249560.rodata.s` contains raw addresses pointing at
+local labels (`.L1513DFEC_game_data` etc.) that exist only inside the
+original `func_1513DF9C.s`. Removing that assembly file orphans those
+references — the byte-exact jump table can't point at labels a C
+function no longer defines. **Lesson**: any function whose body is
+targeted by a jump table living in a separate shared rodata file
+(rather than one the compiler would regenerate itself) is not
+convertible via mips_to_c without also restructuring that rodata
+block — check for `glabel .L..._game_data`-style labels inside the
+`.s` file, referenced from a *different* `asm/data/*.rodata.s`, before
+attempting a conversion. Reverted cleanly (`src/game_169510.c`,
+`include/variables.h` both back to HEAD); zero regressions.
+
+**Attempt 2 — `func_15141564`** (`game_16DC80.c`, float math: wraps
+a 4-float sub-block through `sinf`/`func_15144B68` into a heading
+field): no jump table, calls two already-typed functions
+(`sinf`, `func_15144B68`), looked like a clean candidate. m2c's raw
+output plus manual asm tracing pinned down the exact fields — extended
+`struct210` with `unk158` (f32) and a 4-float block `unk170`/`unk174`/
+`unk178`/`unk17C` (offsets confirmed directly from the instruction
+stream, high confidence). The hand-typed C compiled and linked cleanly
+across all 4 versions, but **direct objdump comparison against target
+byte offset `0x16ea14` showed a real mismatch**: target keeps a
+persisted base-pointer register (`v1 = arg0 + 0x170`) alive across
+both `jal`s (frame size `0x28`), while IDO `-O2` compiled every
+variant of the reconstruction (direct field access, pointer declared
+up front, pointer declared after first use, explicit temp for the
+`sinf` result) back down to direct `a0`-relative offset addressing
+every time (frame size `0x18`, 8 bytes smaller, several float
+registers differ). Three different source restructurings all
+converged to the same (wrong) codegen — this doesn't look like a
+simple expression-ordering issue; something about `arg0`'s real type
+or an aliasing constraint in the original source is forcing the
+pointer to stay materialized, and it wasn't found this round. Left as
+a documented `// NON-MATCHING` comment above the retained
+`#pragma GLOBAL_ASM(...)`, following the same convention already used
+for `func_15167010` and `func_15168A9C` earlier in `game_1944C0.c`.
+The `struct210` field additions (verified via ground-truth objdump,
+not guessed) were kept and committed even though the function itself
+stays raw asm — legitimate, confirmed layout knowledge for whoever
+picks this one up next.
+
+Cluster unchanged at **62 entries** after both attempts (as expected —
+one was fully reverted, the other's C never actually compiles into the
+build). Committed: `d9ff83e` (struct210 field additions +
+`func_15141564`'s documented near-miss). Not pushed — this is
+methodology/documentation, not the kind of substantive fix batch this
+session's push discipline was set up for; bundle it with the next
+round of real progress.
+
+**For a future session attempting `func_15141564` again**: worth
+checking whether `arg0`'s true type at this call site is something
+other than `struct210*` (no other caller currently exists to
+cross-check), or whether the 4-float sub-block was originally a named
+nested struct member (`arg0->pos.x` style) rather than flat
+`unk170`/`unk174`/etc. fields — either could change IDO's aliasing
+assumptions enough to explain why it won't keep the base pointer
+materialized. `find_drift.py`'s cumulative count won't flag this kind
+of single-function regression on its own (same caveat documented
+earlier for `func_151EF080`); the direct objdump comparison remains
+the only way to catch it.
