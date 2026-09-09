@@ -6323,3 +6323,69 @@ entries (most of the previously-listed cluster has now been
 individually diagnosed as either fixed, accepted IDO-scheduling
 residuals, or `SUBALIGN` object-boundary padding — a fresh listing is
 needed to see what, if anything, is left unexamined).
+
+## Session log — more literal/local-variable fixes in game_981E0.c and game_A28B0.c (2026-09-08, later still)
+
+Continued the sweep using the corrected `0x15000000-0x16000000`
+range. Four more fixes:
+
+- `func_150714E8` (`game_981E0.c`): a `1.0f` literal passed to
+  K&R-relaxed `func_151D5714` was double-promoted; replaced with its
+  hex bit pattern (`0x3F800000`), the by-now standard fix. Fully
+  resolved.
+- `func_15077190`, `func_15077E9C` (`game_A28B0.c`): both build a
+  16-bit value out of two `u8` globals (`(D_800D1890 << 8) |
+  D_800D1891`-shaped expressions) into an `s32` local, but target
+  masks the combined value with `andi 0xffff` before using it.
+  Changed both locals to `u16`. Both fully resolved.
+
+**Flagged, not fixed — likely another wide-blast-radius case** in the
+same family as `func_15144B68` from last round:
+`func_1506C460` (called from `func_15073DA4` and its siblings
+`func_15073E2C`/`func_15073EA4`/`func_15073F1C`, all showing `+12`
+residuals in a chain). Direct `objdump` comparison at `func_15073DA4`
+shows target passing its first two arguments
+(`gCurrentObject->unk40`, a genuine `f32` field, and a `150.0f`
+literal) via `$f12`/`$f14` with **zero transformation** — the same
+"looks genuinely prototyped" signature as `func_15144B68`. But
+unlike that case, one *other* caller
+(`src/game/game_1048D0.c:181`) already uses the bitcast pattern
+successfully for the same two argument positions at a different call
+site — meaning the picture across `func_1506C460`'s callers may be
+mixed (some sites correctly bitcast, this one apparently needs a
+different treatment, or there's a real prototype that only some sites
+were fixed against). Left this whole chain untouched rather than
+guess; needs the same dedicated-session treatment as `func_15144B68`
+(check `objdump` at each of its several call sites before touching
+anything).
+
+Also spotted several structurally-identical `s32 tmp = (D_800D1890 <<
+8) | D_800D1891`-shaped locals elsewhere in `game_A28B0.c` (lines
+366, 797, 808, 1203) that *look* like they'd need the same `u16` fix
+— but none of them currently appear in `find_drift.py`'s output,
+meaning they're either already correct as-is or their drift is
+currently masked by an upstream misattribution. Deliberately left
+untouched rather than blindly batch-applying the same fix without
+per-site verification, per the standing "never assume one technique
+applies uniformly" discipline (the `func_150489B0` false-positive
+from several rounds back is the concrete precedent for why this
+matters).
+
+Cluster down to **69 entries** in the verifiable
+`0x15000000-0x16000000` range (from 73 at the start of this round,
+144 when the segment investigation began).
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Continuation point**: two wide-blast-radius cases now flagged for a
+dedicated future session — `func_15144B68` (20+ callers) and
+`func_1506C460` (at least 3 callers with possibly-mixed correct/
+incorrect existing fixes). Both need per-call-site `objdump`
+verification before any prototype or bitcast change, not a quick
+single-site fix. Otherwise, a fresh `find_drift.py` listing is needed
+to find what's left after this round's fixes — the previously-known
+cluster has now been almost entirely triaged into: fixed, accepted
+IDO-scheduling residuals, `SUBALIGN` object-boundary padding, or one
+of the two flagged wide-blast-radius cases above.
