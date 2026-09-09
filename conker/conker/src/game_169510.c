@@ -243,7 +243,7 @@ s32 func_1513D594(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, s16 ar
         arg1 = &D_800A4AA0;
     }
     temp_v0 = func_1513D2F0(arg0, arg1, arg2, arg3, arg4, 0xC, arg5, argB, argC, argE + 0x18, argF, arg10);
-    if ((temp_v0 != 0) && (func_1513D6FC(&temp_v0->unk110, arg6, arg7, arg8, arg9, argA, argD) == 0)) {
+    if ((temp_v0 != 0) && (func_1513D6FC(&temp_v0->unk110, arg6, *(s32 *) &arg7, *(s32 *) &arg8, arg9, argA, argD) == 0)) {
         func_1516972C(temp_v0);
         return 0;
     }
