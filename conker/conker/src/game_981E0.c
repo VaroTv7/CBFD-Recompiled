@@ -1151,7 +1151,7 @@ void func_150714AC(s32 arg0) {
 }
 
 void func_150714E8(s32 arg0) {
-    func_151D5714(gCurrentObject, &D_800A2148, &D_800A2154, D_80088BB0, 1.0f, 0xFF, 1);
+    func_151D5714(gCurrentObject, &D_800A2148, &D_800A2154, D_80088BB0, 0x3F800000, 0xFF, 1);
 }
 
 void func_15071544(s32 arg0) {
