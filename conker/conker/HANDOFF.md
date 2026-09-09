@@ -6096,3 +6096,81 @@ continue past `func_15149550`, `func_1516979C`/`func_15169900` (in
 `game_1944C0.c`, not yet individually diagnosed), and the
 `func_151DA08C`/`func_151DBCBC`/`func_151DC6A0` region toward the
 `func_16000000`+ tail of the segment.
+
+## Session log — finishing the src/game/done/ sweep, more wrapper-family fixes (2026-09-08, later still)
+
+Finished the `src/game/done/` sweep flagged last round. Wrote a small
+script cross-referencing every `find_drift.py` change-point's
+*preceding* map symbol (the usual misattribution target) against
+function names defined in `src/game/done/*.c`. Found 2 hits:
+
+- **`func_150F51E8`** (`game_122650.c`): a computed expression
+  `(random_u32() & 0x3F) + 0x20` passed to K&R-relaxed
+  `func_10010F30` was unmasked; target masks it with `andi 0xff`.
+  Added an explicit `(u8)` cast. Fully resolved.
+- **`func_15149514`** (`game_1765E0.c`): `arg1` forwarded to
+  `func_15169850` needed `u8` (target: `andi 0xff`). Fixed, though
+  IDO chose a different (store+reload vs in-register mask)
+  instruction sequence than target for the same semantic type, so a
+  small residual remains at the following object-boundary — likely
+  mostly `SUBALIGN` padding, not further chased.
+
+Both confirm the `done/` label doesn't guarantee byte-perfect status;
+worth remembering for any future "is this file already finished"
+assumption in this codebase.
+
+Continued past `func_15149550` into fresh territory:
+
+- **`func_151D9FC0`** (`game_2062D0.c`): two computed `f32`
+  expressions (`arg1 * 0.5f`, `arg1 * D_800AB46C`) forwarded to
+  unprototyped `func_151DBCBC`/`func_151DA08C` were K&R
+  double-promoted. Materialized each into a temp and bitcast;
+  also replaced the `1.0099999904632568f` literal with its hex bit
+  pattern (`0x3F8147AE`). Reduced the residual from `+44` to `+12` —
+  a genuine remaining gap (target's frame is 24 bytes smaller than
+  ours, `-72` vs `-48`, suggesting deeper stack-layout differences
+  from how the temps are handled) that would need more investigation
+  to fully close; left as a partial win rather than forcing it.
+- **`func_1513D4B8`/`func_1513D524`** (`game_169510.c`): another
+  `func_1513C350`-style wrapper-family pair forwarding into
+  `func_1513D2F0`. Direct `objdump` comparison showed `andi 0xff`
+  masking on most forwarded arguments (`u8`) with two staying
+  full-word (`s32`). `func_1513D4B8` fully resolved; `func_1513D524`
+  improved from `-24` to `-8`.
+
+**New failure mode encountered and fixed**: promoting
+`func_1513D524`'s `functions.h` declaration to strict (required to
+avoid the redeclaration-corruption bug, per last round's lesson)
+surfaced 2 **pre-existing typo bugs** in `game/game_108320.c`: two
+call sites cast integer literals to `(s8 *)` — a *pointer* cast —
+where a plain integer was intended (`(s8 *)0x3F800000` where `arg0`
+is `s32`, `(s8 *)0xA` where `arg1` is now `u8`). Under the old
+K&R-relaxed declaration this silently "worked" (no type checking), but
+once the prototype went strict, the compiler correctly rejected these
+as real type errors ("qualified an rvalue... change value" —
+interestingly, this specific diagnostic did *not* get garbled into the
+`cfe: l Error` corruption pattern, so it was caught immediately without
+needing the mtime-comparison workaround from last round). Fixed by
+removing the erroneous pointer casts — the underlying literal values
+are bit-for-bit unchanged, so this is purely a type-checking fix, not
+a behavior change.
+
+Cluster steady at **86 entries** this round (some fixes fully resolved
+their target while shifting what the *next* misattributed entry looks
+like, so the raw count doesn't capture the full progress — same
+caveat noted in multiple earlier rounds). Two functions fully closed
+(`func_150F51E8`, `func_1513D4B8`) plus two more meaningfully reduced.
+
+Rebuilt clean after every fix (0 `cfe: Error` *and* 0 bare non-warning
+`cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16010000` throughout.
+
+**Continuation point**: `func_151D9FC0`'s remaining `+12` (stack-frame
+size difference, `-72` vs target's `-48` — worth a closer look at
+whether the two temp variables can be restructured to avoid the extra
+spill space), `func_1513D524`'s remaining `-8`, then continue past
+`func_1509B5AC`/`func_1509B764`/`func_1509C440`/`func_1509DDFC`/
+`func_1509DF20` (a run of `-8`/`-12` entries not yet individually
+diagnosed), the `func_15105548`/`func_1510558C`/`func_151058B4`/
+`func_1512623C` cluster, and toward the `func_16000000`+ tail of the
+segment (the `.debugger` section boundary).
