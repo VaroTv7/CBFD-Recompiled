@@ -6887,3 +6887,82 @@ this HANDOFF log is hiding a real bug — the triage script used this
 round (cross-referencing `find_drift.py` against function-body text
 for known-accepted-pattern calls) is a good starting point to rerun
 and extend if the remaining count changes.
+
+## Session log — tanf resolved: the "out of scope" trig task was a false alarm (2026-09-09)
+
+Investigated the last remaining named open item — implementing real
+`sinf`/`cosf` so `tanf` could be properly implemented — before
+accepting it as genuinely out of scope for this investigation. That
+turned out to be the right call: **the premise was wrong.**
+
+`sinf` and `cosf` are not missing. They exist as real, linked,
+callable functions in this exact segment
+(`src/libultra/gu/sinf.c`/`cosf.c`, symbols literally named `sinf`
+and `cosf` in the map) — they're simply still raw `GLOBAL_ASM` blocks,
+like hundreds of other not-yet-C-matched functions throughout this
+whole investigation. Raw-asm status was never a barrier to *calling*
+them; it only means their own C source isn't reconstructed yet (a
+separate, unrelated task). `tanf`'s stub never needed us to derive a
+trig algorithm from scratch — it just needed to call the sinf/cosf
+that were already sitting right there. Checking `include/libc/math.h`
+and `include/2.0L/PR/gu.h` confirmed both already have full, correct
+prototypes (`float sinf(float)`/`float cosf(float)`) visible via the
+existing include chain, so no promotion or declaration work was
+needed either.
+
+Also confirmed via `objdump` that `tanf` is **completely dead code** —
+zero call sites anywhere in the entire built binary (searched the
+whole ELF, not just the `.game` segment). This is presumably *why*
+the empty-body stub was never caught by any functional/gameplay
+testing; it only ever showed up as a byte-drift source in this
+static-analysis-driven investigation.
+
+Implemented `return sinf(arg0) / cosf(arg0);`. Rebuilt clean, then did
+a full direct `objdump` comparison against target (recalibrating the
+file offset via prologue-byte matching, since this deep into the
+segment the fixed-formula prediction was off by 48 bytes — the
+standing caveat about needing recalibration far from a known-good
+anchor, confirmed again) — **the result was byte-for-byte identical**,
+every single instruction matching exactly (the only difference: the
+`jal` targets for `sinf`/`cosf` point to different absolute addresses
+in target vs. ours, purely reflecting this segment's pre-existing,
+separately-tracked accumulated drift elsewhere — nothing specific to
+`tanf`'s own correctness).
+
+This fully resolved the `func_1504A620`-adjacent raw-asm-chain drift
+that had been flagged across *several* earlier rounds (as far back as
+the very first `.game`-segment investigation session) as a "possible
+`.game`-segment formula calibration artifact" — it was never a
+formula problem at all; it was this one missing two-line function the
+whole time.
+
+Cluster down to **62 entries** (from 63 at the start of this round;
+144 when the whole `0x15000000+` segment investigation began — well
+under half of where it started). Every concrete, specifically-named
+open item from every prior round's HANDOFF log is now closed.
+
+Rebuilt clean after every change (0 `cfe: Error` *and* 0 bare non-
+warning `cfe`, 0 `Signal 11`, 0 CRLF regressions), verified via
+`find_drift.py 0x15000000 0x16000000` throughout.
+
+**Lesson for future rounds, worth internalizing**: "needs a from-
+scratch reimplementation, out of scope" is a conclusion worth
+re-checking before accepting, not just assuming from a stub's
+appearance. An empty function body doesn't necessarily mean the
+*real* implementation is unavailable — check whether the pieces it
+would need to call already exist elsewhere in the codebase (even as
+unmatched raw asm, which is perfectly callable) before concluding a
+task is bigger than it looks.
+
+**Continuation point**: no concrete named items remain open. The
+cluster (62 entries) is fully triaged into: the `func_1505E650`/
+`func_15144B68` accepted-residual families, `SUBALIGN` object-boundary
+padding, and a handful of documented partial-fixes already at their
+accepted minimums. A future round should do a fresh, careful sweep of
+`find_drift.py 0x15000000 0x16000000`'s current output to check
+whether anything has shifted or whether any previously-dismissed entry
+deserves a second look now that several upstream fixes have landed
+since it was last checked (several entries' cumulative offsets have
+moved this session; a residual dismissed as "already accepted" several
+rounds ago should be re-verified against target at its *current*
+position before being dismissed again, not assumed unchanged).
