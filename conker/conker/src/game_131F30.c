@@ -11,7 +11,7 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_151050B0.s")
 
-void func_1510550C(struct102 *arg0, s32 arg1, s32 arg2) {
+void func_1510550C(struct102 *arg0, s32 arg1, u8 arg2) {
     if (arg2 == 0x4B) {
         func_1516972C(arg0);
     }

@@ -722,7 +722,7 @@ void func_150FCA00();
 void func_15100330();
 void func_15103800();
 void func_15103828();
-void func_1510550C();
+void func_1510550C(struct102 *arg0, s32 arg1, u8 arg2);
 void func_15105548();
 void func_15105848();
 void func_1511FC20();
