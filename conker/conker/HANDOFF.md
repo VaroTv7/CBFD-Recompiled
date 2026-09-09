@@ -6966,3 +6966,64 @@ since it was last checked (several entries' cumulative offsets have
 moved this session; a residual dismissed as "already accepted" several
 rounds ago should be re-verified against target at its *current*
 position before being dismissed again, not assumed unchanged).
+
+## Session log — cross-version sanity check; natural stopping point reached (2026-09-09)
+
+With the cluster fully triaged and no concrete named items open, did a
+full cross-version verification before considering this investigation
+paused: rebuilt all 4 ROM versions (`VERSION=us`, `eu`, `ects`,
+`debug`) from clean, confirming 0 `cfe: Error`, 0 bare non-warning
+`cfe`, and 0 `Signal 11` on every one (only the expected harmless
+`.ok` sha1sum-mismatch `EXIT:2`, since none of the 4 versions are
+byte-perfect yet). This re-confirms the foundational standing goal
+from the very start of this whole multi-session investigation
+("keep `make -j$(nproc) -k` building successfully for all 4 ROM
+versions") still holds after this session's full run of `.game`-
+segment fixes. Rebuilt `VERSION=us` afterward to restore the normal
+working build state; `find_drift.py 0x15000000 0x16000000` still
+reports **62 entries**, unchanged.
+
+**Where this leaves the `0x15000000+` `.game`-segment investigation**:
+started this specific investigation at 143 entries (flagged as a
+"newly-discovered drift cluster" at the very beginning), currently at
+62 — a 57% reduction achieved across many rounds, with every
+concretely-actionable lead now either fixed or triaged into a
+confirmed-unfixable-with-current-tools category:
+
+- The `func_1505E650`-with-`0.0f` and `func_15144B68`-family accepted
+  residuals (large chains of `-4`/`-8` gaps, confirmed via direct
+  `objdump` comparison to be a "target routes a literal `0.0f` through
+  a float register where our C source's plain int-zero doesn't"
+  quirk that no C-level literal choice reproduces).
+- `SUBALIGN` object-file-boundary padding (confirmed at several
+  distinct file boundaries this whole investigation — the function's
+  own body matches target exactly, only trailing alignment padding
+  differs).
+- A handful of individually-investigated partial fixes already at
+  their accepted minimums (`func_15048B10`'s `negRoll`/`negPitch`/
+  `negYaw` case, the `func_1513Cxxx`/`func_1513Dxxx` wrapper family's
+  small remaining re-mask residuals, `func_1506BB64`'s instruction-
+  selection-choice gap).
+
+No further concrete leads remain in this range without either (a)
+new information (e.g., a reference for the historical IDO libm source
+that produced `sinf`/`cosf`'s exact bytes, which would only matter if
+those functions' own C-matching becomes a priority — not currently
+blocking anything, since they're already correctly *linked and
+callable* as raw asm), or (b) extending scope beyond
+`0x15000000-0x16000000` into other segments, which would be a new
+investigation rather than a continuation of this one.
+
+**Suggested next steps for a future session**, roughly in order of
+likely value: (1) start a fresh drift investigation in a different
+segment/range if one hasn't been swept yet — the `.game` segment
+covered here was one flagged region among what was likely a larger
+set from the original decomp; (2) if the `.game` segment specifically
+remains the priority, decompiling more of its still-raw-asm functions
+(there are many `#pragma GLOBAL_ASM` blocks throughout this whole
+investigation's touched files) would surface new C source that could
+carry its own fresh bugs, the way `tanf` did; (3) a systematic pass
+through `src/game/done/*.c` beyond the 2 files already found to have
+real bugs this session (`game_122650.c`, `game_1765E0.c`) — the
+"done" label has now been shown twice to be unreliable, and the
+directory has 87 files total, most never individually checked.
