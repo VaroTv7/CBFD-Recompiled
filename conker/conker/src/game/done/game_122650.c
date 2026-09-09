@@ -27,7 +27,7 @@ void func_150F51E8(s32 arg0) {
             }
         } else {
             D_80088B44 = ((random_u32() & 0x3F) + 0xC0);
-            func_10010F30(15, 18000, ((random_u32() & 0x3F) + 0x20), 0, 0);
+            func_10010F30(15, 18000, (u8) ((random_u32() & 0x3F) + 0x20), 0, 0);
         }
     }
 }
