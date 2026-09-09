@@ -565,6 +565,8 @@ void func_15126138(struct108 *arg0) {
     struct127 *temp_v0_2;
     struct108 *phi_a0;
 
+    func_151247C0(arg0);
+
     temp_v0_2 = arg0->unk3D0;
 
     if (((temp_v0_2->x_position != arg0->unk2B0) ||
