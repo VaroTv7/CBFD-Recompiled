@@ -1110,7 +1110,7 @@ void func_15079390(void) {
     u16 tmp0 = D_800D1890;
     u8 tmp1 = D_800D1891;
     u8 tmp2 = D_800D1892;
-    func_1514D3B0(gCurrentObject, tmp0, tmp1, tmp2);
+    func_1514D3B0(gCurrentObject, (s16) tmp0, tmp1, tmp2);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_150793D8.s")
