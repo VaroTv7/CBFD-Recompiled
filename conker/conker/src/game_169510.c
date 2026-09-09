@@ -532,7 +532,13 @@ void func_1513F680(struct171 *arg0, u8 arg1, u8 arg2, u8 arg3, u8 arg4) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513F728.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513FA2C.s")
+void func_1513FA2C(void *arg0, s16 arg1) {
+    f32 sp18[2];
+
+    sp18[0] = 1.0f;
+    sp18[1] = 1.0f;
+    func_1513FAB4(arg0, 0, sp18, arg1);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513FA70.s")
 
