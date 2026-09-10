@@ -7325,3 +7325,32 @@ Caveats/extra findings from this round:
   triple-reload in `func_1516434C`, and the `arg0->unk154`-derived
   pointer reloads in `func_1514143C`). Don't try to cache those in a
   local either; matching means NOT caching them, same as before.
+
+**Applied to `func_15141564` (the original discovery case) — got extremely
+close but NOT byte-perfect, left as documented near-miss.** Hoisting `f32
+*p = &arg0->unk170;` to the top and using `p[0..3]` throughout (instead of
+`arg0->unk170` etc. directly, and instead of assigning the pointer only
+after the first statement like the old draft did) fixed the frame-size
+gap the old near-miss comment complained about (was 8 bytes short, now
+matches target's `-0x28` exactly) and got every individual instruction's
+*content* right. It also turned out both additions in this function need
+to be written `mult_term + plain_term` (not `plain_term + mult_term`) to
+get the target's exact float-register operand order in the `add.s`
+encoding — a second, independent lesson: **source-level operand order in
+a `+` expression affects which register ends up as the emitted add's
+first operand**, so when an add's registers are swapped vs. target, try
+flipping the C-level operand order before assuming it's unfixable.
+Despite matching everywhere else, one thing never converged: target
+spills `v1` (the hoisted pointer) at `sp+0x18` around the
+`func_15144B68` call, but every source variant that achieves the correct
+`-0x28` frame size spills it at `sp+0x1C` instead (and every variant that
+gets `0x18` regresses to a wrong smaller frame). Tried 8+ variants
+(explicit temps for the multiply and/or the `sinf` result, separate vs.
+combined pointer-assignment statement, commuting the multiply's own
+operands independent of the add's) without decoupling the two. Left as
+`GLOBAL_ASM` with the best candidate (2 words off out of 28) in the
+comment for whoever picks this up next — worth trying if you can get
+`mips_to_c` itself to suggest a source structure, since this is likely a
+real difference in the original developer's source shape (e.g. an extra
+now-invisible local) rather than something fixable by permuting the
+already-identified expressions further.

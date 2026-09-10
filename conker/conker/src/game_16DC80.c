@@ -44,18 +44,29 @@ void func_151411C4(struct210 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_15141478.s")
 
+// NON-MATCHING (extremely close - 2 words off out of 28). Applying the
+// func_1513B0B8 intermediate-pointer fix here (hoist `f32 *p =
+// &arg0->unk170;` to the top, use p[0..3] consistently instead of direct
+// arg0-> field access) plus reordering both additions as `mult_term +
+// plain_term` (matching target's operand register order) gets the frame
+// size (-0x28), EVERY individual instruction's content, and instruction
+// order exactly right - except the `v1` spill/reload around the
+// func_15144B68 call lands at sp+0x1C here vs target's sp+0x18. Tried 8+
+// source variants (operand order in the add, operand order in the
+// multiply, explicit named temps for the mult and/or sinf results,
+// separate vs combined pointer-assignment statement); every variant that
+// achieves the correct -0x28 frame size also lands the spill at 0x1C, and
+// every variant that gets 0x18 regresses to a wrong (-0x20) frame size -
+// the two seem coupled through some IDO register-allocation heuristic
+// this session couldn't isolate further. Best candidate kept below for
+// reference; not activated since it isn't byte-perfect.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_15141564.s")
-// NON-MATCHING: semantically correct (mips_to_c reconstruction, hand-typed), but
-// IDO -O2 always rematerializes these offsets directly off arg0 instead of
-// keeping a live base-pointer register for arg0->unk170, so the compiled
-// frame is 8 bytes smaller than target's and several float registers differ.
 // s32 func_15141564(struct210 *arg0) {
-//     f32 *sp18;
+//     f32 *p = &arg0->unk170;
 //
-//     arg0->unk158 = arg0->unk170 + arg0->unk174 * sinf(arg0->unk178);
-//     sp18 = &arg0->unk170;
-//     sp18[2] = sp18[2] + sp18[3] * D_800BE9A4;
-//     sp18[2] = func_15144B68(sp18[2]);
+//     arg0->unk158 = p[1] * sinf(arg0->unk178) + p[0];
+//     p[2] = p[3] * D_800BE9A4 + p[2];
+//     p[2] = func_15144B68(p[2]);
 //     return 1;
 // }
 
