@@ -1212,11 +1212,9 @@ void func_15079A28(void) {
     gCurrentObject->unk253 = D_800D1891;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15079A58.s")
-// void func_15079A58(void) {
-//     s16 tmp = (D_800D1890 << 8) + D_800D1891;
-//     D_800D2110[gCurrentObject->unk13F] = tmp;
-// }
+void func_15079A58(void) {
+    D_800D2110[gCurrentObject->unk13F] = (D_800D1890 << 8) + D_800D1891;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15079A98.s")
 // void func_15079A98(s32 arg0) {
