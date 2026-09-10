@@ -121,7 +121,46 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 //     }
 //     return -D_8009A220[idx];
 // }
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. If arg0 is a real
+// id (!=0xFF) and arg1 already matches it (non-null, alive, same
+// unique_id), or arg0==0xFF (use arg1 as-is), returns arg1 when it's
+// "ready" (unk1D4 set), else 0. Otherwise falls back to looking the
+// object up fresh via func_15083E90(arg0). Logic and branch shapes
+// (including the guard-chain "||"-to-search jumps) match target, but
+// target hoists a v0=a0 alias unconditionally in the outer bne's delay
+// slot and keeps arg0's masked value in $v0 throughout, while this
+// reconstruction gets it allocated into $a2 instead - a pervasive
+// register-choice difference (not just one instruction) that cascades
+// through most of the function; didn't find a source form that steers
+// IDO toward $v0 specifically.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142444.s")
+// struct127 *func_15142444(u8 arg0, struct127 *arg1) {
+//     struct127 *v0;
+//
+//     if (arg0 == 0xFF) {
+//         if (arg1->unk1D4 == 0) {
+//             return 0;
+//         }
+//         return arg1;
+//     }
+//     if (arg1 == 0 || arg1->interaction_state == 0 || arg0 != arg1->unique_id) {
+//         goto search;
+//     }
+//     if (arg1->unk1D4 == 0) {
+//         return 0;
+//     }
+//     return arg1;
+//
+// search:
+//     v0 = func_15083E90(arg0);
+//     if (v0 == 0) {
+//         return 0;
+//     }
+//     if (v0->unk1D4 == 0) {
+//         return 0;
+//     }
+//     return v0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151424F4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142600.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142838.s")

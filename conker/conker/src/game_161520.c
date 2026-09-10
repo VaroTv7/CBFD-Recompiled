@@ -175,7 +175,36 @@ void func_1513555C(void *arg0, void *arg1, u8 arg2) {
     }
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Sibling of
+// func_1513555C above (same id/unique_id match guard on *arg1 vs arg0),
+// but dispatches on arg2==0 (call func_1516972C) vs arg2==3 (clear bit
+// 0 of arg0->unk10) separately instead of merging both trigger values
+// into one action. Written as a switch (an if/else chain merges the two
+// cases into an inverted single test that doesn't match), which gets
+// the branch structure and almost the whole function right except one
+// spot: target has a genuinely duplicated `sw` for the arg2==3 write
+// (the `and` that computes the new value is shared/computed once, but
+// the store appears twice, once per incoming control-flow edge into
+// that point) - a merged `||` condition produces the store once (39/40
+// instructions - missing the duplicate), while splitting it into an
+// explicit if/else duplicates BOTH the `and` and the `sw` (44/40
+// instructions - too much). Couldn't find a source form that
+// duplicates only the store.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151355B8.s")
+// void func_151355B8(void *arg0, void *arg1, u8 arg2) {
+//     switch (arg2) {
+//         case 0:
+//             if (*(s32 *) arg1 == *(s32 *) ((char *) arg0 + 0x1C) || *((u8 *) arg1 + 4) == *((u8 *) arg0 + 0x18)) {
+//                 func_1516972C((struct102 *) arg0);
+//             }
+//             break;
+//         case 3:
+//             if (*(s32 *) arg1 == *(s32 *) ((char *) arg0 + 0x1C) || *((u8 *) arg1 + 4) == *((u8 *) arg0 + 0x18)) {
+//                 *(s32 *) ((char *) arg0 + 0x10) &= ~1;
+//             }
+//             break;
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15135658.s")
 
