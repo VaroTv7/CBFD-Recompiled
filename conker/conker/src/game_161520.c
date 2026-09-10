@@ -90,7 +90,8 @@ void func_1513477C(struct102 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151347CC.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151348F0.s")
+void func_151348F0(f32 arg0, f32 arg1, s32 arg2, s32 arg3) {
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134908.s")
 
@@ -108,7 +109,8 @@ void func_1513477C(struct102 *arg0) {
 //     }
 // }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134CD4.s")
+void func_15134CD4(f32 arg0, f32 arg1, s32 arg2, s32 arg3) {
+}
 
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Struct unidentified
 // here - raw offset casts. Integrates two velocity fields into two
@@ -206,7 +208,10 @@ void func_1513555C(void *arg0, void *arg1, u8 arg2) {
 //     }
 // }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15135658.s")
+s32 func_15135658(void *arg0) {
+    *(f32 *) ((char *) arg0 + 0x74) = 1.0f;
+    return 1;
+}
 
 f32 func_15135670(s32 arg0) {
     // "power", "../Effects/Blood/blood.c"
