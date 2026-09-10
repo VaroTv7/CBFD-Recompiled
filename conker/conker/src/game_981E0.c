@@ -798,19 +798,28 @@ void func_1506EE38(void) {
     gCurrentObject->unk25C &= ~D_800D1580;
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Dispatches to
+// func_15188810(gCurrentObject, D_800D1580&0xFFFF, D_800D1580>>16) if
+// D_800D1580 is nonzero, else func_15188A9C(gCurrentObject,
+// D_800D1580&0xFFFF) - the prior draft's "gCurrentObject.unk0" /
+// "gCurrentObject.unk154C" were m2c artifacts (gCurrentObject's own
+// address, 0x800D154C, misread as a fake struct field on it), fixed to
+// plain gCurrentObject. Content otherwise matches, but target's
+// `v0 & 0xFFFF` (computed once, in the outer beqz's delay slot, since
+// it's needed on both the taken and fallthrough paths) gets reused
+// as-is for the func_15188810 call in target, while this reconstruction
+// recomputes it a second time right before that call regardless of
+// whether it's written as a shared local or inlined at each use site -
+// IDO isn't reusing the delay-slot value across to the call here.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506EE60.s")
-// NON-MATCHING: same issue as earlier
 // void func_1506EE60(void) {
-//     s32 temp_a1;
-//     s32 temp_v0;
+//     s32 temp_v0 = D_800D1580;
 //
-//     temp_v0 = D_800D1580;
-//     temp_a1 = temp_v0 & 0xFFFF;
 //     if (temp_v0 != 0) {
-//         func_15188810(gCurrentObject.unk0, temp_a1, temp_v0 >> 0x10);
+//         func_15188810(gCurrentObject, temp_v0 & 0xFFFF, temp_v0 >> 0x10);
 //         return;
 //     }
-//     func_15188A9C(gCurrentObject.unk154C, temp_a1);
+//     func_15188A9C(gCurrentObject, temp_v0 & 0xFFFF);
 // }
 
 void func_1506EEAC(void) {
@@ -1229,22 +1238,31 @@ void func_15071764(s32 arg0) {
     }
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Fetches a
+// struct127 by id 0x12, and if found, passes its pointer plus its
+// unique_id byte (bundled into a local 2-field struct so the compiler
+// doesn't eliminate the byte write as dead - both fields' addresses
+// need to be exposed) to two calls. Content, frame size, and struct
+// layout all match target exactly except one instruction: target saves
+// the tmp address to a second stack slot before the first call and
+// reloads it for the second, while IDO here (correctly, in isolation)
+// just recomputes the cheap `addiu` a second time instead - couldn't
+// find a source form that forces the more expensive save/reload IDO
+// apparently used for the real target binary.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150717E0.s")
 // void func_150717E0(s32 arg0) {
-//     u8 sp24;
-//     void *sp20;
-//     void **sp18;
-//     void **temp_a0;
-//     void *temp_v0;
+//     struct {
+//         struct127 *ptr;
+//         u8 id;
+//     } tmp;
+//     struct127 *temp_v0;
 //
 //     temp_v0 = func_15083E90(0x12);
-//     temp_a0 = &sp20;
 //     if (temp_v0 != 0) {
-//         sp20 = temp_v0;
-//         sp18 = temp_a0;
-//         sp24 = temp_v0->unk3B;
-//         func_15131D4C(temp_a0, 0x43);
-//         func_151494E0(temp_a0, 0x43);
+//         tmp.ptr = temp_v0;
+//         tmp.id = temp_v0->unique_id;
+//         func_15131D4C(&tmp, 0x43);
+//         func_151494E0(&tmp, 0x43);
 //     }
 // }
 

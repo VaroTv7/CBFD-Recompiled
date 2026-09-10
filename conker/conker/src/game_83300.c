@@ -968,7 +968,39 @@ f32 func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DADC.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DDA8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DF10.s")
+// Clears arg0->unk84.uh (a "not yet initialized" sentinel), and if
+// arg0->unk2D0 is set, zeroes a 0x3A0-byte block within it plus a
+// couple of extra s32 fields, and bumps two counters from a per-id
+// table (D_800C4ED0[arg0->id]).
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Clears
+// arg0->unk84.uh (a "not yet initialized" sentinel), and if
+// arg0->unk2D0 is set, zeroes a 0x3A0-byte block within it plus a
+// couple of extra s32 fields, and bumps two counters from a per-id
+// table (D_800C4ED0[arg0->id]). Content is correct, but target reaches
+// its early-return path via a branch-likely (beql) with the ra-reload
+// in the (conditionally-executed) delay slot, while every source form
+// tried here (if-wrapped body, explicit early return) compiles to a
+// plain beqz instead - one word short, cascading a full-body
+// instruction-order shift from there on. Same open "why does IDO pick
+// beql here" category as func_15134CEC/func_15142FBC above.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505DFDC.s")
+// void func_1505DFDC(struct127 *arg0) {
+//     struct197 *v0 = arg0->unk2D0;
+//     u8 t7;
+//
+//     arg0->unk84.uh = 0xFFFF;
+//     if (v0 == 0) {
+//         return;
+//     }
+//     t7 = arg0->id;
+//     bzero((char *) v0 + 0x40, 0x3A0);
+//     *(s32 *) ((char *) v0 + 0x28) = 0;
+//     *(u8 *) ((char *) v0 + 0x41) = D_800C4ED0[t7] + 1;
+//     *(s32 *) ((char *) v0 + 0x30) = 0;
+//     *(s32 *) ((char *) v0 + 0x34) = 0;
+//     *(u8 *) ((char *) v0 + 0x211) = D_800C4ED0[t7] + 1;
+// }
+
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Saves several
 // fields into a "+2" shifted shadow copy (unk4->unk6, unk8->unkC, etc,
 // a save-previous-frame pattern), then bcopy's a 0x1D0-byte block from

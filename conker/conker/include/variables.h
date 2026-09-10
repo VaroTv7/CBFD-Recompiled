@@ -941,6 +941,7 @@ extern struct222* D_800C3FC0;
 extern s32 D_800C3FC4;
 extern s64 D_800C3A60[];
 extern u8  D_800C4000;
+extern u16 D_800C4ED0[];
 
 extern s16 D_800C5A90[187]; // 374 bytes, 187 shorts
 extern s32 D_800C5C08[187];
