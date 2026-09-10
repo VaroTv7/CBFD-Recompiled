@@ -7512,3 +7512,72 @@ already-documented pointer-hoisting/frame-coupling/branch-likely ones):
   certainly didn't call `fabsf()` the normal way - what idiom actually
   produces a bare `abs.s` here is still unknown; an explicit
   `if(x<0)x=-x;` branch was tried and made it worse.
+
+## `beql`/`bnel` guard-branch mystery: cracked for the "shared-tail early
+## return" case (`func_1505DFDC`, now byte-perfect)
+
+Root cause was NOT the branch itself - it's plain statement-order and
+scheduling-position bugs in the near-miss draft that happened to also
+flip IDO's branch-likely choice as a side effect. Isolated via a
+scratch `src/ztest_*.c` harness compiled directly with
+`../ido/ido5.3_recomp/cc` (bypassing `make`) to iterate ~10 variants in
+minutes instead of full rebuilds. Three independent fixes were needed,
+found by diffing target bytes instruction-by-instruction against each
+compiled variant:
+
+1. **A store that target places *before* a call must be written before
+   the call in source, not after.** The draft had
+   `*(s32*)(v0+0x28) = 0;` positioned textually after the `bzero()`
+   call; target's `sw zero,40(v0)` sits immediately before the `jal`.
+   Moving it before the call was the fix that got IDO to choose
+   `beqzl` (branch-likely) with the epilogue's `lw ra,20(sp)` in the
+   guard branch's delay slot in the first place - before this fix every
+   variant compiled to plain `beqz` with something else (e.g.
+   `addiu a0,v0,64`, a value actually reused by the fallthrough path)
+   filling the delay slot instead. **General rule**: `beql`/`bnel`
+   appears here specifically when the delay-slot candidate the
+   scheduler picks (the ra-reload) is *only* useful on the taken path
+   and would be pure dead work if unconditionally executed on the
+   fallthrough path - nullifying it via branch-likely avoids that one
+   redundant instruction. If a "useful-on-both-paths" value is instead
+   ready to fill the slot, IDO uses plain `beq`/`bne`. Getting the
+   *right* value to be the readiest candidate is a matter of getting
+   surrounding statement order exactly right, not of any special
+   branch-forcing idiom.
+2. **Declaring competing locals in the wrong order can swap their stack
+   spill-slot assignment**, which is a pure cosmetic/no-op change
+   semantically but changes which spill/reload gets scheduled where.
+   Swapping `s32 t7;` to be declared *before* `void *v0 = ...;` (instead
+   of after) flipped the spill slots from `t7@27/v0@28` (wrong,
+   producing an `sb`/byte-store for t7) to `t7@28/v0@24` (right,
+   producing target's `sw`/word-store) - worth trying as a first move
+   whenever two locals both get spilled around the same call and the
+   spill widths/offsets don't match target.
+3. **When target re-reads an already-loaded value a second time (an
+   intentional, non-CSE'd redundant load) to hide a load-delay slot,
+   independent trailing statements get scheduled into whichever
+   load-delay gap is available, and which gap depends on source
+   statement order even though the writes don't depend on each other.**
+   Target reads `D_800C4ED0[t7]` twice (once for `v0->unk41`, again for
+   `v0->unk211`), and fills the *second* read's 1-cycle load-delay with
+   the two unrelated `v0->unk30 = 0; v0->unk34 = 0;` zero-stores, not
+   the first. Source order needed to be
+   `unk41 = ...; unk211 = ...; unk30 = 0; unk34 = 0;` (writing both
+   `D_800C4ED0`-dependent fields back-to-back, zero-stores last) even
+   though the more "natural"/original transcription order
+   (`unk41 = ...; unk30 = 0; unk34 = 0; unk211 = ...;`) is functionally
+   identical - it just makes the scheduler fill the *first* read's
+   delay slot with the zero-stores instead, one gap too early.
+
+With all three applied together the function is byte-perfect,
+including the `beqzl` selection, matching stack offsets, and exact
+load-delay-slot filler placement. This is a reusable checklist for the
+other open branch-likely/scheduling near-misses in this category
+(`func_15134CEC`, `func_15142FBC`, `func_1506EE60`, `func_151640C0`,
+`func_150717E0`, `func_15169040`, `func_151695F0`): (a) check every
+statement's position relative to the nearest preceding/following call
+against target byte-for-byte, don't trust the original transcription's
+statement order; (b) try swapping declaration order of any two locals
+that both get spilled around a call; (c) if target re-reads a value
+redundantly, check which of its two read sites' delay-slot gap the
+independent trailing writes land in and reorder source to match.
