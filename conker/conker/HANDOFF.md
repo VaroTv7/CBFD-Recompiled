@@ -7326,6 +7326,52 @@ Caveats/extra findings from this round:
   pointer reloads in `func_1514143C`). Don't try to cache those in a
   local either; matching means NOT caching them, same as before.
 
+## struct108 field-type fix + func_151239CC (near-miss, very close)
+
+While investigating `func_151239CC` (`game_14FF90.c`), found that
+`struct108` had 5 fields wrong: `unk30` (`struct150*`), `unk88`, `unkE0`,
+`unk138` (all `s32`), and `unk1E2` (`s16`) were each declared as lone
+scalars immediately followed by an `0x50`- or `0x28`-byte padding blob.
+In every case the scalar + padding size exactly equals `0x15` (21)
+elements of that field's own type (e.g. `0x30` to `0x84` is `0x54` bytes
+= 21 × 4). `func_151239CC` indexes all of them by the same variable
+(`arg1`) with the exact matching stride, confirming they're really
+`unk30[0x15]`, `unk88[0x15]`, `unkE0[0x15]`, `unk138[0x15]`,
+`unk1E2[0x15]` — parallel per-slot history arrays alongside the
+already-correctly-declared `unk2[0x15]`, `unk1B6[0x15]`, `unk20C[0x15]`.
+Confirmed zero real (non-comment) code anywhere in the codebase depended
+on the old scalar+padding layout before changing it — full rebuild
+across all 4 versions stayed clean.
+
+`func_151239CC(arg0, arg1)` restores the `arg1`'th saved slot from those
+arrays into arg0's "current" fields (`unk0`, `unk2C`, `unk84`, `unkDC`,
+`unk134`, `unk1B4`, `unk1E0`), using `unk20C[arg1]` as an occupied flag
+it clears afterward. Two non-obvious fixes were needed to get close:
+(1) the trailing call is `func_15124B18(arg0)`, not `func_15124B18(v1)`
+(the byte-shifted `arg0+arg1*2` pointer) — `$a0` is never touched before
+the `jal` and nothing after the call reads it, so it must be the actual
+argument; passing the wrong one forces an unwanted `move a2,a0` and
+cascading register reshuffle through the entire function. (2) declaring
+the shifted pointers as `struct108 *` (typed navigation, e.g.
+`v1->unk20C[0]`) makes IDO emit a `beql`/`bnel` (branch-likely) guard
+instead of target's plain `beqz`; switching to raw `void*`/`char*` with
+explicit offset casts (`*(s16*)((char*)v1+0x20C)`) fixes the branch type
+— another instance of the "typed struct nav vs. raw pointer cast changes
+branch-likely selection" issue, worth trying whenever a guard's branch
+type doesn't match.
+
+With both fixed, every one of ~26 instructions matches target exactly —
+except the frame size: every source variant that lands the `v1` register
+spill at the correct `sp+0x1C` also computes an `-0x28` frame (8 bytes
+too big vs. target's `-0x20`); the one variant that gets the frame size
+right (dropping the separate `v0` local and inlining its expression at
+each of its 4 uses) shifts the spill to `sp+0x18` instead. This is the
+same frame-size/spill-slot coupling documented for `func_15141564`
+above, now confirmed in a second, unrelated function — worth treating as
+a recognized IDO quirk category rather than something to keep
+re-discovering per function. Left as `GLOBAL_ASM` with the best candidate
+in the comment.
+
 **Applied to `func_15141564` (the original discovery case) — got extremely
 close but NOT byte-perfect, left as documented near-miss.** Hoisting `f32
 *p = &arg0->unk170;` to the top and using `p[0..3]` throughout (instead of

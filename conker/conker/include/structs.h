@@ -1677,17 +1677,13 @@ struct struct108 {
                 u16 unk0;
                 u16 unk2[0x15];
     /* 0x02C */ s32 unk2C;
-    /* 0x030 */ struct150 *unk30;
-    /* 0x034 */ u8  pad34[0x50];
+    /* 0x030 */ struct150 *unk30[0x15];
     /* 0x084 */ s32 unk84;
-                s32 unk88;
-    /* 0x088 */ u8  pad8C[0x50];
+    /* 0x088 */ s32 unk88[0x15];
     /* 0x0DC */ s32 unkDC;
-                s32 unkE0;
-    /* 0x0E0 */ u8  padE4[0x50];
+    /* 0x0E0 */ s32 unkE0[0x15];
     /* 0x134 */ s32 unk134;
-                s32 unk138;
-    /* 0x138 */ u8  pad13C[0x50];
+    /* 0x138 */ s32 unk138[0x15];
     /* 0x18C */ f32 unk18C;      // used
     /* 0x190 */ f32 unk190;      // used
     /* 0x194 */ f32 unk194;
@@ -1700,8 +1696,7 @@ struct struct108 {
     /* 0x1B4 */ s16 unk1B4;      // used
     /* 0x1B6 */ u16 unk1B6[0x15]; // 0x15 * 2 => 0x1E0
     /* 0x1E0 */ s16 unk1E0;
-    /* 0x1E2 */ s16 unk1E2;
-    /* 0x1E4 */ u8  pad1E4[0x28];
+    /* 0x1E2 */ s16 unk1E2[0x15];
     /* 0x20C */ s16 unk20C[0x15];
     /* 0x236 */ u8  pad236[0x2];
     /* 0x238 */ s32 unk238;

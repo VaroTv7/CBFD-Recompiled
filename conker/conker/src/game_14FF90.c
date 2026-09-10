@@ -333,7 +333,53 @@ void func_15123508(struct108 *arg0) {
 //     return 0;
 // }
 
+// NON-MATCHING (extremely close - 2 words off out of 28, both the
+// prologue/epilogue frame-size adjustment). arg1 selects a saved "slot"
+// within arg0's internal 0x15-element history arrays (unk2/unk30/unk88/
+// unkE0/unk138/unk1B6/unk1E2/unk20C - see the struct108 fix above,
+// discovered from this function) and restores it into the "current"
+// scalar fields; unk20C[arg1] doubles as an occupied flag, cleared after
+// restoring. Getting here required two non-obvious fixes vs. the first
+// attempt: (1) the call at the end is func_15124B18(arg0), NOT
+// func_15124B18(v1) - $a0 is never touched before the jal and nothing
+// after the call uses it, so it must be the call argument; passing v1
+// instead forces an extra `move a2,a0` / register reshuffle throughout
+// the whole function. (2) using struct108* (typed) pointer navigation
+// for v1/v0 instead of raw void*/char* offset casts makes IDO emit a
+// beql/bnel (branch-likely) guard instead of target's plain beqz - same
+// "typed struct nav vs raw pointer cast changes branch-likely selection"
+// lesson as elsewhere in this codebase; switching to raw casts fixes the
+// branch type. With both fixed, EVERY instruction's content and order
+// matches target exactly (including the v1 register choice, the a0/v1
+// register split with no extra moves, and the v1 spill landing at the
+// correct sp+0x1C) except the frame size itself: target is -0x28... no,
+// target is -0x20 (32 bytes) with v1's spill still at 0x1C, but every
+// source variant that gets the spill at the correct 0x1C also computes a
+// frame of -0x28 (8 bytes too big); the one variant that shrinks the
+// frame to the correct -0x20 moves the spill to 0x18 instead - the two
+// seem coupled through the same unidentified IDO heuristic documented
+// for func_15141564 above. Best candidate kept below for reference.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_151239CC.s")
+// s32 func_151239CC(struct108 *arg0, s32 arg1) {
+//     void *v1 = (char *) arg0 + arg1 * 2;
+//     void *v0;
+//
+//     if (*(s16 *) ((char *) v1 + 0x20C) != 0) {
+//         arg0->unk0 = *(u16 *) ((char *) v1 + 0x2);
+//         v0 = (char *) arg0 + arg1 * 4;
+//         arg0->unk2C = *(s32 *) ((char *) v0 + 0x30);
+//         arg0->unkDC = *(s32 *) ((char *) v0 + 0xE0);
+//         arg0->unk84 = *(s32 *) ((char *) v0 + 0x88);
+//         arg0->unk134 = *(s32 *) ((char *) v0 + 0x138);
+//         arg0->unk1B4 = *(s16 *) ((char *) v1 + 0x1B6);
+//         arg0->unk1E0 = *(s16 *) ((char *) v1 + 0x1E2);
+//         func_15124B18(arg0);
+//         *(s16 *) ((char *) v1 + 0x20C) = 0;
+//         return 1;
+//     }
+//     return 0;
+// }
+
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15123A54.s")
 
 void func_15124770(struct108 *arg0, s32 arg1) {
