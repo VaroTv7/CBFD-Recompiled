@@ -667,7 +667,7 @@ s32 func_151332DC(void *arg0) {
     temp_v0 = temp_t3 & 0xFF;
     (*(s32 *)((char *)(arg0) + 0x149)) = temp_t3;
     if (temp_v0 < 0x80) {
-        temp_f14 = (1.0f - (*(s32 *)((char *)(arg0) + 0x14))) * (1.0f - (*(s32 *)((char *)(arg0) + 0x144))) * func_151423D8((temp_v0 - 0x40) & 0xFF, temp_a1);
+        temp_f14 = (1.0f - (*(s32 *)((char *)(arg0) + 0x14))) * (1.0f - (*(s32 *)((char *)(arg0) + 0x144))) * func_151423D8((temp_v0 - 0x40) & 0xFF);
         if ((*(s32 *)((char *)(arg0) + 0x148)) & 8) {
             temp_f12 = 1.0f + temp_f14;
             (*(f32 *)((char *)(arg0) + 0x2C)) = (f32) ((*(f32 *)((char *)(arg0) + 0x2C)) * temp_f12);
@@ -680,7 +680,7 @@ s32 func_151332DC(void *arg0) {
             sp30 = temp_f14;
             sp24 = temp_f12_2;
             sp20 = 1.0f - temp_f14;
-            sp2C = func_151423D8((u8) temp_f12_2, (*(void **)&temp_f14), ((*(u8 *)((char *)(arg0) + 0x14A)) - 0x40) & 0xFF);
+            sp2C = func_151423D8((u8) temp_f12_2);
             temp_f0 = func_151423D8((u8) (*(u8 *)((char *)(arg0) + 0x14A)));
             (*(f32 *)((char *)(arg0) + 0x2C)) = (f32) ((*(f32 *)((char *)(arg0) + 0x2C)) * sp20);
             (*(f32 *)((char *)(arg0) + 0x30)) = (f32) ((*(f32 *)((char *)(arg0) + 0x30)) * temp_f12_2);

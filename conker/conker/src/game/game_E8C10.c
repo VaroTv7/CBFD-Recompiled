@@ -190,8 +190,8 @@ void func_150BB760(void *arg0) {
         temp_a1 = ((s32) (*(s32 *)((char *)(arg0) + 0x76)) >> 8) - (random_u32() & 0x3F);
         temp_t8 = temp_a1 - 0x20;
         sp4B = temp_t8;
-        sp44 = func_151423D8(temp_t8 & 0xFF, temp_a1);
-        sp40 = func_151423D8((sp4B - 0x40) & 0xFF, sp4B);
+        sp44 = func_151423D8(temp_t8 & 0xFF);
+        sp40 = func_151423D8((sp4B - 0x40) & 0xFF);
         temp_f2_3 = (random_float() * 5.0f) + 3.0f;
         temp_f10 = sp40 * temp_f2_3;
         sp38 = temp_f10;

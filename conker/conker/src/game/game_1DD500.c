@@ -831,10 +831,10 @@ s32 func_151B1828(void *arg0) {
     temp_a0 = (*(s32 *)((char *)(arg0) + 0x120)) + ((*(s32 *)((char *)(arg0) + 0x122)) * D_800BE9E4);
     (*(s32 *)((char *)(arg0) + 0x120)) = temp_a0;
     (*(u8 *)((char *)(arg0) + 0x121)) = (u8) ((*(u8 *)((char *)(arg0) + 0x121)) + ((*(u8 *)((char *)(arg0) + 0x123)) * D_800BE9E4));
-    sp24 = func_151423D8((temp_a0 - 0x40) & 0xFF, arg0);
+    sp24 = func_151423D8((temp_a0 - 0x40) & 0xFF);
     temp_v1 = (char *)(arg0) + 0x110;
     sp1C = temp_v1;
-    temp_f0 = func_151423D8(((*(s32 *)((char *)(temp_v1) + 0x11)) - 0x40) & 0xFF, arg0);
+    temp_f0 = func_151423D8(((*(s32 *)((char *)(temp_v1) + 0x11)) - 0x40) & 0xFF);
     temp_f2 = (*(s32 *)((char *)(arg0) + 0x2C));
     temp_f12 = (*(s32 *)((char *)(arg0) + 0x30));
     (*(f32 *)((char *)(arg0) + 0x2C)) = (f32) (temp_f2 + ((((*(f32 *)((char *)(temp_v1) + 0x14)) + ((*(f32 *)((char *)(temp_v1) + 0x1C)) * sp24)) - temp_f2) * 0.5f));

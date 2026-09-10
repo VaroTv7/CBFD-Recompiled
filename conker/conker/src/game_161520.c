@@ -110,7 +110,33 @@ void func_1513477C(struct102 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134CD4.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Struct unidentified
+// here - raw offset casts. Integrates two velocity fields into two
+// position fields using the global timestep, fails (returns 0) if
+// position unk14 exceeds 130.0, then decrements a counter and fails if
+// it goes negative. Content and order are otherwise close (reading
+// unk2E early, before the float math, matches target's instruction
+// interleaving) but target's final decrement-and-check uses a
+// branch-likely (bgezl) that this reconstruction doesn't reproduce -
+// same unresolved category as func_15144B68 above.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134CEC.s")
+// s32 func_15134CEC(void *arg0) {
+//     s32 v1 = *((u8 *) arg0 + 0x2E);
+//
+//     *(f32 *) ((char *) arg0 + 0x70) += 0.125f * D_800BE9A4;
+//     *(f32 *) ((char *) arg0 + 0x74) += D_800A45B0 * D_800BE9A4;
+//     *(f32 *) ((char *) arg0 + 0x14) += *(f32 *) ((char *) arg0 + 0x70) * D_800BE9A4;
+//     *(f32 *) ((char *) arg0 + 0x1C) += *(f32 *) ((char *) arg0 + 0x74) * D_800BE9A4;
+//     if (*(f32 *) ((char *) arg0 + 0x14) > 130.0f) {
+//         return 0;
+//     }
+//     v1 = v1 - D_800BE9E4 * 2;
+//     *((u8 *) arg0 + 0x2E) = v1;
+//     if (v1 < 0) {
+//         return 0;
+//     }
+//     return 1;
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134DAC.s")
 

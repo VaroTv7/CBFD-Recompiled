@@ -7453,3 +7453,62 @@ to the return) as the local skip-style `bc1f`, matching target exactly.
 General lesson: when a target's branch jumps directly to a *shared* exit
 block instead of an inline one, try restructuring multiple sequential
 early-return `if`s into a single `||`-combined condition first.
+
+## First true batch-of-8 round (game_161520.c / game_16EE20.c)
+
+First round back in batch mode (accumulate several functions, one
+combined build+verify+commit) instead of one-at-a-time. Picked 8
+candidates from `game_161520.c`/`game_16EE20.c`: 2 landed byte-perfect
+first-or-second try (`func_151429E0`, `func_15144B34`), 6 stayed
+near-misses after 1-2 fix attempts each and were reverted to
+`GLOBAL_ASM` with documented best-candidate source (`func_15134CEC`,
+`func_151423D8`, `func_15142B7C`, `func_15143D18`, `func_15144598`,
+`func_1514672C`) - each comment explains its specific remaining gap
+in detail, so re-attempting doesn't require re-deriving the logic.
+
+New lessons from the wins:
+- **Operand order in a sum affects which temp register a sub-expression
+  lands in even for plain pointer address arithmetic**, not just
+  additions inside `+=`-style statements: `func_15144B34` returns
+  `D_800DBFF0 + arg0*2464 + 0x2F8` — writing it as `(char*)D_800DBFF0 +
+  arg0*2464 + ...` put the multiply-chain in the "wrong" register vs.
+  target; swapping to `arg0*2464 + (char*)D_800DBFF0 + ...` (multiply
+  term first) matched exactly, register-for-register.
+- Confirming a function's real signature via its **already-matched real
+  callers** (not just comments) is worth doing before reconstructing -
+  `func_151423D8`'s single-u8-arg signature was proven this way, and
+  fixing its prototype correctly triggered `fix_cross_file_arg_counts.py`
+  to strip bogus extra arguments 3 completely different already-matched
+  callers had been passing (harmless leftovers from the old K&R-relaxed
+  declaration) - a nice confirmation the tooling works as intended, not
+  just a one-off.
+
+New unresolved near-miss categories from the reverts (beyond the
+already-documented pointer-hoisting/frame-coupling/branch-likely ones):
+- **A named local variable used only for a comparison mask can still
+  get silently reused into an already-live register (e.g. `$a0`)
+  instead of a fresh temp** (`func_151423D8`'s quadrant check) - neither
+  removing the named variable nor introducing an explicit hoisted alias
+  changed the allocation.
+- **A 3-instruction store/increment/global-update sequence can get
+  freely reordered by IDO's scheduler** even when source already matches
+  target's literal statement order (`func_15142B7C`) - same 3
+  instructions, just rotated, in both of the function's two symmetric
+  blocks.
+- **IDO sometimes promotes a pointer parameter to a callee-saved
+  register ($s0/$s1) across an entire call-free function** rather than
+  keeping it in $a0-$a3/$v0-$v1, for reasons not yet isolated
+  (`func_15143D18` - two pointer params, several dereferences spread
+  across the whole body, no calls at all).
+- **Two switch/if-elseif cases producing textually identical bodies get
+  merged into a different decision tree** by IDO's optimizer (`func_15144598`
+  - cases 0 and 1 do the same thing; target tests each with its own
+  independent branch instead of testing "not case 0" first).
+- **`fabsf()` calling convention**: every confirmed `fabsf()` call site
+  in this codebase shows the same `cvt.d.s`/`cvt.s.d` round-trip (K&R
+  argument promotion into `fabs`, then back down), even for already
+  byte-perfect functions. `func_1514672C`'s target does NOT have that
+  round-trip (a bare `abs.s`), meaning its original source almost
+  certainly didn't call `fabsf()` the normal way - what idiom actually
+  produces a bare `abs.s` here is still unknown; an explicit
+  `if(x<0)x=-x;` branch was tried and made it worse.

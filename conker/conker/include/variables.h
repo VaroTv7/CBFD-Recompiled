@@ -435,6 +435,7 @@ extern void (*D_80089F60[])(s32, s32, u8);
 extern s32 D_8008A074[2];
 extern struct32 D_8008A0B4[];
 extern s32  D_8008A084[];
+extern u8   D_8008A160[];
 extern void (*D_8008A4E8[])(struct260*);
 extern void (*D_8008A4C0[])(struct260*);
 extern void (*D_8008A688[])(struct260*);
@@ -687,8 +688,10 @@ extern u8 D_800A3FBC[]; // "../Effects/Blood/blood.c"
 extern s32 D_800A4AA0; //?
 extern f32 D_800A5168;
 extern f32 D_800A5178;
+extern f32 D_800A45B0;
 extern f32 D_800A45B4;
 extern f32 D_800A5644;
+extern f32 D_800A5694;
 extern f32 D_800A56A8;
 extern f32 D_800A56AC;
 extern f32 D_800A56B4;
@@ -1281,6 +1284,8 @@ extern s8   D_800DD190;
 extern u8   D_800DD198[]; // 24 bytes
 extern f32  D_800DD1D8[];
 extern f32  D_800DD1E8[];
+extern u32  D_800DD1FC;
+extern u32  D_800DD200;
 
 extern u8   D_800DD2C0;
 extern u8   D_800DD2D0;

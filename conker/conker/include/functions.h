@@ -1101,7 +1101,7 @@ void *func_1513D2F0();
 s32  func_1513D6FC();
 void  func_1513E13C();
 s32  func_1513E2AC();
-f32  func_151423D8();
+f32  func_151423D8(u8 arg0);
 f32  func_15144598();
 f32  func_1514462C();
 f32  func_15144B68(f32 arg0);

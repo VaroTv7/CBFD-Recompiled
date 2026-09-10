@@ -89,13 +89,44 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142314.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Wraps arg0 into a
+// quarter-circle index [0,0x40) with mirroring, then looks up D_8009A220
+// with a sign flip depending on which quadrant (top 2 bits of arg0) it
+// came from - a sine-style lookup table. Content and structure are
+// otherwise exact (confirmed against the real, already-matched callers
+// in game_15F680.c/game_1DD500.c/game_E8C10.c: this really is
+// f32 func_151423D8(u8 arg0)) but the quadrant mask (arg0 & 0xC0) lands
+// in a reused $a0 instead of target's fresh $t0 - tried a separate
+// hoisted alias variable, didn't change the allocation.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151423D8.s")
+// f32 func_151423D8(u8 arg0) {
+//     s32 idx;
+//
+//     if (arg0 & 0x40) {
+//         idx = 0x40 - (arg0 & 0x3F);
+//     } else {
+//         idx = arg0 & 0x3F;
+//     }
+//     if ((arg0 & 0xC0) == 0 || (arg0 & 0xC0) == 0xC0) {
+//         return D_8009A220[idx];
+//     }
+//     return -D_8009A220[idx];
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142444.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151424F4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142600.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142838.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142914.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151429E0.s")
+// Looks up a packed RGB triplet from D_8008A160 (12 bytes per arg0,
+// 4 sub-entries of 3 bytes each selected by func_150ADA20()&3) and
+// unpacks it into *arg1/*arg2/*arg3.
+void func_151429E0(u8 arg0, u8 *arg1, u8 *arg2, u8 *arg3) {
+    u8 *entry = &D_8008A160[arg0 * 12 + (func_150ADA20() & 3) * 3];
+
+    *arg1 = entry[0];
+    *arg2 = entry[1];
+    *arg3 = entry[2];
+}
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Returns 1 if
 // arg0->unk2D0->unk3C > 0, else 0 (unk2D0 is struct197*, but struct197
 // isn't currently mapped out to offset 0x3C, so used a raw pointer cast
@@ -124,7 +155,34 @@ extern f32 D_800A5628;
 f32 func_15142B44(f32 arg0) {
     return (arg0 + 1.0f) * (arg0 - 1.0f) * arg0 * D_800A5628;
 }
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Writes up to two
+// "othermode" gfx display-list commands into arg0's buffer, one per
+// bitmask (arg2 against D_800DD200, arg1 against D_800DD1FC), only for
+// bits not already set in the tracked global state, then updates that
+// state. Returns the advanced write pointer. Content matches target
+// exactly (including hoisting a "p = arg0" alias unconditionally before
+// the first check, per the func_1513B0B8 pattern) but IDO schedules the
+// store/increment/global-update triple within each block in a different
+// relative order than source - same 3 instructions, just rotated.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142B7C.s")
+// void *func_15142B7C(void *arg0, s32 arg1, s32 arg2) {
+//     void *p = arg0;
+//
+//     if ((~D_800DD200) & arg2) {
+//         *(u32 *) p = 0xD9000000 | (~arg2 & 0xFFFFFF);
+//         arg0 = (char *) arg0 + 8;
+//         *(u32 *) ((char *) p + 4) = 0;
+//         D_800DD200 |= arg2;
+//     }
+//     if ((~D_800DD1FC) & arg1) {
+//         p = arg0;
+//         arg0 = (char *) arg0 + 8;
+//         *(u32 *) p = 0xD9FFFFFF;
+//         *(u32 *) ((char *) p + 4) = arg1;
+//         D_800DD1FC |= arg1;
+//     }
+//     return arg0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142C10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142CF0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142E24.s")
@@ -215,7 +273,37 @@ void func_15143874(s16 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
     *arg3 = arg1 * sp1C;
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151438D8.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Clamps *arg0/*arg1
+// into range [arg2, arg3] (after ensuring arg2<=arg3 and *arg0<=*arg1
+// via XOR swaps - confirmed genuine XOR swaps from the raw asm, not
+// temp-based). Content matches exactly, but target keeps arg0/arg1 in
+// callee-saved $s0/$s1 across the whole function (with the matching
+// push/pop), while this reconstruction keeps them in $a0/$a1/$v0/$v1
+// instead - same unresolved "why does target promote this pointer to a
+// saved register" category as elsewhere in this file.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143D18.s")
+// void func_15143D18(s32 *arg0, s32 *arg1, s32 arg2, s32 arg3) {
+//     s32 v1;
+//     s32 tmp;
+//
+//     if (arg3 < arg2) {
+//         v1 = arg2 ^ arg3;
+//         tmp = arg3 ^ v1;
+//         arg3 = tmp;
+//         arg2 = v1 ^ tmp;
+//     }
+//     if (*arg1 < *arg0) {
+//         *arg0 ^= *arg1;
+//         *arg1 ^= *arg0;
+//         *arg0 ^= *arg1;
+//     }
+//     if (*arg0 < arg2) {
+//         *arg0 = arg2;
+//     }
+//     if (arg3 < *arg1) {
+//         *arg1 = arg3;
+//     }
+// }
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Clamps *arg0 into
 // [min(arg1,arg2), max(arg1,arg2)], swapping arg1/arg2 first if needed
 // (target genuinely uses an XOR swap, confirmed from the raw asm - tried
@@ -299,14 +387,47 @@ f32 func_15143E64(vertex *arg0) {
 //     return arg0;
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144528.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Struct unidentified
+// here - raw offset casts. Selects a computation based on arg0's unk15 &
+// 3: cases 0 and 1 share the same tail (unk6^2 * D_800A5694), case 2
+// returns 1.0f, case 3 returns unk6*unkA*4.0f. Target tests each case
+// with its own independent branch (case 0 via beql, case 1 via a
+// separate beq that falls into the same tail, case 2 via its own beq);
+// both an if-elseif chain and a switch here get compiled into a
+// different decision tree (testing sel!=0 first, then disambiguating)
+// since IDO recognizes cases 0 and 1 produce the same result and merges
+// the tests - didn't find a source form that keeps them separate.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144598.s")
+// f32 func_15144598(void *arg0) {
+//     s32 sel = *((u8 *) arg0 + 0x15) & 3;
+//     s16 v0;
+//
+//     switch (sel) {
+//         case 0:
+//             v0 = *(s16 *) ((char *) arg0 + 0x6);
+//             break;
+//         case 1:
+//             v0 = *(s16 *) ((char *) arg0 + 0x6);
+//             break;
+//         case 2:
+//             return 1.0f;
+//         default:
+//             return (f32) (*(s16 *) ((char *) arg0 + 0x6) * *(s16 *) ((char *) arg0 + 0xA)) * 4.0f;
+//     }
+//     return (f32) (v0 * v0) * D_800A5694;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514462C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514470C.s")
 f32 func_15144A74(vertex *arg0, vertex *arg1) {
     return arg0->x * arg1->x + arg0->y * arg1->y + arg0->z * arg1->z;
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144AA8.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B34.s")
+// D_800DBFF0 is struct108[]; arg0 selects an element and this returns a
+// pointer to its field at offset 0x2F8 (per func_151454BC below, that
+// field is a struct17 - a vec3-like x/y/z position).
+struct17 *func_15144B34(s32 arg0) {
+    return (struct17 *) (arg0 * 2464 + (char *) D_800DBFF0 + 0x2F8);
+}
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Angle-wrap into
 // [0, D_800A56A4): subtract while >D_800A56A4 (strict - confirmed from
 // target's c.lt.s, an off-by-one from my first >= attempt), add while
@@ -505,14 +626,22 @@ void func_15146508(struct127 *arg0, struct127 *arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514654C.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Bounding-volume
+// check: fails if |x| or |z| exceed D_800A56C4, or if y is outside
+// [D_800A56C8, D_800A56C4]. Target compiles fabsf() straight to a single
+// abs.s with no argument-promotion round-trip, but calling fabsf() the
+// normal way here always produces IDO's usual cvt.d.s/cvt.s.d dance
+// around it (confirmed present even in already-matched fabsf() call
+// sites elsewhere in this file, e.g. func_15144C8C) - so target's
+// abs must come from a different source idiom than a plain fabsf()
+// call; an explicit `if (x<0) x=-x;` branch was tried and made things
+// worse (extra unwanted branches), reverted.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514672C.s")
-// NON-MATCHING: JUSTREG: first 3 statements are out of order
 // s32 func_1514672C(struct17 *arg0) {
-//     if ((D_800A56C4 < fabsf(arg0->unk0)) || (D_800A56C4 < fabsf(arg0->unk8)) || (D_800A56C4 < arg0->unk4) || (arg0->unk4 < D_800A56C8)) {
+//     if (D_800A56C4 < fabsf(arg0->unk0) || D_800A56C4 < fabsf(arg0->unk8) || D_800A56C4 < arg0->unk4 || arg0->unk4 < D_800A56C8) {
 //         return 0;
-//     } else {
-//         return 1;
 //     }
+//     return 1;
 // }
 
 void func_151467A4(f32 *arg0, f32 arg1, f32 *arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 *arg7) {
