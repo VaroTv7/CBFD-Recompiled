@@ -47,7 +47,14 @@ extern void (*D_8008CB70)(void);
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167310.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151674F8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167A68.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167AD8.s")
+void func_15167AD8(void *arg0, u8 arg1, s32 arg2) {
+    void *v0 = func_15167A68(3, arg2, 0x28, 0, arg1, 1);
+
+    if (v0 != 0) {
+        bcopy(arg0, (char *) v0 + 0x10, 0x18);
+        *((u8 *) v0 + 0x23) = 0xFF;
+    }
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167B44.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167C58.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167D84.s")
