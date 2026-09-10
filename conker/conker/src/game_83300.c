@@ -999,8 +999,17 @@ f32 func_1505D34C(f32 arg0, f32 arg1, f32 arg2, f32 arg3, f32 *arg4) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E874.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505ED34.s")
 
+// I HATE LOOPS. NON-MATCHING: mips_to_c reconstruction, hand-typed.
+// Searches gObjects for the element whose interaction_state matches
+// state, storing the found index into *arg1 and returning a pointer to
+// it (or the last-examined element if not found, since the search
+// pointer keeps advancing through the "not found" iteration too).
+// Tried a while-loop form matching the raw asm's literal control flow
+// (test at top, pointer increment first) - 4 extra instructions vs
+// target's tighter loop (21 vs target's 17), with a different overall
+// loop test/comparison strategy. A prior session's for-loop attempt
+// (kept below) wasn't confirmed working either.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505EEB0.s")
-// I HATE LOOPS.
 // struct127 *func_1505EEB0(s32 state, s32 *arg1) {
 //     struct127 *tmp = gObjects;
 //     s32 i = 0;

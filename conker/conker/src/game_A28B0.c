@@ -1237,14 +1237,17 @@ void func_15079F50(void) {
     gCurrentObject->unk23B = D_800D1890;
 }
 
+// NON-MATCHING: JUSTREG. Every instruction matches target's content and
+// order exactly, but the register allocation differs throughout (target
+// uses $a0 for &gCurrentObject and a distinct $v0/$v1 pair per byte
+// load's address-calc vs. loaded-value; this reconstruction gets $v0
+// for the address and reuses one register per byte load for both the
+// address calc and the value). Tried both a direct field-access form
+// and an explicit struct127** alias for &gCurrentObject - both produced
+// the identical (wrong) allocation.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15079F6C.s")
-// NON-MATCHING: JUSTREG
 // void func_15079F6C(void) {
-//     u16 tmp0;
-//     u16 tmp1;
-//     tmp0 = D_800D1890 << 8;
-//     tmp1 = D_800D1891;
-//     gCurrentObject->unk224 = tmp0 | tmp1;
+//     gCurrentObject->unk224 = (D_800D1890 << 8) | D_800D1891;
 //     gCurrentObject->unk22B = D_800D1892;
 //     gCurrentObject->unk226 = D_800D1893;
 // }
@@ -1348,7 +1351,14 @@ void func_1507A3CC(void) {
     gCurrentObject->unk229 = D_800D1890;
 }
 
-//  what is up with these??
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Same packed-4-byte
+// value as func_1507A428/func_1507A47C/func_1507A4D4 above, here just
+// returned rather than stored anywhere. Same content and instruction
+// count as target (16/16) but IDO schedules the four lui/lbu pairs and
+// the three shifts/ors differently: target interleaves each byte's load
+// with the running shift/or chain progressively, this reconstruction's
+// source order gets batched into "all four loads, then all shifts" -
+// 13/16 words differ despite identical semantics.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A3E8.s")
 // s32 func_1507A3E8(void) {
 //     return (D_800D1890 << 0x18) | (D_800D1891 << 0x10) | (D_800D1892 << 8) | D_800D1893;
@@ -1370,6 +1380,13 @@ void func_1507A3CC(void) {
 // void func_1507A47C(void) {
 //     gCurrentObject->unk94 &= ~((D_800D1890 << 24) | (D_800D1891 << 16) | (D_800D1892 << 8) | D_800D1893);
 // }
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Third sibling of
+// func_1507A428/func_1507A47C above - ORs gCurrentObject->unk94 with the
+// same packed 4 bytes instead of assigning/ANDing. Same register-
+// allocation mismatch as its siblings: target loads gCurrentObject
+// itself only after the first two byte loads (interleaved differently
+// throughout), while this reconstruction loads it first (19/21 words
+// differ despite matching size).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_1507A4D4.s")
 // void func_1507A4D4(void) {
 //     gCurrentObject->unk94 |= (D_800D1890 << 0x18) | (D_800D1891 << 0x10) | (D_800D1892 << 8) | D_800D1893;
