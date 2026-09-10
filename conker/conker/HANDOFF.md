@@ -7434,3 +7434,22 @@ Found one more pre-existing mistyped `struct108` field along the way:
 `bgtz`/`bgtzl` (signed comparison) against it, so it's really `s16`.
 Fixed. Confirmed no real (non-comment) code depended on the old
 unsigned typing.
+
+## func_150C2FCC (game_EF410.c) - control-flow-shape lesson: `||` vs. two `if`s
+
+A small physics-integration step (velocity decay, position/velocity
+integration, then a bounds check) with no established struct for its
+argument in this mostly-untouched file — used raw `void*` offset casts
+rather than guess a struct. Matched on the first structural attempt
+except one branch: target reaches its "return 0" tail via a direct
+`bc1t` (branch-if-true) from the FIRST bounds check, but writing the
+natural `if (cond1) { return 0; } if (cond2) { return 0; } return 1;`
+compiles each check as its own inline `bc1f`-skip block instead — a
+different shape even though logically identical. Combining the two
+checks into one `if (cond1 || cond2) { return 0; } return 1;` fixed it:
+short-circuit `||` naturally compiles the first term as a direct
+jump-to-shared-tail (`bc1t`) and the second term (evaluated right next
+to the return) as the local skip-style `bc1f`, matching target exactly.
+General lesson: when a target's branch jumps directly to a *shared* exit
+block instead of an inline one, try restructuring multiple sequential
+early-return `if`s into a single `||`-combined condition first.

@@ -108,7 +108,21 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2898.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C29F0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2C00.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2FCC.s")
+// Struct/type unidentified in this file (no callers decompiled yet) -
+// raw void* offset casts. Simple physics-integration step: unk2C/unk30
+// (velocity?) decay by a factor unk150, unk38 (position?) integrates
+// unk50 (accel?) and unk4C via unk38 += unk50*D + 0.5*unk4C*D*D, unk50
+// += unk4C*D, then returns whether both unk2C and unk30 stayed >= 10.0.
+s32 func_150C2FCC(void *arg0) {
+    *(f32 *) ((char *) arg0 + 0x2C) -= *(f32 *) ((char *) arg0 + 0x2C) * *(f32 *) ((char *) arg0 + 0x150);
+    *(f32 *) ((char *) arg0 + 0x30) -= *(f32 *) ((char *) arg0 + 0x30) * *(f32 *) ((char *) arg0 + 0x150);
+    *(f32 *) ((char *) arg0 + 0x38) += *(f32 *) ((char *) arg0 + 0x50) * D_800BE9A4 + 0.5f * *(f32 *) ((char *) arg0 + 0x4C) * D_800BE9A4 * D_800BE9A4;
+    *(f32 *) ((char *) arg0 + 0x50) += *(f32 *) ((char *) arg0 + 0x4C) * D_800BE9A4;
+    if (*(f32 *) ((char *) arg0 + 0x2C) < 10.0f || *(f32 *) ((char *) arg0 + 0x30) < 10.0f) {
+        return 0;
+    }
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C308C.s")
 // ? func_150C308C(void *arg0) {
 //     u8 sp1F;
