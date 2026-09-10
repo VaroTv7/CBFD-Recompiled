@@ -175,18 +175,17 @@ void func_151429E0(u8 arg0, u8 *arg1, u8 *arg2, u8 *arg3) {
     *arg2 = entry[1];
     *arg3 = entry[2];
 }
-// NON-MATCHING: mips_to_c reconstruction, hand-typed. Returns 1 if
-// arg0->unk2D0->unk3C > 0, else 0 (unk2D0 is struct197*, but struct197
-// isn't currently mapped out to offset 0x3C, so used a raw pointer cast
-// instead of extending it speculatively). Register allocation differs
-// from target with both a ternary and an if/else source form - target
-// also sets v0=0 unconditionally before the branch rather than only in
-// the false path, suggesting a slightly different original structure
-// this round didn't find.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142A5C.s")
-// s32 func_15142A5C(struct127 *arg0) {
-//     return (*(s16 *) ((char *) arg0->unk2D0 + 0x3C) > 0) ? 1 : 0;
-// }
+// Returns 1 if arg0->unk2D0->unk3C > 0, else 0 (unk2D0 is struct197*, but
+// struct197 isn't currently mapped out to offset 0x3C, so used a raw
+// pointer cast instead of extending it speculatively).
+s32 func_15142A5C(struct127 *arg0) {
+    void *v0 = arg0->unk2D0;
+
+    if (*(s16 *) ((char *) v0 + 0x3C) > 0) {
+        return 1;
+    }
+    return 0;
+}
 extern f32 D_800A5624;
 
 f32 func_15142A80(f32 arg0) {
