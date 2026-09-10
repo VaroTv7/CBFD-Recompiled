@@ -195,7 +195,44 @@ f32 func_15142B44(f32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142C10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142CF0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142E24.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Skips (returns
+// arg0 unchanged) if arg1/arg2 already match the cached
+// D_800DD218/D_800DD21C values. Otherwise, if *arg3==1, emits a
+// RDPPIPESYNC command and clears the flag; then always emits a "set"
+// command carrying arg1 (rounded up to a multiple of 0x10, masked to 24
+// bits) and arg2, and updates the cache. Returns the advanced pointer.
+// Content matches for the first ~5 words, but target's second guard
+// (arg2 == D_800DD21C) compiles to a direct beql-to-return, while every
+// source form tried here (&&, nested if) instead compiles to a second
+// bnel-to-skip matching the first guard's shape - possibly the same
+// "IDO's branch-likely selection depends on more than the literal
+// condition" issue documented for func_1516434C's investigation
+// earlier in this project. Target's final write block also keeps a
+// separate v0=arg0 alias for the two stores where this reconstruction
+// gets CSE'd back down to using arg0 directly (same category as the
+// func_15142B7C/func_1513B0B8-adjacent aliasing quirks).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142FBC.s")
+// void *func_15142FBC(void *arg0, s32 arg1, s32 arg2, u8 *arg3) {
+//     void *v0;
+//
+//     if (arg1 == D_800DD218 && arg2 == D_800DD21C) {
+//         return arg0;
+//     }
+//     if (*arg3 == 1) {
+//         v0 = arg0;
+//         arg0 = (char *) arg0 + 8;
+//         *(u32 *) v0 = 0xE7000000;
+//         *(u32 *) ((char *) v0 + 4) = 0;
+//         *arg3 = 0;
+//     }
+//     v0 = arg0;
+//     *(u32 *) v0 = 0xEF000000 | ((arg1 | 0xF) & 0xFFFFFF);
+//     *(u32 *) ((char *) v0 + 4) = arg2;
+//     arg0 = (char *) arg0 + 8;
+//     D_800DD218 = arg1;
+//     D_800DD21C = arg2;
+//     return arg0;
+// }
 s16 func_15143044(u8 arg0, s32 arg1) {
     return 0x7FFF - arg0;
 }

@@ -258,7 +258,23 @@ s32 func_15137E10(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15137F30.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151380B4.s")
+// Struct unidentified here (sibling func_15137E10 above also uses raw
+// casts) - raw offset casts. Fails if arg0->unk1D4 is 0, or if the low
+// nibble of arg0->unk74 isn't 0xF; otherwise calls func_15143134 with a
+// slot from D_800A3FD8 selected by arg1, arg2, arg0->unk1D4+0x300, and
+// arg1 again.
+s32 func_151380B4(void *arg0, s32 arg1, s32 arg2) {
+    s32 v0 = *(s32 *) ((char *) arg0 + 0x1D4);
+
+    if (v0 == 0) {
+        return 0;
+    }
+    if ((*(u8 *) ((char *) arg0 + 0x74) & 0xF) == 0xF) {
+        return 0;
+    }
+    func_15143134(D_800A3FD8 + arg1 * 16, arg2, v0 + 0x300, arg1);
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15138120.s")
 

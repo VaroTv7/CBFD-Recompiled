@@ -685,6 +685,7 @@ extern u8  D_800A2CD0[][3];
 
 extern u8 D_800A3FB4[]; // "power"
 extern u8 D_800A3FBC[]; // "../Effects/Blood/blood.c"
+extern u8 D_800A3FD8[];
 extern s32 D_800A4AA0; //?
 extern f32 D_800A5168;
 extern f32 D_800A5178;
@@ -1287,6 +1288,8 @@ extern f32  D_800DD1D8[];
 extern f32  D_800DD1E8[];
 extern u32  D_800DD1FC;
 extern u32  D_800DD200;
+extern s32  D_800DD218;
+extern s32  D_800DD21C;
 
 extern u8   D_800DD2C0;
 extern u8   D_800DD2D0;
