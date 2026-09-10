@@ -7419,3 +7419,18 @@ comment for whoever picks this up next — worth trying if you can get
 real difference in the original developer's source shape (e.g. an extra
 now-invisible local) rather than something fixable by permuting the
 already-identified expressions further.
+
+## func_151284C4 - clean first-try match, one more mistyped field found
+
+Copies the tracked object's position (`arg0->unk3D0->x/y/z_position`)
+into the camera's `unk2B0/2B4/2B8`, decrements a counter-if-nonzero
+(`unk23C`), and re-triggers `func_15128774` roughly every 60 frames once
+a countdown field hits zero. Matched byte-for-byte on the first
+attempt — no branch-likely or frame-size surprises this time, just a
+straightforward decrement-if-nonzero plus two nested nonzero guards.
+
+Found one more pre-existing mistyped `struct108` field along the way:
+`unk5FE` was declared `u16` but the raw asm uses `lh` (signed load) and
+`bgtz`/`bgtzl` (signed comparison) against it, so it's really `s16`.
+Fixed. Confirmed no real (non-comment) code depended on the old
+unsigned typing.

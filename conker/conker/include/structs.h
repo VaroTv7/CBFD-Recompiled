@@ -1793,7 +1793,7 @@ struct struct108 {
     /* 0x5F4 */ u8  pad5F4[0x6];
     /* 0x5FA */ s16 unk5FA;
     /* 0x5FC */ u16 unk5FC;
-    /* 0x5FE */ u16 unk5FE;
+    /* 0x5FE */ s16 unk5FE;
     /* 0x600 */ u8  pad600[0x18];
     /* 0x618 */ s32 unk618; // struct ptr
     /* 0x61C */ u8  pad61C[0x48];

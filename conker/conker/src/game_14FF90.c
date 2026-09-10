@@ -697,7 +697,28 @@ void func_15127FEC(struct108 *arg0, s32 arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15128030.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_151283B8.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_151284C4.s")
+// Copies the tracked object's (arg0->unk3D0) position into the camera's
+// unk2B0/2B4/2B8, decrements a counter, and every ~60 frames (once
+// unk5FE counts down to 0) re-triggers func_15128774 if flag 8 is set in
+// unk84.
+void func_151284C4(struct108 *arg0) {
+    struct127 *v0;
+
+    func_1512C490(arg0);
+    v0 = arg0->unk3D0;
+    arg0->unk2B0 = v0->x_position;
+    arg0->unk2B4 = v0->y_position;
+    arg0->unk2B8 = v0->z_position;
+    if (arg0->unk23C != 0) {
+        arg0->unk23C -= 1;
+    }
+    if ((arg0->unk84 & 8) != 0) {
+        if (arg0->unk5FE <= 0) {
+            arg0->unk5FE = 0x3C;
+            func_15128774(arg0, arg0->unk3D0);
+        }
+    }
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15128540.s")
 
 void func_15128680(struct108 *arg0) {
