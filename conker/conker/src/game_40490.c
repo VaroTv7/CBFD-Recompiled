@@ -146,7 +146,19 @@ s32 func_1501407C(s32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014144.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014220.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150142AC.s")
+// Sets flag 4 in unk16 unconditionally, then registers arg0 into
+// D_800D9AA0[arg0's byte at +0x1B] if that index is in range [0,3).
+s32 func_150142AC(struct134 *arg0) {
+    s32 v1;
+
+    arg0->unk16 |= 4;
+    v1 = *((u8 *) arg0 + 0x1B);
+    if (v1 < 0 || v1 >= 3) {
+        return 1;
+    }
+    D_800D9AA0[v1] = arg0;
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150142EC.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150144B8.s")
