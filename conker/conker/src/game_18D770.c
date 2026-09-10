@@ -1131,7 +1131,31 @@ s32 func_15163F50(struct225 *arg0, struct225 *arg1) {
 
 // ???
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_15163FEC.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Same id/unique_id
+// match guard family as func_1513555C/func_151355B8 (game_161520.c),
+// triggered on arg2==0x29: compares arg0's field at 0x18 against
+// arg1->unk4's first word, or their byte-4/byte-0x1C fields, or
+// arg1->unk4's byte-4 against arg0's 0x18 pointer's unique_id. Content
+// and the guard's || structure match, but target explicitly spills
+// arg0/arg1 to the stack right after the u8-mask prologue and reloads
+// them from there for the body (rather than using them directly from
+// their incoming registers, which this reconstruction does), and picks
+// a branch-likely (bnel) for the arg2!=0x29 guard where a plain source
+// form here compiles to the same bnel too but is missing those two
+// spills. An explicit p0/p1 local-alias attempt got CSE'd straight back
+// to direct arg0/arg1 use - no difference in output.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151640C0.s")
+// void func_151640C0(void *arg0, void *arg1, u8 arg2) {
+//     if (arg2 == 0x29) {
+//         void *v1 = *(void **) ((char *) arg1 + 4);
+//
+//         if (*(s32 *) ((char *) arg0 + 0x18) == *(s32 *) v1
+//             || *((u8 *) v1 + 4) == *((u8 *) ((char *) arg0 + 0x18) + 4)
+//             || *((u8 *) v1 + 4) == *(u8 *) ((char *) (*(void **) ((char *) arg0 + 0x18)) + 0x3B)) {
+//             func_1516972C(arg0);
+//         }
+//     }
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_15164134.s")
 

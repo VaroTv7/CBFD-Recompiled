@@ -130,11 +130,45 @@ void func_15168E34(s32 *arg0, s32 arg1) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168E54.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F08.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F84.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Thin wrapper
+// forwarding arg0/(u8)arg1 to func_15169070 with two fixed leading
+// args. Target computes the `arg1 & 0xFF` mask directly from the
+// incoming register (andi) before the call-setup instructions; every
+// source form tried here (u8 parameter, s32 parameter with an explicit
+// cast at the call site, s32 parameter assigned to a named u8 local)
+// instead spills arg1 to its stack slot at entry and reloads it via lbu
+// right before the call - same content, just 4/12 words in a different
+// order/form.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15169040.s")
+// void func_15169040(void *arg0, u8 arg1) {
+//     func_15169070(0, 0x68, arg0, arg1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15169070.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15169260.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516944C.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Bundles arg0 and
+// its unique_id byte into a local struct (same pattern as
+// func_150717E0 above, to keep the dead-looking byte write) and
+// forwards it plus (u8)arg1 to func_15169040. Target masks arg1 to a
+// byte as its very first operation, before touching arg0 at all
+// (matching the standard "andi tN,argX,0xff; or argX,tN,zero" u8-param
+// prologue seen in several already-confirmed functions this session);
+// this reconstruction's source order (using arg0 first for the tmp
+// struct) gets the masking deferred to immediately before the call
+// instead - same content, different instruction order/count. Adding an
+// explicit early-masked local didn't change the ordering, only grew
+// the frame with an unused extra slot.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151695F0.s")
+// void func_151695F0(struct127 *arg0, u8 arg1) {
+//     struct {
+//         struct127 *ptr;
+//         u8 id;
+//     } tmp;
+//
+//     tmp.ptr = arg0;
+//     tmp.id = arg0->unique_id;
+//     func_15169040(&tmp, arg1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516962C.s")
 extern u8 D_800D2DAB;
 
