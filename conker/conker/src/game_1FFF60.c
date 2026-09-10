@@ -181,8 +181,13 @@ void func_151D33FC(struct224 *arg0, struct223 *arg1) {
     }
 }
 
+// NON-MATCHING: ops in wrong order. Confirmed this round: target masks
+// arg1 to a byte (andi a3,a1,0xff) eagerly, right after the entry
+// spill/move, before the D_800AB168 lookup; every source form here
+// (including D_800AB168[0] to fix the array-vs-value read) defers the
+// mask to a lbu reload right before the call instead - same
+// "eager vs. deferred u8 arg masking" category as func_15169040.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1FFF60/func_151D343C.s")
-// NON-MATCHING: ops in wrong order
 // void func_151D343C(s32 arg0, u8 arg1) {
 //     s32 sp1C[1] = D_800AB168;
 //     func_15169260(sp1C, 1, arg0, arg1);
