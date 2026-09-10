@@ -669,6 +669,8 @@ extern s32 D_8009DCCC;
 extern f32 D_8009F6C0; // 0.01745329238474369f
 
 /* 800A0000 */
+extern f32 D_800A0280;
+extern f32 D_800A0284;
 extern f32 D_800A028C;
 extern f32 D_800A0288;
 extern f32 D_800A0290;
