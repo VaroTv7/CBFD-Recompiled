@@ -73,7 +73,16 @@ void func_15141DA4(void *arg0, s32 arg1, s32 arg2) {
 //     func_1513C650(&tmp, 0, 0, arg1->unk4, arg4->unk0, arg1->unk0, arg4->unk8, temp_f2, temp_f2, arg3, phi_v0, 3, 1, 0, 0xFF, 1);
 // }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151420F8.s")
+// Copies the 6-entry D_800A5200 table into a local buffer and passes it
+// (with arg0's index into gObjects) to func_150A2AEC.
+s32 func_151420F8(struct127 *arg0) {
+    struct261 tmp = D_800A5200;
+
+    if (func_150A2AEC(arg0 - gObjects, 6, &tmp) == -1) {
+        return 0;
+    }
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142180.s")
 
 s32 func_151422C0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
