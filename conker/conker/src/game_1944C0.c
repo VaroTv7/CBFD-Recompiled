@@ -158,7 +158,46 @@ void func_15168B10(s32 arg0, s32 arg1) {
     func_15168A4C(arg0, arg1);
 }
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. A packed 32-bit
+// field at arg0+0x14 holds a lo16 countdown and a hi16 counter. If the
+// lo16 is nonzero, decrement it (clearing then re-OR-ing into the same
+// word) and set arg0->unk38=30; otherwise compare arg0->unk3F against
+// the hi16 and either subtract or zero arg0->unk38. Target genuinely
+// stores arg0->unk14 TWICE in the decrement path (first with just the
+// hi16 half preserved/lo16 cleared, then again with the new lo16
+// OR'd in) - this reconstruction's identical two-statement form gets
+// the first store dead-code-eliminated by IDO since nothing reads it
+// before the second store overwrites it. Same "double-store to the
+// same word" dead-store-elimination category noted in HANDOFF.md;
+// unlike the struct-bundling fix documented there (which relies on an
+// intervening external call to force conservatism), there's no call
+// between these two stores to exploit here.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168B44.s")
+// void func_15168B44(void *arg0) {
+//     s32 v1 = *(s32 *) ((char *) arg0 + 0x14);
+//     u16 lo = v1 & 0xFFFF;
+//
+//     if (lo != 0) {
+//         s32 hi_cleared = v1 & 0xFFFF0000;
+//         u16 new_lo = (lo - 1) & 0xFFFF;
+//
+//         *(s32 *) ((char *) arg0 + 0x14) = hi_cleared;
+//         *(u16 *) ((char *) arg0 + 0x38) = 30;
+//         *(s32 *) ((char *) arg0 + 0x14) = hi_cleared | new_lo;
+//         return;
+//     }
+//     {
+//         u8 a2 = *((u8 *) arg0 + 0x3F);
+//         u16 hi = (v1 >> 16) & 0xFFFF;
+//
+//         if (hi < a2) {
+//             *((u8 *) arg0 + 0x3F) = a2 - hi;
+//             *(u16 *) ((char *) arg0 + 0x38) = 30;
+//         } else {
+//             *(u16 *) ((char *) arg0 + 0x38) = 0;
+//         }
+//     }
+// }
 extern void (*D_8008CA20[])(void *);
 
 void func_15168BAC(void *arg0) {
