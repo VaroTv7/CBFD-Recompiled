@@ -145,7 +145,25 @@ s32 func_1501407C(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014144.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014220.s")
+// Sets flag 4 in unk16, then spawns a func_15149130 effect payload
+// carrying {0.0f, arg0, 1} - same func_15149130/memcpy(&result->unk28,
+// &tmp, N) pattern already established in func_15010538 (game_3D9A0.c)
+// and its siblings.
+s32 func_15014220(struct134 *arg0) {
+    u8 tmp[0xC];
+    struct260 *temp_v0;
+
+    arg0->unk16 |= 4;
+    *(f32 *) &tmp[0] = 0.0f;
+    *(struct134 **) &tmp[4] = arg0;
+    tmp[8] = 1;
+    temp_v0 = func_15149130(0x12C, -1, 0x26, -1, 0, 0x24, 0xC, 0xFF, 0);
+    if (temp_v0 != NULL) {
+        memcpy((char *) temp_v0 + 0x28, tmp, 0xC);
+    }
+    return 1;
+}
+
 // Sets flag 4 in unk16 unconditionally, then registers arg0 into
 // D_800D9AA0[arg0's byte at +0x1B] if that index is in range [0,3).
 s32 func_150142AC(struct134 *arg0) {
