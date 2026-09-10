@@ -99,6 +99,21 @@ extern u8 D_800DCE50[];
 //     *(s32 *) ((char *) arg0 + 4) = 0;
 //     *slot = arg0;
 // }
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Unlinks arg0 from
+// a doubly-linked bucket list (the same D_800DCE50 table func_15168A4C
+// above inserts into). Target mixes all three branch types for its
+// three guard checks (bnel, beql, beqz) - confirmed this round that a
+// straightforward reconstruction (single reused local, redundant
+// reload of it right after each if-body, matching the "delay slot
+// filled with a value that's about to be redundantly reloaded anyway"
+// pattern from func_1505DFDC/HANDOFF.md) reproduces ALL THREE branch
+// types exactly, in the right positions. The only remaining gap:
+// target keeps this reused local in $v0 throughout (it's also the
+// return value, so needs no final move), while every source form
+// tried here (original declaration order, swapping which of
+// unk0/unk1 loads first, splitting into a separate short-lived local
+// for the first check) lands it in $v1 instead, adding one extra
+// "move v0,v1" before the final return that target doesn't have.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168A9C.s")
 // void *func_15168A9C(struct12 *arg0) {
 //     void *temp_a1;
