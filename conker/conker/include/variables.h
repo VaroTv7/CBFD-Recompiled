@@ -641,6 +641,9 @@ extern f32 D_8009A0F4;
 extern f32 D_8009A0F8;
 extern f32 D_8009A0FC;
 extern f32 D_8009A100;
+extern f32 D_8009A108;
+extern f32 D_8009A10C;
+extern f32 D_8009A110;
 // code_75400.c
 extern f32 D_8009A13C; // 1.399999976158142
 extern f32 D_8009A140;
