@@ -213,7 +213,39 @@ void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA938.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAA88.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAB58.s")
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Advances a
+// counter byte at arg0->0x110 by (arg0->0x111 signed byte) *
+// D_800BE9E4, calls func_151423D8 on (counter-0x40) & 0xFF and on the
+// counter directly (a sine/cosine-style lookup, matching its
+// established f32(u8) signature elsewhere), then writes two derived
+// f32 fields via those two lookups. Two source-order fixes confirmed
+// this round: D_800BE9E4 must be read *before* the two byte loads
+// (matches target's lui/lw-then-lb/lbu order) to avoid a swapped
+// prologue, and this cascades a new mismatch - target stores the
+// updated counter to arg0->0x110 *before* computing counter-0x40, but
+// every source form tried here (including an extra named byte temp)
+// has IDO schedule the independent store and subtract in the opposite
+// order regardless - same "trailing independent store gets freely
+// reordered" category as the game_D5160/game_D5250 matrix-init
+// near-misses. Also target has a dead `addiu v0,zero,1` with no
+// corresponding source effect found.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DADA0.s")
+// void func_151DADA0(void *arg0) {
+//     void *a1 = arg0;
+//     s32 t7 = D_800BE9E4;
+//     s8 t6 = *((s8 *) a1 + 0x111);
+//     u8 t9 = *((u8 *) a1 + 0x110);
+//     s32 a0 = t9 + t6 * t7;
+//     f32 f0;
+//     void *v1;
+//
+//     *((u8 *) a1 + 0x110) = (u8) a0;
+//     a0 = a0 - 0x40;
+//     f0 = func_151423D8((u8) a0);
+//     v1 = (char *) a1 + 0x110;
+//     *(f32 *) ((char *) a1 + 0x4C) = *(f32 *) ((char *) v1 + 4) * f0 + 1.0f;
+//     *(f32 *) ((char *) a1 + 0x50) = D_800AB4B0 - *(f32 *) ((char *) v1 + 8) * f0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAE28.s")
 
 void func_151DB004(struct218 *arg0) {
