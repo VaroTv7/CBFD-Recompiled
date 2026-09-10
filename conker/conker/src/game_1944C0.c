@@ -120,7 +120,14 @@ void func_15168BAC(void *arg0) {
         D_8008CA20[idx](arg0);
     }
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168BE4.s")
+void func_15168BE4(void *arg0, u8 arg1, s32 arg2) {
+    if (*(s32 *) ((char *) arg0 + 0x40) != 0) {
+        void *v0 = func_15167A68(0x10, arg2, 0xF0, 1, arg1, 1);
+        if (v0 != 0) {
+            bcopy(arg0, (char *) v0 + 0x90, 0x60);
+        }
+    }
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168C4C.s")
 void func_15168E34(s32 *arg0, s32 arg1) {
     if ((*arg0 & 0xF000000) == 0) {
