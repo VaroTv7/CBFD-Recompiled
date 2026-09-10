@@ -1221,8 +1221,35 @@ s32 func_151643F8(struct225 *arg0) {
     return 1;
 }
 
-// ???
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Calls
+// func_15145CD0(arg1->unkC, &arg1, &pbuf, 1) with two locals passed by
+// address (pbuf pointing at a 3-float output buffer), then truncates
+// the 3 output floats into arg0->unk14's unkE/unk10/unk12 (s16) fields.
+// Declaring the locals in reverse order (arg1-copy, then the buffer
+// pointer, then the buffer itself last) got every stack offset to
+// match target exactly (frame size, buffer position, both locals'
+// positions) - confirmed via isolated harness. What's left: target
+// reloads arg0->unk14 three times using three distinct temp registers
+// (t0/t3/t7) for the three field writes, while this reconstruction
+// reuses a single v0/v1 register for all three - same "redundant
+// reload gets distinct destination registers" category left unsolved
+// on func_1514143C above (game_16DC80.c).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_1516441C.s")
+// void func_1516441C(struct225 *arg0, void *arg1) {
+//     void *parg1 = arg1;
+//     void *pbuf;
+//     f32 buf[3];
+//     struct226 *v0;
+//
+//     pbuf = buf;
+//     func_15145CD0(*(s32 *) ((char *) arg1 + 0xC), &parg1, &pbuf, 1);
+//     v0 = arg0->unk14;
+//     v0->unkE = (s16) (s32) buf[0];
+//     v0 = arg0->unk14;
+//     v0->unk10 = (s16) (s32) buf[1];
+//     v0 = arg0->unk14;
+//     v0->unk12 = (s16) (s32) buf[2];
+// }
 
 s32 func_151644A8(struct242 *arg0) {
     f32 temp_f0;
