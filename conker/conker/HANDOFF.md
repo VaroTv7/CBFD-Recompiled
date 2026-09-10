@@ -7372,6 +7372,25 @@ a recognized IDO quirk category rather than something to keep
 re-discovering per function. Left as `GLOBAL_ASM` with the best candidate
 in the comment.
 
+**`func_15123934` — the sibling/inverse of `func_151239CC` — DID land
+byte-perfect**, reusing the same struct108 fix and the raw-pointer-cast
+branch-type fix. It saves arg0's "current" fields into the arg4'th slot
+of the same history arrays (opposite direction from `func_151239CC`)
+then overwrites the current fields with new values and marks the slot
+occupied. One more lesson from getting this one exact: the
+"occupied = 1" flag store must be written **before** the trailing call in
+source (`*(s16*)(v1+0x20C) = 1; func_15125394(arg0);`), not after — the
+old near-miss draft actually already had this order right, but a
+first-pass rewrite of this session reordered it to "call, then set flag"
+by analogy with `func_151239CC` (which clears the flag *after* its call)
+and that was wrong here. Target places the flag store in the call's own
+delay slot (executes before the callee runs), so `v1` never needs to
+survive across the call at all; writing the store after the call instead
+forces IDO to spill/restore `v1` around it, growing the frame by 16
+bytes and moving everything after. When a value is only needed *before*
+a call, write it before the call in source — don't assume post-call
+cleanup order from a superficially similar sibling function.
+
 **Applied to `func_15141564` (the original discovery case) — got extremely
 close but NOT byte-perfect, left as documented near-miss.** Hoisting `f32
 *p = &arg0->unk170;` to the top and using `p[0..3]` throughout (instead of
