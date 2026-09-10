@@ -27,12 +27,25 @@ void func_151411C4(struct210 *arg0) {
 // reads unk3C via lwc1 (as f32) but struct210's unk3C is already
 // established as s32 elsewhere in this codebase - either arg0 isn't really
 // struct210 here, or unk3C is a union of s32/f32 depending on caller;
-// didn't resolve which this round, so the field types are guesses that
-// produced an int-to-float conversion (cvt.s.w) instead of matching
-// target's direct float load. Also uses arg0+0x110 as a live base-pointer
-// register (addiu v0,a0,0x110, reused across all three loads at v0+0x44)
-// rather than direct arg0+0x154 offsets, echoing the intermediate-pointer
-// pattern from func_15141564 above.
+// didn't resolve which this round, so raw f32 casts were used instead.
+// Isolated via scratch harness this round: with `void *v0 = arg0+0x110;`
+// as a raw-cast local declared unconditionally *before* the `if` (the
+// usual intermediate-pointer-hoisting fix), IDO does keep `addiu
+// v0,a0,0x110` materialized as a real register (rather than
+// constant-folding it into direct `arg0+0x154` offsets, which happens
+// if declared *inside* the if with no other use), but positions it
+// *before* the guard branch instead of as the guard's first
+// true-branch instruction, and reuses one register for all three
+// `v0+0x44` reloads instead of target's three distinct temps
+// (t7/t8/t9). Declaring the guard flag as a separate local read first
+// (`s32 flag = arg0->unk154; ...; if (flag != 0) {...}`) does get IDO
+// to schedule `addiu v0,a0,0x110` into the branch's own delay slot
+// (better shape than target, which leaves that slot as `nop`) with
+// three distinct destination registers for the reloads - but that's a
+// 1-instruction-shorter function than target (IDO fills the slot
+// target leaves empty), so still not byte-perfect. Whatever the real
+// source form is, it must produce a "wasted" nop in the delay slot
+// that these reconstructions won't reproduce.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_1514143C.s")
 // void func_1514143C(struct210 *arg0) {
 //     if (arg0->unk154 != 0) {
