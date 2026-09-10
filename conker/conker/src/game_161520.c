@@ -171,27 +171,20 @@ f32 func_15135670(s32 arg0) {
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Sibling of
 // func_1513F6E8 above (same arg0->unk2C/unk30 += arg0->unk128 *
 // D_800BE9A4 tail), gated by a clamp check on arg0->unk1C/unk5C first.
-// Target keeps arg0+0x128 as a live pointer across the shared tail
-// (needed since it's referenced from multiple converging branches);
-// same "IDO won't keep an intermediate pointer" issue as
-// func_15141564/func_1513B0B8/func_1516434C above - direct field
-// access (which worked for func_1513F6E8, no branching there) didn't
-// reproduce it here.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151368A8.s")
-// s32 func_151368A8(struct210 *arg0) {
-//     f32 *ptr;
-//
-//     if (arg0->unk1C < 0x20) {
-//         s32 v1 = arg0->unk1C * 8;
-//         if (v1 >= arg0->unk5C) {
-//             arg0->unk5C = v1;
-//         }
-//     }
-//     ptr = &arg0->unk128;
-//     arg0->unk2C += *ptr * D_800BE9A4;
-//     arg0->unk30 += *ptr * D_800BE9A4;
-//     return 1;
-// }
+s32 func_151368A8(struct210 *arg0) {
+    f32 *ptr = &arg0->unk128;
+    s16 v0 = arg0->unk1C;
+
+    if (v0 < 0x20) {
+        s32 v1 = v0 * 8;
+        if (v1 < arg0->unk5C) {
+            arg0->unk5C = v1;
+        }
+    }
+    arg0->unk2C += *ptr * D_800BE9A4;
+    arg0->unk30 += *ptr * D_800BE9A4;
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136918.s")
 
@@ -300,28 +293,25 @@ s32 func_15137E10(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513ABB8.s")
 
-// NON-MATCHING: mips_to_c reconstruction, hand-typed. Decrements a counter
-// at arg0+0x170 when arg2==0x45, OR-ing a flag bit at arg0+0x60 if it goes
-// negative. Also notable: target reads arg0+0x170 via plain `lw` (integer),
-// which directly contradicts struct210's speculative `f32 unk170` from the
-// never-confirmed func_15141564 - used raw pointer casts here instead of
-// asserting a struct210 field to avoid compounding that unresolved
-// conflict. Same root cause as func_15141564 above: IDO -O2 always
-// recomputes the arg0+0x170 offset directly instead of keeping a live
-// base-pointer register, even with an explicit local pointer in source.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513B0B8.s")
-// void func_1513B0B8(void *arg0, s32 arg1, u8 arg2) {
-//     s32 *p;
-//     s32 t8;
-//
-//     if (arg2 == 0x45) {
-//         p = (s32 *) ((char *) arg0 + 0x170);
-//         t8 = *p - 1;
-//         *p = t8;
-//         if (t8 < 0) {
-//             *(s32 *) ((char *) arg0 + 0x60) |= 0x80;
-//         }
-//     }
-// }
+// Decrements a counter at arg0+0x170 when arg2==0x45, OR-ing a flag bit at
+// arg0+0x60 if it goes negative. Target reads arg0+0x170 via plain `lw`
+// (integer), which directly contradicts struct210's speculative `f32
+// unk170` from the never-confirmed func_15141564 - used raw pointer casts
+// here instead of asserting a struct210 field to avoid compounding that
+// unresolved conflict. Matched by declaring the pointer UNCONDITIONALLY
+// before the `if`, rather than inside it: IDO then folds the address
+// computation into the branch's delay slot (matching target exactly)
+// instead of recomputing/dropping it. See HANDOFF.md for the general
+// pattern.
+void func_1513B0B8(void *arg0, s32 arg1, u8 arg2) {
+    s32 *p = (s32 *) ((char *) arg0 + 0x170);
+
+    if (arg2 == 0x45) {
+        *p -= 1;
+        if (*p < 0) {
+            *(s32 *) ((char *) arg0 + 0x60) |= 0x80;
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513B0F8.s")

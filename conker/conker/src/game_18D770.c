@@ -1162,20 +1162,25 @@ s32 func_1516429C(struct237 *arg0) {
 }
 
 // what structs?
-// NON-MATCHING: mips_to_c reconstruction, hand-typed. Copies arg1's
-// fields into *arg0's unk18/unk14->unk5..7 when arg2==0x33 and a byte
-// match. Target materializes arg0+0x18 as a live pointer for the float
-// copy (same "IDO won't keep an intermediate pointer" issue as
-// func_15141564/func_1513B0B8 above); direct offset access didn't match.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_1516434C.s")
-// void func_1516434C(void *arg0, void *arg1, u8 arg2) {
-//     if (arg2 == 0x33 && *((u8 *) arg1 + 4) == *((u8 *) arg0 + 0x1C)) {
-//         *(f32 *) ((char *) arg0 + 0x18) = *(f32 *) arg1;
-//         *(u8 *) (*(char **) ((char *) arg0 + 0x14) + 5) = *((u8 *) arg1 + 5);
-//         *(u8 *) (*(char **) ((char *) arg0 + 0x14) + 6) = *((u8 *) arg1 + 6);
-//         *(u8 *) (*(char **) ((char *) arg0 + 0x14) + 7) = *((u8 *) arg1 + 7);
-//     }
-// }
+// Copies arg1's fields into *arg0's unk18/unk14->unk5..7 when arg2==0x33
+// and a byte match at arg0+0x1C (arg0+0x18's id sub-field, not arg0+0x18
+// itself - that's the float value being copied). Matched by declaring the
+// arg0+0x18 pointer UNCONDITIONALLY before the outer `if` (folds into its
+// delay slot) and using two nested ifs (not &&, which built a different
+// branch shape) - see the func_1513B0B8 fix and HANDOFF.md for the general
+// pattern.
+void func_1516434C(void *arg0, void *arg1, u8 arg2) {
+    void *p = (char *) arg0 + 0x18;
+
+    if (arg2 == 0x33) {
+        if (*((u8 *) arg1 + 4) == *((u8 *) p + 4)) {
+            *(f32 *) p = *(f32 *) arg1;
+            (*(u8 **) ((char *) arg0 + 0x14))[5] = *((u8 *) arg1 + 5);
+            (*(u8 **) ((char *) arg0 + 0x14))[6] = *((u8 *) arg1 + 6);
+            (*(u8 **) ((char *) arg0 + 0x14))[7] = *((u8 *) arg1 + 7);
+        }
+    }
+}
 
 void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2) {
     struct227 *tmp;

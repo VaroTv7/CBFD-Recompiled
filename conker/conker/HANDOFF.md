@@ -7260,3 +7260,68 @@ Renaming: none of the 13 new byte-perfect functions this round were
 renamed — every one is referenced by name from at least one raw
 `asm/*.s` file (data table or `jal` call site), consistent with the
 standing gitignored-`asm/`-tree constraint.
+
+## Cracking the "IDO won't keep an intermediate pointer materialized" pattern
+
+Follow-up session specifically targeting the recurring near-miss category
+documented above (`func_15141564`, `func_1513B0B8`, `func_151368A8`,
+`func_1516434C`, `func_1513B0B8` originally, etc.) instead of doing more
+batches. Result: **found the general fix**, and converted 3 of these
+near-misses to byte-perfect (`func_1513B0B8`, `func_151368A8` in
+`game_161520.c`, `func_1516434C` in `game_18D770.c`).
+
+**The technique**: when target computes `ptr = &arg0->field` and then
+reads/writes through it inside an `if`, declare and initialize the
+pointer **unconditionally at the top of the function**, before the `if`
+— not inside the branch, even though it's only dereferenced there. IDO
+`-O2` then folds the address computation into the branch instruction's
+delay slot (it's "free" there since the delay slot executes regardless
+of branch outcome for `bne`/`beq`/`bgez` etc.), exactly matching how the
+target computes the address unconditionally and reuses one register for
+every subsequent load/store through it. When the pointer is instead
+assigned *inside* the conditional, IDO tends to either drop it and
+recompute the raw offset at each use, or place it after the branch
+instead of using the delay slot — either way it stops matching.
+
+Verified byte-for-byte with a minimal isolated test harness (compiling
+throwaway variants directly with the project's own `ido5.3_recomp/cc`
+under `wsl.exe`, no need for the full `make`) before touching real
+source — much faster than round-tripping through the whole build for
+each variant. See the compile invocation used for any `src/*.c` file in
+`build_log.txt` (same flags, just point `-o`/input at a scratch file).
+
+Caveats/extra findings from this round:
+- `func_151368A8`'s near-miss draft had a genuine **logic bug**, not
+  just a codegen mismatch: the condition was written `>=` where the
+  target (and its sibling `func_15136A1C`, already byte-perfect) uses
+  `<`. Always double-check a near-miss's *semantics* against any
+  byte-perfect sibling doing the same pattern before assuming it's
+  purely a codegen issue.
+- `func_1516434C`'s near-miss draft compared the wrong sub-field: it
+  compared `arg1+4` against `arg0+0x1C` directly, which happens to be
+  numerically identical to `(arg0+0x18)+4`, but writing it as a
+  separate hoisted pointer's `+4` offset (rather than a fresh
+  `arg0+0x1C` computation) is what let the pointer land in the branch's
+  delay slot and match.
+- For functions where the same struct member is reached through **two
+  different-looking expressions that are actually the same address**
+  (e.g. one path does `arg0+0x154` directly, another goes through
+  `arg0+0x110` then `+0x44`, and `0x110+0x44==0x154`), IDO's optimizer
+  proves them equal at compile time and always canonicalizes to one
+  address — it will NOT reproduce a target binary that computes the
+  address two different ways for what LTO can see is the same pointer.
+  `func_1514143C` (`game_16DC80.c`) is exactly this case: target
+  genuinely computes `arg0+0x110` then loads `+0x44` for the write
+  target, but does a *separate*, non-arithmetically-equivalent read of
+  `arg0+0x154` for the null check — meaning these are almost certainly
+  two textually/semantically different fields in the original source
+  (possibly a redundant cached pointer, or a union) that happen to
+  alias at runtime, not something forceable from a single derived
+  pointer. Left as a documented near-miss; needs someone to figure out
+  the real dual-field relationship, not just the pointer-hoisting trick.
+- The general pointer-hoisting trick does NOT apply to pointer-to-pointer
+  fields loaded from memory (e.g. `*(arg0->fieldAtSomeOffset)`) — target
+  reloads those fresh from memory at every use (see the `arg0->unk14`
+  triple-reload in `func_1516434C`, and the `arg0->unk154`-derived
+  pointer reloads in `func_1514143C`). Don't try to cache those in a
+  local either; matching means NOT caching them, same as before.
