@@ -475,7 +475,36 @@ void func_15076760(void) {
 }
 
 // ???
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Dispatches on
+// D_800D1890: case 0 calls func_15197A7C(gCurrentObject); case 1
+// builds a struct199 (unk24/28/2C = gCurrentObject's x/-390.0f/z,
+// matching the already-confirmed func_15074C00's struct199 usage
+// pattern), calls func_1504715C on it, then func_1514B364. A switch
+// (not if/else-if) was needed to get the beqz/beq branch shape right,
+// and the position fields must be written *before* the
+// func_1504715C call in source (not after) to match target's actual
+// read-then-build order. One gap left: target hoists the
+// `lui a1,%hi(gCurrentObject)` for case 1's reload into the
+// case-1-selecting beq's delay slot (empty/nop in every source form
+// tried here), making this reconstruction exactly one instruction (4
+// bytes) longer than target.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15076768.s")
+// void func_15076768(void) {
+//     struct199 tmp;
+//
+//     switch (D_800D1890) {
+//         case 0:
+//             func_15197A7C(gCurrentObject);
+//             break;
+//         case 1:
+//             tmp.unk24 = gCurrentObject->x_position;
+//             tmp.unk28 = -390.0f;
+//             tmp.unk2C = gCurrentObject->z_position;
+//             func_1504715C(&tmp);
+//             func_1514B364(&tmp.unk24, &tmp, 0xFF, 0);
+//             break;
+//     }
+// }
 
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_150767F4.s")
