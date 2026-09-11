@@ -4,20 +4,17 @@
 #include "variables.h"
 
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C2F0.s")
-// void *func_1515C2F0(void *arg0, void *arg1, s32 arg2, s32 arg3, u8 arg4, s32 arg5) {
-//     void *sp3C;
-//     void *temp_v0;
-//
-//     arg0->unk10 = 0xA;
-//     temp_v0 = func_15147A80(&arg1->unk40, 0x10, 8, 8, 8, 0, 0, arg3, (s32) arg4, arg5);
-//     if (temp_v0 == 0) {
-//         return NULL;
-//     }
-//     sp3C = temp_v0;
-//     memcpy(temp_v0->unk98, arg2, 0x3C); // memcpy
-//     return sp3C;
-// }
+void *func_1515C2F0(void *arg0, void *arg1, void *arg2, void *arg3, u8 arg4, s32 arg5) {
+    void *v1;
+
+    *(s32 *) ((char *) arg0 + 0x10) = 10;
+    v1 = func_15147A80(arg0, (char *) arg1 + 0x40, 0x10, 8, 8, 8, 0, 0, arg3, arg4, arg5);
+    if (v1 == 0) {
+        return 0;
+    }
+    memcpy(*(void **) ((char *) v1 + 0x98), arg2, 0x3C);
+    return v1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C388.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C534.s")
