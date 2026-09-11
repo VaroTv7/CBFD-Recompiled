@@ -1022,6 +1022,8 @@ extern u8  D_800CC3D4[];
 extern s8  D_800CC3D7;
 extern u8  D_800CC3F5[] ; // ??
 
+extern u8  D_800CC40F[];
+
 extern struct127  D_800CC5A0[];
 extern u8  D_800CC521[]; // ??
 
