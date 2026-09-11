@@ -395,7 +395,7 @@ void func_15048F90();
 void func_15049148(struct17 *arg0, f32 arg1, struct17 *arg2);
 void func_1504917C();
 void func_150491EC();
-void func_150492CC();
+void func_150492CC(f32 arg0, f32 arg1, f32 arg2);
 s32 func_15049440(f32 arg0[4][4], f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8, f32 arg9);
 f32  func_1504A5E0();
 s32  func_1504AEF4();
