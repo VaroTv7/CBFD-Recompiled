@@ -74,6 +74,21 @@ s32 func_1515D030(void *arg0, void *arg1) {
     return v1;
 }
 
+// NON-MATCHING: register-choice gap only in the dead-branch prologue.
+// The reconstruction below reproduces target's full instruction count,
+// stack layout (sp30/sp34/sp38/sp3C at the same offsets, 0x40 frame),
+// branch structure (including the always-false "temp_v0 < 0" dead branch
+// from the unsigned-byte-load-then-signed-compare pattern - see
+// func_1506196C/func_1513532C/func_150770E4 for the same hard category),
+// and the shared-merge tail (no early "return 0" duplicate-epilogue; the
+// null check is written as "if (ptr) memcpy(...); return ptr;" so IDO
+// reuses the same v1-carries-0-through-delay-slot merge target does).
+// The one remaining gap: target computes the raw arg0->unk18 load into
+// $t7 and the masked comparison value into $v0 (reusing $t8 for the later
+// arg0 reload), while this reconstruction gets the same 5 instructions
+// with the same opcodes/immediates but $v0/$v1/$t7 chosen instead of
+// $t7/$v0/$t8 - not reproducible via struct-vs-raw-pointer field access,
+// OR-operand order, or union-based byte/word aliasing for sp38.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515D088.s")
 // s32 func_1515D088(void *arg0) {
 //     s32 sp3C;
