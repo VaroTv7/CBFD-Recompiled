@@ -19,6 +19,19 @@ void *func_1515C2F0(void *arg0, void *arg1, void *arg2, void *arg3, u8 arg4, s32
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C388.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C534.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515C6F4.s")
+// NON-MATCHING: register-allocation gap only, logic is byte-verified correct.
+// The reconstruction below produces every instruction target has EXCEPT
+// that computing "temp_t1 = temp_v1 + arg0->unk2E * 0x10" once and reusing
+// it for the 3 s32 field stores forces IDO to allocate that address into
+// $a1 (clobbering the arg1 parameter register), requiring a spurious
+// "move $a2, $a1" at function entry not present in target. Target instead
+// keeps arg1 in $a1 for the whole function and reaches the 3 stores via
+// $at (used twice, back-to-back, as a throwaway reload target) plus one
+// normal temp register - a specific IDO register-pressure choice that
+// could not be reproduced by varying cast forms, declaration order, or
+// whether the address is named vs recomputed per-store. See func_1515D030
+// (the matching pop counterpart to this push) for the struct-offset style
+// used here.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1897A0/func_1515CF9C.s")
 // s32 func_1515CF9C(void *arg0, void *arg1) {
 //     s32 temp_v1;
