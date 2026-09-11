@@ -510,18 +510,30 @@ s32 func_151253CC(struct108 *arg0) {
 // no idea what going on here
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15125490.s")
 
+// NON-MATCHING: mips_to_c reconstruction, hand-typed. Scales unk380/388
+// into unk3A0/398 by D_800A352C, calls func_15124AB4 then
+// func_151239CC(arg0, 1), clears arg0->unk3D4->unk198/unk73C/unk670,
+// and points unk3D0 at gObjects[arg1]. Confirmed this round: naming
+// D_800A352C's load as a single local (`f32 scale = D_800A352C;`)
+// reused for both multiplies - not read twice - matches target's f0
+// register reuse exactly, and every other instruction/offset in the
+// function matches target byte-for-byte including the exact
+// unk670-before-unk3D0 write order. The one remaining gap: target's
+// prologue loads D_800A352C's address *before* spilling the incoming
+// a0/a1 registers to their stack shadow slots; every source form
+// tried here spills first, so the two instruction pairs land swapped.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_151254F4.s")
-// NON-MATCHING: first statements in wrong order
 // void func_151254F4(struct108 *arg0, s32 arg1) {
-//     f32 tmp = D_800A352C;
-//     arg0->unk3A0 = tmp * arg0->unk380;
-//     arg0->unk398 = tmp * arg0->unk388;
+//     f32 scale = D_800A352C;
+//
+//     arg0->unk3A0 = arg0->unk380 * scale;
+//     arg0->unk398 = arg0->unk388 * scale;
 //     func_15124AB4(arg0);
 //     func_151239CC(arg0, 1);
 //     arg0->unk3D4->unk198 = 0;
 //     arg0->unk73C = 0;
-//     arg0->unk3D0 = &gObjects[arg1];
 //     arg0->unk670 = 0.0f;
+//     arg0->unk3D0 = &gObjects[arg1];
 // }
 
 void func_15125594(struct108 *arg0) {
