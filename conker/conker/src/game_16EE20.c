@@ -338,13 +338,24 @@ void func_1514373C(f32 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
     *arg2 = arg1 * s;
     *arg3 = arg1 * c;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143794.s")
+void func_15143794(s16 arg0, s16 arg1, f32 arg2, void *arg3) {
+    f32 r1 = func_151423D8((u8) arg0);
+    f32 r2 = func_151423D8((u8) (arg0 - 0x40));
+    f32 r3 = func_151423D8((u8) arg1);
+    f32 r4 = func_151423D8((u8) (arg1 - 0x40));
+    f32 tmp = arg2 * r3;
+
+    ((f32 *) arg3)[0] = tmp * r2;
+    ((f32 *) arg3)[1] = -arg2 * r4;
+    ((f32 *) arg3)[2] = tmp * r1;
+}
+
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Sign-extends arg0
-// and arg1 to s16 and forwards them with arg2 to the still-raw
-// func_15143794. Target round-trips arg2 through the FPU (mtc1 then
-// mfc1, same register) before the call - a single conversion - while
-// every source form tried here produced extra float instructions
-// instead of reproducing that exact one-step round-trip.
+// and arg1 to s16 and forwards them with arg2 to func_15143794.
+// Target round-trips arg2 through the FPU (mtc1 then mfc1, same
+// register) before the call - a single conversion - while every
+// source form tried here produced extra float instructions instead
+// of reproducing that exact one-step round-trip.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143834.s")
 // void func_15143834(s16 arg0, s16 arg1, f32 arg2) {
 //     func_15143794(arg0, arg1, arg2);
