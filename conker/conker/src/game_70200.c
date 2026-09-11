@@ -14,7 +14,17 @@ void func_15042D78( u8 arg0) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15042D94.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15042E3C.s")
+void func_15042E3C(s32 arg0, ...) {
+    char *va = (char *) &arg0 + sizeof(arg0);
+    s32 buf[16];
+    s32 i;
+
+    for (i = 0; i < 16; i++) {
+        va = (char *) (((int) va + 3) & ~3) + 4;
+        buf[i] = *(s32 *) (va - 4);
+    }
+    func_15042ECC(arg0, buf);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15042ECC.s")
 
 void func_150432BC(f32 arg0) {

@@ -364,6 +364,7 @@ s32  func_1504082C();
 void func_150408CC();
 void func_15042D50();
 void func_15042D78(u8 arg0);
+void func_15042ECC();
 void func_150432BC(f32 arg0);
 void func_150432CC();
 void func_150432FC(s16 arg0, s16 arg1);
