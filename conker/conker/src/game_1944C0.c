@@ -262,6 +262,36 @@ void func_15168E34(s32 *arg0, s32 arg1) {
 //     tmp.id = arg0->unique_id;
 //     func_15169040(&tmp, arg1);
 // }
+// NON-MATCHING: how the u8 3rd argument gets masked before the tail call
+// differs. Confirmed via func_151616D0 (src/game_18D770.c) - a sibling
+// call site to the same func_1516944C - that func_1516962C's own arg0 is
+// a plain s32 selector (not a pointer) and that the local struct's shape
+// (void* at +0, u8 at +4) is specific to this call, not struct234 (which
+// func_151616D0 uses instead: s8 at +0, s32 at +4 - same callee, two
+// different struct shapes selected by arg0). Everything else reconstructs
+// exactly: the void*+u8 local, the addr-of-local as the new arg1, and the
+// arg1->unk3B byte forwarded into the local's 2nd field. Target masks arg2
+// as literally its first two instructions (andi then move, right after
+// the sp adjust, before even saving $ra) and keeps the pre-mask value's
+// own argument-save store; this reconstruction's u8-typed parameter gets
+// its raw argument-save store too, but the actual masked-value use at the
+// call site compiles to a single late lbu reload from that save slot
+// instead of an early andi+move pair - one fewer instruction overall (14
+// vs target's 15). Tried: u8 vs s32 parameter type, an explicit early
+// self-mask statement (arg2 &= 0xFF placed first), an inline (u8)/(s32)
+// cast at the call site, and a separate named local for the masked value
+// - each either lost the argument-save store entirely or kept the late
+// lbu reload.
+// void func_1516962C(s32 arg0, void *arg1, u8 arg2) {
+//     struct {
+//         void *ptr;
+//         u8 flag;
+//     } local;
+//
+//     local.ptr = arg1;
+//     local.flag = arg1->unk3B;
+//     func_1516944C(arg0, &local, arg2);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516962C.s")
 extern u8 D_800D2DAB;
 
