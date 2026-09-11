@@ -260,7 +260,20 @@ s32 func_15136A1C(struct102 *arg0) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136A50.s")
+void func_15136A50(s32 arg0, s32 arg1, s32 arg2, s16 arg3, u8 arg4, s32 arg5) {
+    struct {
+        s32 f0; s32 f4; s32 f8; f32 fC; f32 f10; s16 f14;
+        u8 f16; u8 f17; u8 f18; s8 f19;
+    } local;
+    local.f0 = arg0; local.f4 = arg1; local.f8 = arg2;
+    local.fC = D_800A461C; local.f10 = D_800A4620;
+    local.f14 = arg3;
+    local.f16 = 5;
+    local.f17 = 5;
+    local.f18 = 2;
+    local.f19 = -1;
+    func_15134908(&local, 0, arg4, arg5);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15136AE4.s")
 
