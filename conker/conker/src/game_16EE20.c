@@ -519,7 +519,21 @@ f32 func_15143E64(vertex *arg0) {
 f32 func_15144A74(vertex *arg0, vertex *arg1) {
     return arg0->x * arg1->x + arg0->y * arg1->y + arg0->z * arg1->z;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144AA8.s")
+f32 func_15144AA8(s32 arg0) {
+    f32 v = *(f32 *) ((char *) D_800DBFF0 + arg0 * 2464 + 0x380);
+
+    if (v > 360.0f) {
+        do {
+            v -= 360.0f;
+        } while (v > 360.0f);
+    }
+    if (v < 0.0f) {
+        do {
+            v += 360.0f;
+        } while (v < 0.0f);
+    }
+    return v;
+}
 // D_800DBFF0 is struct108[]; arg0 selects an element and this returns a
 // pointer to its field at offset 0x2F8 (per func_151454BC below, that
 // field is a struct17 - a vec3-like x/y/z position).
