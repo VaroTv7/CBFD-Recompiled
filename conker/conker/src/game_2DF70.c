@@ -246,6 +246,33 @@ void func_15002724(s32 arg0) {
     D_800DBE38 += func_150027F8(arg0);
 }
 
+// NON-MATCHING: register-choice gap only, logic and instruction shapes
+// verified identical to target. Bump-allocates three sub-buffers (sizes
+// count*12, count*8, count*4, where count=D_800DBE38) from the 4-byte-
+// aligned heap pointer D_800B0DC0, recording each sub-buffer's start
+// address into D_800DBDD8[idx]/D_800DBDE8[idx]/D_800DBDF8[idx] (idx =
+// D_800DBE50), then calls func_1510F800() and resets D_800DBE38. Every
+// instruction's opcode/operand matches target (including the identical
+// "x*4-x, then *4" constant-multiplication strategy IDO picks for *12),
+// but target puts count in $a2 and idx in $a0 for the multiply/index
+// steps while every source variant tried here (both declaration orders,
+// inline vs named locals, load-order swaps) puts count in $a0 and idx
+// in $a2/$a1 instead - the opposite pairing, decided by something other
+// than source order since swapping it in C had no effect.
+// void func_15002754(void) {
+//     s32 count = D_800DBE38;
+//     s32 idx = D_800DBE50;
+//
+//     D_800B0DC0 = (D_800B0DC0 + 3) & ~3;
+//     D_800DBDD8[idx] = D_800B0DC0;
+//     D_800B0DC0 += count * 12;
+//     D_800DBDE8[idx] = D_800B0DC0;
+//     D_800B0DC0 += count * 8;
+//     D_800DBDF8[idx] = D_800B0DC0;
+//     D_800B0DC0 += count * 4;
+//     func_1510F800();
+//     D_800DBE38 = 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_15002754.s")
 
 
