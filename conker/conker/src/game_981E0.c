@@ -546,7 +546,19 @@ void func_1506DBD4(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506DC10.s")
+void func_1506DC10(void) {
+    s32 a0;
+    s32 v1;
+
+    if (gCurrentObject->unk118 - 60.0f < gCurrentObject->y_position ||
+        gCurrentObject->unk118 == D_80099D50) {
+        v1 = func_150ADA20() & 3;
+        a0 = (v1 >= 2) ? (v1 + 0x612) : (v1 + 0x8F);
+    } else {
+        a0 = 9;
+    }
+    func_15060A9C(a0, gCurrentObject);
+}
 
 void func_1506DCA4(void) {
     gCurrentObject->unk2E8 = D_800D1580;

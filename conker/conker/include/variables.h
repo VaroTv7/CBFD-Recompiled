@@ -625,6 +625,7 @@ extern f32 D_80099C44;
 
 extern f32 D_80099D44;
 extern f32 D_80099D4C;
+extern f32 D_80099D50;
 extern f32 D_80099DA0;
 extern f32 D_80099DA4;
 extern f32 D_80099DA8;
