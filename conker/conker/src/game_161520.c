@@ -140,6 +140,32 @@ void func_15134CD4(f32 arg0, f32 arg1, s32 arg2, s32 arg3) {
 //     return 1;
 // }
 
+// NON-MATCHING: single-register gap only - 1 instruction out of 31
+// differs, everything else (both branch guards, the memcpy call and
+// its exact v1-spill stack offset, every subsequent field store and
+// its order) verified instruction-for-instruction identical. Target
+// loads arg0->unk28 (a s16 field) into $t9 right before negating it
+// into $t0; every C form tried here (inline cast, a named "field28"
+// intermediate, a (s16*) array-index cast, declaring the negation
+// result before vs after the func_15167A68 call) puts that same load
+// in $a0 instead - a spurious reuse of the function's own (long-dead
+// at this point) first parameter register that never happens in
+// target.
+// void *func_15134DAC(void *arg0, s32 arg1) {
+//     void *v1 = func_15167A68(0x29, 0, arg1 + 0x80, 1, 0xFF, 1);
+//
+//     if (v1 == 0) {
+//         return v1;
+//     }
+//     memcpy((char *) v1 + 0x18, arg0, 0x3C);
+//     *(s32 *) ((char *) v1 + 0x10) = 1;
+//     *(s16 *) ((char *) v1 + 0x54) = -*(s16 *) ((char *) arg0 + 0x28);
+//     *(s32 *) ((char *) v1 + 0x14) = 0;
+//     *(f32 *) ((char *) v1 + 0x70) = 0.0f;
+//     *(f32 *) ((char *) v1 + 0x74) = 0.0f;
+//     *(f32 *) ((char *) v1 + 0x78) = 0.0f;
+//     return v1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134DAC.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134E48.s")
