@@ -458,6 +458,34 @@ void func_1506D570(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506D584.s")
 // ???
+// NON-MATCHING: register-choice gap in the last 4 instructions only -
+// everything else verified instruction-for-instruction identical,
+// including both bc1tl early-return guards, the health-based ternary
+// needing its true-value (0x29) set unconditionally first with the
+// false-value (0x2C) as the bnez-delay override (same "value computed
+// first, conditionally overwritten" shape as func_15043B70), and the
+// &D_800D1580 address computation landing at the exact same hoisted
+// position as target (right after the unk1A6 load, well before its
+// use). Only the final "reload D_800D1580, shift v0<<24, mask low
+// 16 bits, OR together, store back" sequence differs: target uses
+// $t0/$t9/$t1/$t2 for load/shift/andi/or, every C form tried here
+// (both `&` operand orders, a named intermediate "cur" local forcing
+// an early hoist, a (u16) cast instead of `& 0xFFFF` - which changed
+// the instruction count instead) lands on $t9/$t8/$t0/$t1, a
+// consistent one-register-down shift of the same four-register window.
+// void func_1506D6B4(void) {
+//     s32 v0;
+//
+//     if (gCurrentObject->unk118 == D_80099D4C) {
+//         return;
+//     }
+//     if (gCurrentObject->unk118 < (f32) gCurrentObject->unk1A6) {
+//         return;
+//     }
+//     v0 = (gCurrentObject->health >= 2) ? 0x2C : 0x29;
+//     D_800D1580 = (v0 << 24) | (D_800D1580 & 0xFFFF);
+//     func_1506D584();
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506D6B4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506D74C.s")
 
