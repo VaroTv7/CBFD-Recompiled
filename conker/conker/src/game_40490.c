@@ -216,5 +216,26 @@ s32 func_15015300(struct134 *arg0) {
 
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15015354.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15015644.s")
+s32 func_15015644(void *arg0) {
+    struct {
+        void *f0;
+        f32 f4;
+        void *f8;
+        u8 fC;
+    } local;
+    void *v0;
+
+    *(u8 *) ((char *) arg0 + 0x16) |= 4;
+    *(u8 *) ((char *) arg0 + 0x14) = 1;
+    local.f0 = arg0;
+    local.f4 = func_15144598(arg0);
+    func_1510F800(0);
+    local.f8 = func_1510FD20(*(s16 *) ((char *) arg0 + 0x0), *(s16 *) ((char *) arg0 + 0x4));
+    local.fC = 0;
+    v0 = func_15149130(300, -1, 0x44, -1, 0, 0x2F, (struct37 *) 0x10, 0xFF, 0);
+    if (v0 != 0) {
+        memcpy((char *) v0 + 0x28, &local, 0x10);
+    }
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150156F4.s")

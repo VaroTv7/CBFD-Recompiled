@@ -1092,6 +1092,7 @@ void func_150EA904();
 void func_1510B32C();
 void func_1510B958();
 s32  func_1510B9D0();
+void    func_1510F800();
 void *  func_1510FD20();
 s32  func_15123934();
 s32  func_151239CC();
