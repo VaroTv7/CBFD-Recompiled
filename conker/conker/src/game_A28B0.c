@@ -635,20 +635,35 @@ void func_15076D04(void) {
     gCurrentObject->xz_velocity = D_800D1890;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15076D3C.s")
-// ???
+// NON-MATCHING: register-choice gap only, tied to a single persistent
+// scheduling difference - 46 of 46 instructions match target in count,
+// opcode, and operand structure, but target loads D_8009A144 into $f0
+// as literally its 3rd/4th instructions (interleaved into the middle
+// of computing &gCurrentObject: lui v0 / lui at+lwc1 f0 / addiu v0),
+// while every source variant tried here (declaring the scale read
+// first, last, mid-sequence, via an initializer, or through an
+// explicit &gCurrentObject indirection) gets it scheduled right before
+// its first use instead, shifting several $t-register assignments
+// throughout without changing the instruction count. Also fixed two
+// real bugs in the old draft: the call's first argument is
+// gCurrentObject itself (the pointer value), not &gCurrentObject (the
+// old draft's guess), and func_15062BDC's 2nd/3rd float args pass as
+// raw bits through $a1/$a2 (per o32: only args 1-2 use $f12/$f14, and
+// arg0 here is a pointer) matching its existing real prototype.
 // void func_15076D3C(void) {
-//     s32 temp_a3;
+//     f32 scale = D_8009A144;
+//     s32 tmp1;
 //     s32 tmp2;
 //
-//     temp_a3 = D_800D1892 | (D_800D1893 << 8);
-//     tmp2 = D_800D1890 | (D_800D1891 << 8);
-//     gCurrentObject->xz_scale = (s16)tmp2 * D_8009A144;
-//     gCurrentObject->y_scale = (s16)temp_a3 * D_8009A144;
+//     tmp1 = D_800D1890 | (D_800D1891 << 8);
+//     tmp2 = D_800D1892 | (D_800D1893 << 8);
+//     gCurrentObject->xz_scale = (s16) tmp1 * scale;
+//     gCurrentObject->y_scale = (s16) tmp2 * scale;
 //     gCurrentObject->unk154 = gCurrentObject->xz_scale;
 //     gCurrentObject->unk158 = gCurrentObject->y_scale;
-//     func_15062BDC(&gCurrentObject, gCurrentObject->xz_scale, gCurrentObject->y_scale);
+//     func_15062BDC(gCurrentObject, gCurrentObject->xz_scale, gCurrentObject->y_scale);
 // }
+#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15076D3C.s")
 
 void func_15076DF4(void) {
     gCurrentObject->interaction_state = D_800D1890;
