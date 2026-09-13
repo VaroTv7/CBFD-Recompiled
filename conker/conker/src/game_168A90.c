@@ -145,6 +145,64 @@ s32 func_1513BAD4(s32 arg0, s32 arg1) {
     return 0;
 }
 
+// NON-MATCHING: full field-level semantics recovered and verified via
+// isolated harness - builds a 0x39-byte config buffer (individually
+// typed/valued fields at every offset) plus a separate 5-float source
+// array, passes the buffer to func_1513B5E0(buf, 1, 0x14, 0xFF, 1) (a
+// 5-arg call - the 5th argument is what the raw asm's mysterious
+// `sw $t9, 0x10($sp)` turned out to be: the o32 ABI's stack slot for a
+// 5th call argument, not a separate local), then either calls
+// func_1516972C() or memcpys the float array into the returned
+// pointer's (unk50 + 0xF8) location depending on that returned
+// pointer's own unk50 field. Total frame size (0x78), field values,
+// field types/widths, and every constant-load/store instruction's
+// program ORDER all match exactly (including the odd non-sequential
+// float-store order 0,1,3,4,2 that only two separate scalar-like writes
+// in that literal order reproduce). The one remaining gap: every local
+// layout tried lands the returned-pointer spill-across-calls slot at a
+// different stack address than target's (target keeps it at the very
+// top of the frame, 0x74; every C structure tried here places it lower,
+// pushing the two data blocks 4 bytes higher than target throughout).
+// void *func_1513BAE8(void) {
+//     u8 st[0x39];
+//     f32 farr[5];
+//     s32 t1;
+//     void *v0;
+//
+//     st[1] = 2;
+//     st[2] = 5;
+//     *(s16 *) (st + 4) = 0x12C;
+//     *(s32 *) (st + 0x30) = 9;
+//
+//     farr[0] = 0.0f;
+//     farr[1] = 0.0f;
+//     farr[3] = 0.0f;
+//     farr[4] = 0.0f;
+//     farr[2] = 0.0f;
+//     st[0] = 0;
+//     *(s32 *) (st + 0x34) = 0x1AE;
+//     *(s32 *) (st + 8) = 1;
+//     *(s32 *) (st + 0xC) = 0x220205;
+//     *(s32 *) (st + 0x10) = 0x40600;
+//     st[0x24] = 0;
+//     st[0x25] = 0;
+//     *(s32 *) (st + 0x14) = 1;
+//     *(s32 *) (st + 0x18) = 0x36;
+//     *(s32 *) (st + 0x1C) = 0x80;
+//     *(s32 *) (st + 0x20) = 0x20;
+//     st[0x38] = 3;
+//
+//     v0 = func_1513B5E0(st, 1, 0x14, 0xFF, 1);
+//     if (v0 != NULL) {
+//         t1 = *(s32 *) ((char *) v0 + 0x50);
+//         if (t1 == 0x1180) {
+//             memcpy((char *) v0 + t1 + 0xF8, farr, 0x14);
+//         } else {
+//             func_1516972C();
+//         }
+//     }
+//     return v0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_168A90/func_1513BAE8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_168A90/func_1513BBFC.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_168A90/func_1513BEB0.s")
