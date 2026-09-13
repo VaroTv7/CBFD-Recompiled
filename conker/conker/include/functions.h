@@ -376,6 +376,7 @@ void func_15043EC8(f32 mtx[4][4], f32 x, f32 y, f32 z, f32 arg4, f32 arg5, f32 a
 void func_15043FF0();
 void func_150442C0(f32 arg0[4][4], f32 x, f32 y, f32 z);
 void func_15047F00();
+void func_1504715C();
 void func_15048134();
 f32  func_150484A0(f32 arg0, f32 arg1);
 u16  func_15048664(s16 arg0);
@@ -830,6 +831,7 @@ void func_151DB330();
 void func_151DB3D8();
 void func_151DB43C();
 void func_151DBBD4();
+void func_151DC484();
 void func_151F0080();
 void func_151F00E0();
 

@@ -577,6 +577,7 @@ extern f32 D_800990B4; // 0.6931471824645996f
 extern s8  D_80099140[];
 extern u16 D_8009919C[6];
 extern s32 D_80099BB8;
+extern f32 D_80099BBC;
 extern f32 D_800991A8;
 extern f32 D_800991AC;
 extern f32 D_800991B0;

@@ -1373,7 +1373,29 @@ void func_15071A34(s32 arg0) {
     func_151D09A8(gCurrentObject, 0xFF, 1);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071A64.s")
+void func_15071A64(s32 arg0) {
+    char buf2[0xC];
+    char buf1[0x24];
+
+    if ((func_150ADA20() & 1) != 0) {
+        return;
+    }
+    if (gCurrentObject->unk1D4 == 0) {
+        return;
+    }
+    if ((gCurrentObject->unk74 & 0xF) == 0xF) {
+        return;
+    }
+    if (gObjects[0].stunned == 0) {
+        return;
+    }
+    if (gObjects[0].health <= 0) {
+        return;
+    }
+    func_1504715C(buf1);
+    func_15143134(&D_80099BBC, buf2, (s32) gCurrentObject->unk1D4 + 0x3C0);
+    func_151DC484(buf2, buf1, 0, 0xFF, 1);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071B18.s")
 
 void func_15071D08(s32 arg0) {
