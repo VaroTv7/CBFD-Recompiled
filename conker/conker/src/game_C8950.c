@@ -80,6 +80,77 @@ void func_1509B764(struct249 *arg0) {
     D_800D2F48.length--;
 }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - the insertion counterpart to func_1509B764's removal:
+// inserts arg0 into the D_800D2F48 list in descending order by its
+// masked key (unk0 & 0xFFFF03FF), searching backward from the tail
+// (the same mask constant already used by func_1509B704) until a node
+// with a smaller key is found (insert after it, with a tail-append
+// special case) or the list is exhausted (insert at head). Three of
+// four setup-register roles (length/newKey/one of tail-or-cursor) were
+// recoverable by trying different initializer orderings, and the loop
+// body's exact instruction shape (including target's two dead
+// delay-slot-duplicate stores) was reproduced, but getting the loop
+// body shape right and getting the head/tail-insertion block ORDER
+// right (target lays out the general middle-insertion case
+// immediately after the loop and the insert-at-head fallback last;
+// the natural C control flow here keeps insert-at-head immediately
+// after the loop instead) turned out to be mutually exclusive - every
+// restructuring tried to fix one regressed the other.
+// void func_1509B810(struct249 *arg0) {
+//     s32 length;
+//     struct249 *tail;
+//     struct249 *cursor;
+//     s32 newKey;
+//     s32 count;
+//
+//     tail = D_800D2F48.unk8;
+//     cursor = tail;
+//     newKey = arg0->unk0 & (s32) 0xFFFF03FF;
+//     length = D_800D2F48.length;
+//
+//     if (length == 0) {
+//         D_800D2F48.unk4 = arg0;
+//         D_800D2F48.unk8 = arg0;
+//         arg0->next = NULL;
+//         arg0->prev = NULL;
+//         D_800D2F48.length++;
+//         return;
+//     }
+//
+//     if (length > 0) {
+//         count = 0;
+//         do {
+//             count++;
+//             if ((cursor->unk0 & (s32) 0xFFFF03FF) < newKey) {
+//                 goto insert_after;
+//             }
+//         } while (count < length && (cursor = cursor->prev, 1));
+//     }
+//
+//     {
+//         struct249 *head = D_800D2F48.unk4;
+//         D_800D2F48.unk4 = arg0;
+//         arg0->prev = NULL;
+//         arg0->next = head;
+//         head->prev = arg0;
+//         D_800D2F48.length++;
+//         return;
+//     }
+//
+// insert_after:
+//     arg0->prev = cursor;
+//     if (cursor != tail) {
+//         arg0->next = cursor->next;
+//         cursor->next->prev = arg0;
+//         cursor->next = arg0;
+//     } else {
+//         arg0->next = NULL;
+//         cursor->next = arg0;
+//         D_800D2F48.unk8 = arg0;
+//     }
+//     D_800D2F48.length++;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B810.s")
 
 void func_1509B8FC( s32 arg0) {
