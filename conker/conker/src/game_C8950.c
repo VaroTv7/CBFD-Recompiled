@@ -72,6 +72,48 @@ void func_1509B8FC( s32 arg0) {
     func_1509B950(temp_v0);
 }
 
+// NON-MATCHING: register-choice gap only from the "unk6" read onward -
+// same instruction count (15) and identical opcodes/shape for that
+// whole block, just renamed temp registers. Two real structural fixes
+// were needed to get this far: (1) target computes the first 8-byte
+// alignment pad as "8 - (addr & 7)" via its OWN named temp (subu from
+// the constant 8, then a separate addu with the base) rather than the
+// mathematically-equivalent "(addr & 7)" subtracted directly with the
+// +8 folded in afterward - writing "pad = 8 - (...)" as its own
+// statement (not inlined into the addition) was required to get IDO to
+// pick target's subu-from-8-then-add shape instead of a subu-then-
+// addiu-8 shape; (2) target stores the pre-final-alignment value to
+// unk4 (A6020004) even though it's immediately overwritten by the
+// final aligned value two instructions later - a genuine dead store in
+// target that IDO's optimizer eliminates by default for this pattern;
+// marking that specific write through a `volatile u16 *` cast was
+// needed to force it to survive. void func_1509B950(void *arg0) {
+//     u16 v0;
+//     u16 t1;
+//     u16 t0;
+//     u16 pad;
+//     u16 final;
+//     void *newBuf;
+//
+//     v0 = *(u16 *) ((char *) arg0 + 4);
+//     t1 = *(u16 *) ((char *) arg0 + 6);
+//     pad = 8 - (((u32) arg0 + v0) & 7);
+//     t0 = v0 + pad;
+//     v0 = t0 + t1;
+//     final = (v0 - (((u32) arg0 + v0) & 7)) + 8;
+//     *(volatile u16 *) ((char *) arg0 + 4) = v0;
+//     *(u16 *) ((char *) arg0 + 0xA) = t0;
+//     *(u16 *) ((char *) arg0 + 4) = final;
+//     newBuf = allocate_memory(final, 0xFF, 2, 0);
+//     if (newBuf == 0) {
+//         while (1) {
+//         }
+//     }
+//     bcopy(arg0, newBuf, *(u16 *) ((char *) arg0 + 4));
+//     bzero((char *) newBuf + *(u16 *) ((char *) newBuf + 0xA), *(u16 *) ((char *) newBuf + 6));
+//     func_10004074(arg0);
+//     return newBuf;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B950.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509BA04.s")
