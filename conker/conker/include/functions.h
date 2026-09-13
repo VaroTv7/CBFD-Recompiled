@@ -718,6 +718,7 @@ void func_150EC4B0();
 void func_150F51A0();
 s32  func_150F51BC();
 void func_150F51E8();
+void func_150FE860();
 void func_150FCA00();
 
 void func_15100330();
@@ -1123,6 +1124,7 @@ void func_151B8DB0();
 void func_151BC5A4(void *arg0, void *arg1, s32 arg2);
 void func_151D5404();
 void func_151D5714();
+void func_151D8868();
 void func_151D9B8C();
 void func_151DA08C();
 void func_151DBCBC();

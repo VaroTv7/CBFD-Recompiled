@@ -1200,7 +1200,26 @@ void func_15071278(s32 arg0) {
     func_150FC438(gCurrentObject, 0, 1, gCurrentObject->unk84.ub[1]);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150712AC.s")
+void func_150712AC(s32 arg0) {
+    struct {
+        u8 f0;
+        s16 f2;
+        u8 f4;
+        u8 f5;
+        s8 f6;
+    } local;
+
+    func_150FE860(gCurrentObject, 0xFF, 1);
+    if (gCurrentObject->camera == 0) {
+        return;
+    }
+    local.f0 = 1;
+    local.f2 = (u32) func_150ADA20() % 7 + 10;
+    local.f5 = 1 << gCurrentObject->camera->unk23D;
+    local.f4 = (u32) func_150ADA20() % 7 + 2;
+    local.f6 = -1;
+    func_151D8868(&local, 0, 0xFF, 1);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071360.s")
 
 void func_15071434(s32 arg0) {
