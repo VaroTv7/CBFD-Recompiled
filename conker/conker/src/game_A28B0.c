@@ -192,18 +192,39 @@ void func_15075A50(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15075AAC.s")
-// what is D_800D2104?
+// NON-MATCHING: the old draft's indexing was wrong (D_800D2104[a+b] as a
+// single-level sum) - raw-asm tracing shows two separate levels: first
+// D_800D2104[gCurrentObject->unk13F] (4-byte-stride, same pointer-array
+// use as func_15079A98 elsewhere in this file), THEN D_800D1891 indexes
+// 8 bytes into *that* pointer's target (a small unk0/unk4 s16 pair, not
+// struct169 - which is 0x16 bytes, too big for this stride). Corrected
+// indexing verified in isolation to produce every non-fabsf instruction
+// identical to target. Blocked on: target's abs.s here has NO cvt.d.s/
+// cvt.s.d around it, but calling fabsf() in this codebase ALWAYS
+// produces that round-trip regardless of source form - confirmed by
+// checking the ALREADY-MATCHED func_15144C8C's own compiled bytes
+// (game_16EE20.c), which uses fabsf() and does have the exact same
+// round-trip at its linked address, proving it's a real, unavoidable
+// property of this compiler's K&R-unprototyped fabsf intrinsic (its own
+// error text confirms: "a float argument is promoted to a double when
+// passed... to an unprototyped function"), not a source-phrasing issue.
+// Since target's func_15075AAC has no such round-trip, its true source
+// must compute this absolute value some other way than fabsf() - not
+// yet identified (a hand ternary compiles to branches, not abs.s).
 // void func_15075AAC(void) {
-//     struct169 *temp_v0;
+//     char *v0;
+//     f32 a, b;
 //
 //     func_15075548();
-//     temp_v0 = D_800D2104[D_800D1891 + gCurrentObject->unk13F] ;
-//     if (fabsf(temp_v0->unk0 - gCurrentObject->x_position) + (fabsf(temp_v0->unk4 - gCurrentObject->z_position)) < 40.0f) {
+//     v0 = (char *) D_800D2104[gCurrentObject->unk13F] + D_800D1891 * 8;
+//     a = *(s16 *) (v0 + 0) - gCurrentObject->x_position;
+//     b = *(s16 *) (v0 + 4) - gCurrentObject->z_position;
+//     if (fabsf(a) + fabsf(b) < 40.0f) {
 //         gCurrentObject->unk21C = 0;
 //         gCurrentObject->xz_velocity = 0.0f;
 //     }
 // }
+#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15075AAC.s")
 
 void func_15075B60(void) {
     func_15075548();
