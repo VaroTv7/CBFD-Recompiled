@@ -116,6 +116,29 @@ void func_1513BA44(struct132 *arg0) {
     D_80089C54[arg0->unk48]();
 }
 
+// NON-MATCHING: another confirmed instance of the "u8 argument masked
+// as literally the first 2 instructions" hard pattern (see
+// func_1510550C-style cases catalogued this session) - target does
+// `andi $t6,$a2,0xff` / `or $a2,$t6,$zero` before even saving $ra,
+// immediately after spilling the untouched incoming $a2 to its stack
+// home (`sw $a2,0x20($sp)`), then only afterward reads the dispatch
+// selector at arg0+0x48. Every C phrasing tried (`arg2 = (u8) arg2;`,
+// `arg2 &= 0xFF;`, placed as the very first statement before the
+// selector read) gets IDO to both drop the now-apparently-dead
+// incoming-arg stack spill and defer the actual mask instruction into
+// the first branch's delay slot instead - one instruction later and in
+// the wrong position, same gap as every other function in this family.
+// void func_1513BA78(void *arg0, void *arg1, s32 arg2) {
+//     u8 sel;
+//
+//     arg2 = (u8) arg2;
+//     sel = *(u8 *) ((char *) arg0 + 0x48);
+//     if (sel == 1) {
+//         func_15109064(arg0, arg1, arg2);
+//     } else if (sel == 2) {
+//         func_151BA468(arg0, arg1, arg2);
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_168A90/func_1513BA78.s")
 
 s32 func_1513BAD4(s32 arg0, s32 arg1) {
