@@ -789,7 +789,44 @@ void func_15077364(void) {
     gCurrentObject->unk248 = (u8) D_800D1892;
 }
 
-// ??
+// NON-MATCHING: register-choice gap only, same class as func_15076D3C
+// above - 44 of 44 instructions match target in count, opcode, and
+// operand structure (including the guard-clause branch polarity, the
+// multu selection for the s16*s32 product, and the bgezl clamp-to-zero
+// shape), but target reloads gCurrentObject and reads its unk246 field
+// very early (right after recomputing &gCurrentObject, interleaved
+// with reading D_800D1891/D_800D1892), while every source variant
+// tried here (one big expression, a separate early statement, a named
+// "v1 = gCurrentObject" local reused for both field accesses) gets
+// that reload+read scheduled right before its actual use in the final
+// sum instead - IDO appears to defer this specific 3-instruction
+// pointer-chain (recompute address, lw, lbu) as a latency-hiding
+// choice regardless of where it appears in source, cascading into
+// different $t-register numbers without changing the instruction
+// count.
+// void func_15077404(void) {
+//     s32 masked;
+//     s32 a0;
+//     s16 t7;
+//     s32 v0;
+//     s32 t2;
+//
+//     if (D_800D1893 != 0) {
+//         masked = (gCurrentObject->unk246 & 0x1F) << 8;
+//         a0 = (D_800D1891 << 8) + D_800D1892;
+//         t7 = (s16) a0;
+//         v0 = masked + gCurrentObject->unk249 + (t7 * D_800BE9E4);
+//         v0 = (s16) v0;
+//         if (v0 < 0) {
+//             v0 = 0;
+//         }
+//         t2 = v0 >> 8;
+//         gCurrentObject->unk246 = t2 | 0x80;
+//         gCurrentObject->unk249 = (u8) v0;
+//     } else {
+//         gCurrentObject->unk246 = D_800D1890;
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15077404.s")
 
 void func_150774B4(void) {
