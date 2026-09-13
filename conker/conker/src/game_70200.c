@@ -74,7 +74,44 @@ void func_15043A00(struct105 *arg0, s32 arg1, s32 arg2) {
     }
 }
 
-// something with memcpy
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - a wrapping ring-buffer copy: repeatedly memcpy()s from a
+// growing source pointer into arg0 at a position that wraps back to 0
+// once it reaches the buffer size arg1, until the requested length
+// (arg4, a 5th argument passed on the stack per o32 ABI) is exhausted;
+// returns the final wrapped position. The loop body's control flow,
+// every arithmetic operation, and the memcpy call all match target's
+// shape exactly, but IDO consistently swaps which two callee-saved
+// registers ($s3/$s4) hold the buffer-size vs. source-pointer locals
+// regardless of declaration/usage order tried, and schedules the
+// initial argument-to-register copies and callee-saved spills in a
+// different order than target - a register-allocation/scheduling
+// near-miss, not a semantic one.
+// s32 func_15043A20(void *arg0, s32 arg1, s32 arg2, void *arg3, s32 arg4) {
+//     char *src = arg3;
+//     void *dest = arg0;
+//     s32 pos = arg2;
+//     s32 remaining = arg4;
+//     s32 chunk;
+//
+//     if (remaining != 0) {
+//         do {
+//             if (pos + remaining <= arg1) {
+//                 chunk = remaining;
+//             } else {
+//                 chunk = arg1 - pos;
+//             }
+//             memcpy((char *) dest + pos, src, chunk);
+//             pos += chunk;
+//             if (pos >= arg1) {
+//                 pos = 0;
+//             }
+//             src += chunk;
+//             remaining -= chunk;
+//         } while (remaining != 0);
+//     }
+//     return pos;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043A20.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043AC8.s")
 
