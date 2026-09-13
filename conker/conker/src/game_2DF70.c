@@ -209,6 +209,65 @@ u16 *func_15001DE0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
 // 3 loops
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_15002008.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_15002248.s")
+// NON-MATCHING: recursive tree relink (sibling-offset fields at +4 and
+// +0xC, both s16 byte-offsets relative to the current node - +0xC is a
+// "first child" offset, +4 is a "prev/parent" back-offset computed
+// lazily on first visit). First ~18 instructions verified byte-perfect
+// against target including two branch-likely selections that needed
+// specific source shapes: the outer "compute back-offset if unset" had
+// to duplicate the read in both the true and false arms of the child-
+// exists check (not an early-return guard) for IDO to autogenerate
+// target's exact bnel-then-duplicate-lh pattern, and the "arg1==0"
+// ternary needed its true case (arg1!=0) written first to get target's
+// beqz polarity. Blocked on one remaining gap: inside the child-walk,
+// target reloads the child's +4 field TWICE from memory (once as $t7
+// for the has-more-children check, once as a fresh separate $t8 for
+// the sibling-offset value) with no apparent reason not to reuse the
+// first value; every C form tried (early-return guard, if/else with
+// the read duplicated in both arms, an aliasing-workaround cast) gets
+// this CSE'd into a single read plus a spurious "move" instead,
+// shifting every following instruction by one and swapping the
+// $a1/$v1 register pair for target's $t7/$t8.
+// void func_15002560(void *arg0, void *arg1) {
+//     void *s1;
+//     s32 v0;
+//     s32 t8;
+//
+// loop:
+//     if (arg0 == 0) {
+//         return;
+//     }
+//     if (*(s16 *) ((char *) arg0 + 4) == 0) {
+//         if (arg1 != 0) {
+//             v0 = (char *) arg1 - (char *) arg0;
+//         } else {
+//             v0 = 0;
+//         }
+//         *(s16 *) ((char *) arg0 + 4) = v0;
+//     }
+//     v0 = *(s16 *) ((char *) arg0 + 0xC);
+//     if (v0 == 0) {
+//         return;
+//     }
+//     s1 = (char *) arg0 + v0;
+//     if (*(s16 *) ((char *) s1 + 4) == 0) {
+//         goto tail;
+//     }
+//     t8 = *(s16 *) ((char *) s1 + 4);
+// inner:
+//     {
+//         void *s0 = (char *) s1 + t8;
+//         func_15002560(s1, s0);
+//         s1 = s0;
+//     }
+//     if (*(s16 *) ((char *) s1 + 4) != 0) {
+//         t8 = *(s16 *) ((char *) s1 + 4);
+//         goto inner;
+//     }
+// tail:
+//     arg0 = s1;
+//     goto loop;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_15002560.s")
 
 void func_150025FC(void) {
