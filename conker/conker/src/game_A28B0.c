@@ -1187,8 +1187,27 @@ void func_150791F0(void) {
     }
 }
 
-// ???
-#pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_15079228.s")
+void func_15079228(void) {
+    s32 idx;
+    s16 *entry;
+    s16 tx;
+    s16 tz;
+    u16 v0;
+    s32 a2;
+
+    idx = gCurrentObject->unk251;
+    entry = (s16 *) ((char *) D_800D3098 + idx * 52);
+    tx = entry[0];
+    tz = entry[2];
+    v0 = func_1505A630(gCurrentObject->x_position - (f32) tx, gCurrentObject->z_position - (f32) tz, 0);
+    a2 = v0 & 0xFFFF;
+    if (v0 == 0) {
+        a2 = 1;
+    }
+    func_1505D024(gCurrentObject, D_800D1890, a2, -1);
+    gCurrentObject->unk218 -= 1;
+    gCurrentObject->unk21C = 1;
+}
 
 void func_150792E0(void) {
     gCurrentObject->unk232 = D_800D1890;
