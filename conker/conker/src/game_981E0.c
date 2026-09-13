@@ -1337,7 +1337,25 @@ void func_15071888(s32 arg0) {
     func_151D5714(gCurrentObject, &D_800A1FB0, &D_800A1FBC, D_80088B90, D_80099F30, 0xFF, 1);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150718E4.s")
+void func_150718E4(s32 arg0) {
+    s32 idx;
+    struct {
+        union {
+            s32 word;
+            u8 bytes[4];
+        } f0;
+        s32 f4;
+        f32 f8;
+    } local;
+
+    local.f0.word = D_80099BB8;
+    if (gCurrentObject->unk1D4 != 0 || (gCurrentObject->unk74 & 0xF) == 0xF) {
+        idx = func_150ADA20() & 3;
+        func_15143134(&D_800A5480, &local.f4, (local.f0.bytes[idx] << 6) + (s32) gCurrentObject->unk1D4);
+        local.f8 = gCurrentObject->unk180 + 20.0f;
+        func_151C329C(&local.f4, 0xFF, 1);
+    }
+}
 
 void func_15071998(s32 arg0) {
     func_150FA520(gCurrentObject, 0, 0xFF, 1);

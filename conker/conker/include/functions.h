@@ -789,6 +789,7 @@ void func_15141DA4();
 s32  func_151422C0();
 s32  func_151422DC();
 s32  func_151422F8();
+void func_15143134();
 s32  func_15143E08();
 s32  func_15144C2C();
 f32  func_15144C8C(f32 arg0, f32 arg1);
@@ -815,6 +816,7 @@ void func_1516979C();
 void func_15169804();
 void func_15169824();
 void func_1519EF70();
+void func_151C329C();
 
 void func_151DB004();
 void func_151DB068();
