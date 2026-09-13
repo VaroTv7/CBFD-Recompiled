@@ -2882,13 +2882,14 @@ struct struct249 {
     u16 unk0;
     u8  pad2[0x16];
     struct249 *next;
+    struct249 *prev;
 };
 
 typedef struct {
     u16 length;
     u8  pad2[0x2];
     struct249 *unk4;
-    s32 unk8;         // tbd
+    struct249 *unk8;
 } struct250; // size 0xC;
 
 typedef struct {
