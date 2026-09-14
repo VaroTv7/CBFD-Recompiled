@@ -101,6 +101,37 @@
 // }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2424.s")
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - clamps (arg0->unk1C << 3) to 0xFF, stores it as a byte
+// into *(arg0->unk98 + 0x1B), then hits the same "unsigned byte tested
+// as if signed" dead-branch pattern already seen in func_1506196C and
+// func_150AED9C in this session: target masks the clamped value to a
+// byte and branches on it as if it could be negative (always false in
+// practice, so the `return 0` arm is provably dead code) - reproducing
+// that literally (an `if ((u8) v < 0) return 0;` before the real
+// return) gets the exact register roles right (unlike the two earlier
+// instances) but IDO still emits one extra unconditional branch to
+// merge the clamp/no-clamp cases that target achieves via pure
+// fallthrough - 16 instructions vs target's 15, every declaration
+// order and if/else-vs-ternary-vs-goto phrasing tried produces the
+// identical extra branch.
+// s32 func_150C251C(void *arg0) {
+//     void *v0 = *(void **) ((char *) arg0 + 0x98);
+//     s32 v1 = *(s16 *) ((char *) arg0 + 0x1C);
+//     s32 t6 = v1 << 3;
+//
+//     if (t6 < 0x100) {
+//         v1 = t6;
+//     } else {
+//         v1 = 0xFF;
+//     }
+//
+//     *(u8 *) ((char *) v0 + 0x1B) = (u8) v1;
+//     if ((u8) v1 < 0) {
+//         return 0;
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C251C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2558.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2700.s")
