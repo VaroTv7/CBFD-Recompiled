@@ -113,6 +113,43 @@ void func_15043A00(struct105 *arg0, s32 arg1, s32 arg2) {
 //     return pos;
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043A20.s")
+// NON-MATCHING: the read-side mirror of func_15043A20's ring-buffer
+// copy loop (same wrap-at-arg1 logic, but here arg0 is the wrapping
+// SOURCE and arg3 is the growing linear DESTINATION - i.e. this reads
+// out of the ring buffer instead of writing into it). Semantics fully
+// verified via isolated harness; hits the exact same near-miss gap
+// already documented on func_15043A20 in this file: the initial
+// zero-length check tests the freshly-loaded stack value instead of
+// the register the loop condition actually lives in afterward (one
+// extra `move`), and IDO's callee-saved register spill/assign order in
+// the prologue doesn't match target's even though the FINAL register
+// contents for bufSize/dest/ringBuf (s3/s4/s5) already agree exactly -
+// 43 instructions vs target's 42, immune to every declaration-order
+// variant tried (same conclusion reached on the write-side sibling).
+// s32 func_15043AC8(void *arg0, s32 arg1, s32 arg2, char *arg3, s32 arg4) {
+//     s32 pos = arg2;
+//     s32 remaining = arg4;
+//     void *ringBuf = arg0;
+//     s32 chunk;
+//
+//     if (remaining != 0) {
+//         do {
+//             if (pos + remaining <= arg1) {
+//                 chunk = remaining;
+//             } else {
+//                 chunk = arg1 - pos;
+//             }
+//             memcpy(arg3, (char *) ringBuf + pos, chunk);
+//             pos += chunk;
+//             if (pos >= arg1) {
+//                 pos = 0;
+//             }
+//             arg3 += chunk;
+//             remaining -= chunk;
+//         } while (remaining != 0);
+//     }
+//     return pos;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043AC8.s")
 
 s32 func_15043B70(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
