@@ -167,6 +167,56 @@ s32 func_15043B70(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     }
     return arg2;
 }
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - "enqueue a length-prefixed message into the ring buffer"
+// built on func_15043A20: rejects a zero-length or NULL-data message,
+// rounds (size+4) up to a multiple of 4 for word alignment, checks
+// whether that much room exists between the write cursor (arg0->unkC)
+// and the read cursor (arg0->unk8) - handling the wrapped vs
+// not-wrapped cases separately - then writes a 4-byte
+// (roundedSize-4) length header followed by the payload itself, each
+// via its own func_15043A20 call, and stores the new write cursor.
+// 60 of 59 target instructions, with the same branch-likely shapes
+// and the same dead delay-slot duplicate load target has; the one
+// remaining gap is that target spills the incoming size argument
+// ($a2) to its ABI stack home and reloads it from there for the
+// zero-length check, while every C phrasing tried keeps it in a
+// register directly instead - the same "eager incoming-arg spill"
+// pattern already seen elsewhere in this project, not reproducible
+// from C source alone.
+// s32 func_15043BB8(void *arg0, void *arg1, s32 arg2) {
+//     s32 roundedSize;
+//     s32 writePos;
+//     s32 readPos;
+//     s32 newPos;
+//
+//     if (arg2 == 0) {
+//         return 0;
+//     }
+//     if (arg1 == NULL) {
+//         return 0;
+//     }
+//
+//     roundedSize = (arg2 + 4 + 3) & ~3;
+//
+//     writePos = *(s32 *) ((char *) arg0 + 0xC);
+//     readPos = *(s32 *) ((char *) arg0 + 8);
+//     if (writePos < readPos) {
+//         if (writePos + roundedSize >= readPos) {
+//             return 1;
+//         }
+//     } else {
+//         if (writePos + roundedSize - *(s32 *) ((char *) arg0 + 4) >= readPos) {
+//             return 1;
+//         }
+//     }
+//
+//     roundedSize -= 4;
+//     newPos = func_15043A20(*(void **) arg0, *(s32 *) ((char *) arg0 + 4), writePos, &roundedSize, 4);
+//     newPos = func_15043A20(*(void **) arg0, *(s32 *) ((char *) arg0 + 4), newPos, arg1, roundedSize);
+//     *(s32 *) ((char *) arg0 + 0xC) = newPos;
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043BB8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043CA4.s")

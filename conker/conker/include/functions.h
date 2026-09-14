@@ -1052,7 +1052,7 @@ s32  func_1501A490();
 s32  func_1502B7F0();
 struct126 *func_1503195C();
 void func_150403C8();
-void func_15043BB8();
+s32  func_15043BB8();
 f32  func_15047C00();
 f32  func_15047D60();
 f32  func_150488C8();
