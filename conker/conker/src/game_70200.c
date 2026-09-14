@@ -219,4 +219,27 @@ s32 func_15043B70(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043BB8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_70200/func_15043CA4.s")
+s32 func_15043CA4(void *arg0, char *arg1, s32 arg2) {
+    s32 pos;
+    s32 msgLen;
+
+    msgLen = 0;
+    if (*(s32 *) ((char *) arg0 + 8) == *(s32 *) ((char *) arg0 + 0xC)) {
+        return 0;
+    }
+
+    pos = func_15043AC8(*(void **) arg0, *(s32 *) ((char *) arg0 + 4), *(s32 *) ((char *) arg0 + 8), &msgLen, 4);
+    if (arg2 < msgLen) {
+        arg2 -= 1;
+        pos = func_15043AC8(*(void **) arg0, *(s32 *) ((char *) arg0 + 4), pos, arg1, arg2);
+        arg1[arg2] = 0;
+        pos = func_15043B70(*(s32 *) arg0, *(s32 *) ((char *) arg0 + 4), pos, msgLen - arg2);
+    } else {
+        if (msgLen != 0) {
+            pos = func_15043AC8(*(void **) arg0, *(s32 *) ((char *) arg0 + 4), pos, arg1, msgLen);
+        }
+    }
+
+    *(s32 *) ((char *) arg0 + 8) = pos;
+    return msgLen;
+}
