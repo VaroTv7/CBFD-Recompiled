@@ -239,7 +239,7 @@ s32 func_15135658(void *arg0) {
     return 1;
 }
 
-f32 func_15135670(s32 arg0) {
+f32 bloodEffectPower_15135670(s32 arg0) {
     // "power", "../Effects/Blood/blood.c"
     return func_151422DC(0, D_800A3FB4, 0, 2000, 1000, D_800A3FBC, 2938) * D_800A45B4;
 }

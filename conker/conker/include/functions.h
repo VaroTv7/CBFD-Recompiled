@@ -688,7 +688,7 @@ void func_15074BD8();
 void func_15074BEC();
 void func_15074C00();
 void func_15074DEC();
-void func_15074E04();
+void mvmt_imp_set_up_smoke_15074E04();
 void func_15074E80();
 void func_15074EE8();
 void func_15074F30();

@@ -272,3 +272,8 @@ D_80091A30 = 0x80091A30; // type:label
 D_80091AB8 = 0x80091AB8; // type:label
 func_16000B14 = 0x16000B14; // type:func
 D_1600487C = 0x1600487C; // type:label
+
+// names recovered from leftover Rare debug strings, see find_debug_strings.py
+mvmt_imp_set_up_smoke_15074E04 = 0x15074E04; // type:func
+bloodEffectPower_15135670 = 0x15135670; // type:func
+lightEffectScale_15160600 = 0x15160600; // type:func

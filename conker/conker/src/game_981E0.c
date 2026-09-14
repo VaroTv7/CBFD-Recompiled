@@ -1949,7 +1949,8 @@ void func_15074DEC(struct127 *arg0, s32 arg1, s32 arg2) {
     arg0->unk2E8 = 1;
 }
 
-void func_15074E04(s32 arg0, s32 arg1, s32 arg2) {
+// original name recovered from a debug string it passes to func_1518D1C0
+void mvmt_imp_set_up_smoke_15074E04(s32 arg0, s32 arg1, s32 arg2) {
     func_1516FE1C((s32) (arg1 - (s32)&gObjects) / (s32) sizeof(struct127), 0xB4, 0xFF, 0);
     func_1518D1C0(arg1, 0xB, 0, 1, 0xFF, 0, &D_80099C1C);
 }

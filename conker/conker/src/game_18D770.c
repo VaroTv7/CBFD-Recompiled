@@ -9,7 +9,7 @@ s32 func_151149AC();
 struct225 *func_151602C0();
 struct225 *func_1516037C();
 void func_151603FC();
-s32  func_15160600();
+s32  lightEffectScale_15160600();
 s32  func_1516065C();
 s32  func_15160684();
 s32  func_151607A4();
@@ -108,7 +108,8 @@ void func_151603FC(struct225 *arg0) {
 // requires jump table
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151604A0.s")
 
-s32 func_15160600(struct225 *arg0) {
+s32 lightEffectScale_15160600(struct225 *arg0) {
+    // "scale", "../Effects/Light/light.c"
     arg0->unk14->unk2F = func_151422DC(0, D_800A6690, 0, 0xFF, 0xFF, D_800A6698, 575);
     return 1;
 }
