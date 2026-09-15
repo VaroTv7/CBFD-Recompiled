@@ -508,6 +508,38 @@ s32 func_151253CC(struct108 *arg0) {
 }
 
 // no idea what going on here
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - reads arg0->unk3D0 (a pointer), returns 0 unless its
+// byte at +0xAD is 1, then measures |unk18 - unk118| (both f32,
+// truncated to int) against two thresholds: <100 -> 0, <301 -> the
+// unk3D0 pointer itself (returned as-is, not coerced to a boolean -
+// matches target literally), else 1. Blocked by the same fabsf()
+// round-trip limitation already documented on func_1514672C in
+// game_16EE20.c: target compiles the abs() straight to a single
+// abs.s with no argument-promotion dance, but every source form of
+// fabsf() in this codebase's IDO always produces a cvt.d.s/cvt.s.d
+// round-trip around it - confirmed present here too. Every other
+// branch/return shape (including the two dead-branch delay-slot
+// duplicates and the raw-pointer return) already matches target
+// exactly.
+// s32 func_15125490(void *arg0) {
+//     void *v0 = *(void **) ((char *) arg0 + 0x3D0);
+//     s32 v1;
+//
+//     if (*(u8 *) ((char *) v0 + 0xAD) != 1) {
+//         return 0;
+//     }
+//
+//     v1 = (s32) fabsf(*(f32 *) ((char *) v0 + 0x18) - *(f32 *) ((char *) v0 + 0x118));
+//
+//     if (v1 < 0x64) {
+//         return 0;
+//     }
+//     if (v1 < 0x12D) {
+//         return (s32) v0;
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_14FF90/func_15125490.s")
 
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Scales unk380/388
