@@ -17,7 +17,48 @@ void func_151419B0(void *arg0) {
     func_15141970(arg0);
 }
 
+// NON-MATCHING: same "cfg" merge pattern as func_150AEDF8/game_DBA60.c
+// (recovered and hand-verified via isolated harness), just with the
+// cfg record's fields shifted to +4/+8 instead of +0/+4, and the
+// arg2==0/arg2==0x2D branches in the opposite order. Getting the
+// initial `*(s32 *) arg1 == *(s32 *) (cfg + 4)` load order right
+// (target reads arg1 before cfg+4) needed splitting both reads into
+// separate named locals evaluated in that order - writing the
+// comparison directly, in either operand order, made IDO load cfg+4
+// first instead. Once load order matched, the remaining gap is a
+// single register-choice difference ($a0 vs $t7 for the cfg+4 value)
+// that cascades through every later temp register in both branches
+// (their `bnel`/`lbu`/`sw` operands all shift by one register
+// accordingly) - the same "immune to restructuring" register-choice
+// class documented elsewhere this session, just with an unusually
+// wide blast radius since so many instructions read that one value.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151419D0.s")
+// void func_151419D0(void *arg0, void *arg1, u8 arg2) {
+//     char *cfg;
+//     s32 v1;
+//     s32 t7;
+//
+//     cfg = (char *) arg0 + 0x28;
+//     if (arg2 == 0) {
+//         v1 = *(s32 *) arg1;
+//         t7 = *(s32 *) (cfg + 4);
+//         if (v1 == t7 || *(u8 *) (cfg + 8) == *(u8 *) ((char *) arg1 + 4)) {
+//             func_1516972C(arg0);
+//         }
+//         return;
+//     }
+//     if (arg2 == 0x2D) {
+//         if (*(s32 *) arg1 == *(s32 *) (cfg + 4)) {
+//             *(s32 *) (cfg + 4) = *(s32 *) ((char *) arg1 + 4);
+//             *(u8 *) (cfg + 8) = *(u8 *) ((char *) arg1 + 9);
+//             return;
+//         }
+//         if (*(s32 *) ((char *) arg1 + 4) == *(s32 *) (cfg + 4)) {
+//             *(s32 *) (cfg + 4) = *(s32 *) arg1;
+//             *(u8 *) (cfg + 8) = *(u8 *) ((char *) arg1 + 8);
+//         }
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15141A7C.s")
 // requires jump table
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15141C0C.s")
