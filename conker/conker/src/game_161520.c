@@ -215,6 +215,29 @@ void func_1513530C(struct102 *arg0) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513532C.s")
 
+// NON-MATCHING: identical shape to func_1513532C above, just
+// dispatching through D_80089B88 instead of D_80089B70 - same
+// dead-branch family, same 30-vs-31-instruction gap.
+// void func_151353A8(void *arg0) {
+//     void *a1 = arg0;
+//     s8 v0 = *(u8 *) ((char *) a1 + 0x50);
+//     s32 idx;
+//     u16 val44;
+//
+//     if (v0 >= 6) {
+//         idx = 0;
+//     } else {
+//         idx = v0;
+//     }
+//     val44 = *(u16 *) ((char *) a1 + 0x44);
+//
+//     if (val44 != 0) {
+//         func_100111C8(val44);
+//         *(u16 *) ((char *) a1 + 0x44) = 0;
+//     }
+//
+//     D_80089B88[idx](a1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151353A8.s")
 
 void func_15135424(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
