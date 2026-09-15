@@ -785,6 +785,7 @@ void func_151403A8(s32 arg0, u8 arg1);
 void func_151403DC(s32 arg0, u8 arg1);
 void func_151411A4();
 void func_151411C4();
+void func_151411E4();
 void func_15141250();
 s32  func_15141818();
 void func_15141970();

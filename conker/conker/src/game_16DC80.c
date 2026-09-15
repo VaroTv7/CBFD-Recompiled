@@ -16,24 +16,16 @@ void func_151411C4(struct210 *arg0) {
     func_1513CAA0(arg0);
 }
 
-// NON-MATCHING: mips_to_c reconstruction, hand-typed. If arg0->unk154
-// is set, calls func_1517E134 with it; either way, decrements
-// D_800DC9F0 and tail-dispatches through the D_80089F9C function
-// pointer table indexed by arg0->unk168. Content and structure match,
-// but target genuinely re-reads arg0->unk154 a second time (lw a0,
-// 0x154(a1)) for the call argument instead of reusing the value
-// already checked, landing that reload in the guard branch's (empty,
-// nop) delay slot - every source form tried here gets IDO to CSE the
-// second read away and reuse the checked register directly, also
-// repositioning where the D_80089F9C table's lui lands.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151411E4.s")
-// void func_151411E4(void *arg0) {
-//     if (*(s32 *) ((char *) arg0 + 0x154) != 0) {
-//         func_1517E134(*(s32 *) ((char *) arg0 + 0x154));
-//     }
-//     D_800DC9F0--;
-//     D_80089F9C[*((u8 *) arg0 + 0x168)](arg0);
-// }
+void func_151411E4(struct210 *arg0) {
+    struct210 *obj;
+
+    obj = arg0;
+    if (*(volatile s32 *) ((char *) obj + 0x154) != 0) {
+        func_1517E134(*(volatile s32 *) ((char *) obj + 0x154));
+    }
+    D_800DC9F0 -= 1;
+    D_80089F9C[*(u8 *) ((char *) obj + 0x168)](obj);
+}
 
 void func_15141250(struct210 *arg0) {
     struct210 *obj;
