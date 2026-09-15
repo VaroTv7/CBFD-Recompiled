@@ -187,6 +187,7 @@ void func_15001970();
 void func_150026C4();
 void func_150026E8();
 void func_15002724();
+s32  func_150027F8();
 void func_15002F40();
 s32  func_15002FA0();
 void func_15002FB4();

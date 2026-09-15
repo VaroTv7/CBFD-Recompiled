@@ -335,7 +335,41 @@ void func_15002724(s32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_15002754.s")
 
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_2DF70/func_150027F8.s")
+s32 func_150027F8(s8 *arg0) {
+    s8 c;
+    s32 v0;
+    s32 v1;
+    s32 nib;
+    s32 one;
+
+    if (arg0 == NULL) {
+        return 0;
+    }
+    v0 = 0;
+    v1 = 0;
+    c = *arg0;
+    one = 1;
+    if (c != -0x21) {
+        nib = c >> 4;
+        do {
+            v0 += 1;
+            if (one == nib) {
+                v1 += 4;
+            } else if (c == 6) {
+                v1 += 2;
+            } else if (c == 5) {
+                v1 += 1;
+            }
+            c = arg0[v0 << 3];
+            if (c == -0x21) {
+                break;
+            }
+            nib = c >> 4;
+        } while (1);
+    }
+
+    return v1;
+}
 
 s32 func_15002878(void) {
     s32 i;
