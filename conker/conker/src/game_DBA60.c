@@ -94,35 +94,50 @@ s32 func_150AEDD8(struct202 *arg0) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_DBA60/func_150AEDF8.s")
-// void func_150AEDF8(void *arg0, void *arg1, s32 arg2) {
-//     s32 temp_a0;
-//     s32 temp_t6;
-//     s32 temp_v1;
-//     void *temp_v0;
-//     void *temp_v0_2;
+// NON-MATCHING: replaces an earlier unverified auto-mips_to_c dump
+// (mistyped fields as pointers, guessed a wrong 3-arg call signature
+// for func_1516972C) with a hand-verified reconstruction confirmed via
+// isolated harness. Semantics: at (char *) arg0 + 0x28 sits a small
+// "cfg" record (s32 id at +0, u8 type at +4). If arg2==0x2D, merges
+// arg1's own id/type pair into cfg depending on which of arg1's two id
+// candidates (+0 or +4) matches cfg's current id. If arg2==0, calls
+// func_1516972C(arg0) (single argument only - confirmed by the actual
+// raw asm, which sets only $a0 before the jal) when cfg and arg1
+// either share an id or share a type byte.
 //
-//     temp_t6 = arg2 & 0xFF;
-//     if (temp_t6 == 0x2D) {
-//         temp_v0 = arg0->unk28;
-//         temp_a0 = temp_v0->unk0;
-//         temp_v1 = arg1->unk0;
-//         if (temp_v1 == temp_a0) {
-//             temp_v0->unk0 = (s32) arg1->unk4;
-//             temp_v0->unk4 = (u8) arg1->unk9;
+// Every branch opcode/operand and the entire byte-masked-arg2 prologue
+// (target's genuine `sw a2,0x20(sp)` spill-before-mask, previously
+// undocumented as solvable - see func_15134C98/func_1513BA78's still-
+// unresolved versions of this exact prologue shape) reproduce exactly
+// once arg2 is typed as a bare `u8` parameter instead of `s32` with an
+// internal cast. The one remaining gap: for the "arg1 id matches cfg's
+// second id candidate" branch, target hoists the epilogue's `lw ra`
+// into that branch's own delay slot (since it jumps straight to the
+// function's single-exit label, bypassing the other exit's shared
+// ra-reload), while every source form tried here (implicit trailing
+// fallthrough, explicit early `return;`) puts the actual field store
+// in that delay slot instead and leaves the ra-reload for the shared
+// exit - a pure delay-slot-scheduling choice, immune to restructuring.
+#pragma GLOBAL_ASM("asm/nonmatchings/game_DBA60/func_150AEDF8.s")
+// void func_150AEDF8(void *arg0, void *arg1, u8 arg2) {
+//     char *cfg;
+//
+//     cfg = (char *) arg0 + 0x28;
+//     if (arg2 == 0x2D) {
+//         if (*(s32 *) arg1 == *(s32 *) cfg) {
+//             *(s32 *) cfg = *(s32 *) ((char *) arg1 + 4);
+//             *(u8 *) (cfg + 4) = *(u8 *) ((char *) arg1 + 9);
 //             return;
 //         }
-//         if (arg1->unk4 == temp_a0) {
-//             temp_v0->unk0 = temp_v1;
-//             temp_v0->unk4 = (u8) arg1->unk8;
-//             return;
+//         if (*(s32 *) ((char *) arg1 + 4) == *(s32 *) cfg) {
+//             *(s32 *) cfg = *(s32 *) arg1;
+//             *(u8 *) (cfg + 4) = *(u8 *) ((char *) arg1 + 8);
 //         }
-//     } else {
-//         temp_v0 = arg0->unk28;
-//         if (temp_t6 == 0) {
-//             if ((arg1->unk0 == temp_v0->unk0) || ((temp_v0->unk4 == (u8) arg1->unk4))) {
-//                 func_1516972C(arg0, temp_t6, arg0);
-//             }
+//         return;
+//     }
+//     if (arg2 == 0) {
+//         if (*(s32 *) arg1 == *(s32 *) cfg || *(u8 *) (cfg + 4) == *(u8 *) ((char *) arg1 + 4)) {
+//             func_1516972C(arg0);
 //         }
 //     }
 // }
