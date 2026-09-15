@@ -1471,6 +1471,25 @@ void func_15071FB0(void) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071FDC.s")
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - unpacks the 3 low bytes of the packed color D_800D1580
+// and forwards them (in a non-RGB byte order: bits16-23, bits0-7,
+// bits8-15) plus a trailing 0 to func_1506160C(gCurrentObject, ...).
+// Frame size and every instruction OFFSET match target exactly
+// (17/17 instructions, same shift-into-temp-then-mask-into-call-
+// register shape target uses), but two physical register choices
+// differ: target keeps D_800D1580's address (v0) and loaded value
+// (v1) in separate registers while IDO here always coalesces them
+// into one (v0) regardless of declaration order, and correspondingly
+// picks t6/t8 for the two shift temporaries where target uses t6/t7 -
+// both immune to every variable-ordering variant tried (including
+// pre-loading gCurrentObject into its own local first).
+// void func_150721A4(void) {
+//     s32 v1 = D_800D1580;
+//     u8 byte2 = (v1 >> 16) & 0xFF;
+//     u8 byte1 = (v1 >> 8) & 0xFF;
+//     func_1506160C(gCurrentObject, byte2, v1 & 0xFF, byte1, 0);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150721A4.s")
 // NON-MATCHING: identical instructions, ordering, and size (0x44 bytes) to
 // target across every source variation tried (direct global reads, a
