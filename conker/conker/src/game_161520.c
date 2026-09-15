@@ -178,6 +178,41 @@ void func_1513530C(struct102 *arg0) {
     func_15169824(arg0);
 }
 
+// NON-MATCHING: semantics fully recovered and verified via isolated
+// harness - dispatches through D_80089B70[idx](arg0), where idx is
+// arg0->unk50 (u8) clamped to 0 if it's >= 6, first notifying
+// func_100111C8 and clearing arg0->unk44 (u16) if it was non-zero.
+// Yet another instance of the "unsigned byte tested as if signed"
+// dead-branch family already seen 3 times this session
+// (func_1506196C/func_150AED9C/func_150C251C) - target's clamp check
+// decomposes into a genuinely-dead `bgez` (the lbu-loaded byte can
+// never be negative) followed by the real `< 6` test, whereas every
+// phrasing tried here (single `>= 6` guard, explicit `>= 0 && < 6`
+// compound) either drops the dead check entirely or reproduces it with
+// extra/wrong-polarity instructions. Splitting the clamped value into
+// its own s32 `idx` (rather than reusing the byte-sized `v0`) did fix
+// the cross-call spill from byte-sized to the correct word-sized
+// sw/lw - closest variant is 30 instructions vs target's 31.
+// void func_1513532C(void *arg0) {
+//     void *a1 = arg0;
+//     s8 v0 = *(u8 *) ((char *) a1 + 0x50);
+//     s32 idx;
+//     u16 val44;
+//
+//     if (v0 >= 6) {
+//         idx = 0;
+//     } else {
+//         idx = v0;
+//     }
+//     val44 = *(u16 *) ((char *) a1 + 0x44);
+//
+//     if (val44 != 0) {
+//         func_100111C8(val44);
+//         *(u16 *) ((char *) a1 + 0x44) = 0;
+//     }
+//
+//     D_80089B70[idx](a1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513532C.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151353A8.s")
