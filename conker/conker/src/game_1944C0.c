@@ -238,6 +238,48 @@ void func_15168E34(s32 *arg0, s32 arg1) {
     }
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168E54.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - walks an array of 8-byte records starting at arg0 until a
+// record whose first byte (tag) is the sentinel -0x21; for each record
+// whose tag is 1, or whose tag is -0x24 AND whose byte-at-offset-3 is
+// 14, masks the s32 field at offset+4 to its low 24 bits and adds the
+// original arg1 to it. Reached 30 of target's 31 instructions -
+// getting the initial `*(s8*)arg0` sentinel check and the loop's own
+// `*(s8*)arg0` re-read to compile as two genuine `lb` instructions
+// (matching target's own redundant reload) instead of one load with a
+// bogus 24-bit-round-trip re-sign-extension needed a `volatile` cast
+// on the first read only. Register roles for the pointer/index/saved-
+// arg1 locals are consistently permuted from target throughout
+// (immune to every declaration order tried); the one true instruction
+// gap is that target makes an explicit, seemingly gratuitous copy of
+// arg1 into its own register before the loop even though arg1 is never
+// otherwise written, while IDO here always coalesces the two since
+// nothing forces them apart (forcing it via `volatile` instead spills
+// the copy to a brand-new stack frame - target has no frame at all -
+// which is far worse than the 1-instruction gap it was meant to fix).
+// void func_15168F08(void *arg0, s32 arg1) {
+//     char *cur = arg0;
+//     s32 origArg1 = arg1;
+//     s32 idx;
+//     s8 tag;
+//
+//     if (*(volatile s8 *) arg0 == -0x21) {
+//         return;
+//     }
+//
+//     idx = 0;
+//     tag = *(s8 *) arg0;
+//     do {
+//         idx++;
+//         if (tag == 1 || (tag == -0x24 && *(u8 *) (cur + 3) == 14)) {
+//             s32 v = *(s32 *) (cur + 4);
+//             v = (v & 0x00FFFFFF) + origArg1;
+//             *(s32 *) (cur + 4) = v;
+//         }
+//         cur = (char *) arg0 + (idx << 3);
+//         tag = *(s8 *) cur;
+//     } while (tag != -0x21);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F08.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F84.s")
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Thin wrapper
