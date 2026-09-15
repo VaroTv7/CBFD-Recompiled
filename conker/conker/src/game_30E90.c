@@ -18,7 +18,54 @@ void func_150045BC(void) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_30E90/func_150045C4.s")
+
+// NON-MATCHING: full semantics + branch/block topology recovered and
+// verified via isolated harness - walks 8-byte records starting at
+// arg0 (each record: classifier byte at +0, subtype byte at +3,
+// s32 accumulator at +4) until a -0x21 sentinel byte, adding arg1 into
+// the accumulator when the classifier is 1 or 0xDE, or adding arg2
+// when the classifier is -0x24 AND the subtype byte is 0xE. Getting
+// the nested-if form right (test -0x24 first as `if (c != -0x24) {
+// nested 1/0xDE checks } else { subtype check }`, not a flat
+// else-if chain) was required to reproduce target's exact block
+// order (the -0x24 case's code placed last, after 1 and 0xDE, despite
+// being tested first) - once that matched, every branch opcode and
+// block boundary lines up exactly. The one remaining gap: target
+// relocates arg1/arg2 into $a3/$s0 right at entry (needing a stack
+// frame purely to spill the now-callee-saved $s0), while every source
+// form tried here keeps them in $a1/$a2 throughout and never needs a
+// frame at all - a pure register-pressure allocation difference, not
+// reproducible by only rephrasing the C.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_30E90/func_150049A4.s")
+// void func_150049A4(s8 *arg0, s32 arg1, s32 arg2) {
+//     s32 idx;
+//     s8 *rec;
+//     s8 c;
+//
+//     idx = 0;
+//     rec = arg0;
+//     c = *arg0;
+//     if (c != -0x21) {
+//         do {
+//             idx += 1;
+//             if (c != -0x24) {
+//                 if (c != 1) {
+//                     if (c == 0xDE) {
+//                         *(s32 *) (rec + 4) += arg1;
+//                     }
+//                 } else {
+//                     *(s32 *) (rec + 4) += arg1;
+//                 }
+//             } else {
+//                 if (*(u8 *) (rec + 3) == 0xE) {
+//                     *(s32 *) (rec + 4) += arg2;
+//                 }
+//             }
+//             rec = arg0 + (idx << 3);
+//             c = *rec;
+//         } while (c != -0x21);
+//     }
+// }
 void func_15004A4C(void) {
     s32 i;
 
