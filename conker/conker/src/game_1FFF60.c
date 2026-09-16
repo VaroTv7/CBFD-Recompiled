@@ -103,7 +103,52 @@ void func_151D2E14(struct102 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1FFF60/func_151D2F90.s")
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness (46/49 words match, including every branch's structure) -
+// dispatches through D_8008FC5C[arg0->unk1D] once if non-null, then
+// walks the linked list at arg0->unk24 (next pointer at unk40),
+// dispatching each node through D_8008FC48[node->unk2A] (skipping
+// nodes whose type byte is -1) with args (node, node+0x34), zeroing
+// node->unk2C and calling func_1516972C(node) on every node
+// regardless, before finally calling func_1514EDF0(arg0, arg0->unk10).
+//
+// Two remaining gaps. First, a genuine software-pipelining choice:
+// target loads the FIRST node's type byte once before the loop, then
+// on every subsequent iteration re-loads it in the back-edge branch's
+// own delay slot (`bnel $s1,$zero,LOOP / [delay] lb $v0,0x2a($s0)`) -
+// i.e. it prefetches the NEXT node's type one iteration ahead, rather
+// than reading it fresh at the top of each loop body as this
+// reconstruction does (both statement orders - type-then-next and
+// next-then-type - produce the reconstruction's shape, not target's
+// prefetch). Second, one `beq` has its two operands in the opposite
+// order from target ($v0,$s2 here vs target's $s2,$v0) - same
+// immune-to-source-order operand-swap class documented elsewhere.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1FFF60/func_151D3130.s")
+// void func_151D3130(void *arg0) {
+//     void (*fn)(void *);
+//     void *node;
+//     void *next;
+//     s8 type;
+//
+//     fn = D_8008FC5C[*(u8 *) ((char *) arg0 + 0x1D)];
+//     if (fn != 0) {
+//         fn(arg0);
+//     }
+//     node = *(void **) ((char *) arg0 + 0x24);
+//     if (node != NULL) {
+//         do {
+//             next = *(void **) ((char *) node + 0x40);
+//             type = *(s8 *) ((char *) node + 0x2A);
+//             if (-1 != type) {
+//                 D_8008FC48[type](node, (char *) node + 0x34);
+//             }
+//             *(s32 *) ((char *) node + 0x2C) = 0;
+//             func_1516972C(node);
+//             node = next;
+//         } while (node != NULL);
+//     }
+//     func_1514EDF0(arg0, *(s32 *) ((char *) arg0 + 0x10));
+// }
 
 void func_151D31F4(struct102 *arg0) {
     func_151D3130(arg0);
