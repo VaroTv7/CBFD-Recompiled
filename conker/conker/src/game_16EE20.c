@@ -581,27 +581,47 @@ f32 func_15144AA8(s32 arg0) {
 struct17 *func_15144B34(s32 arg0) {
     return (struct17 *) (arg0 * 2464 + (char *) D_800DBFF0 + 0x2F8);
 }
-// NON-MATCHING: mips_to_c reconstruction, hand-typed. Angle-wrap into
-// [0, D_800A56A4): subtract while >D_800A56A4 (strict - confirmed from
-// target's c.lt.s, an off-by-one from my first >= attempt), add while
-// <0. Even with the condition direction fixed, register allocation
-// (which value lives in $f2 vs $f12) and instruction scheduling differ
-// from target throughout the branch-likely loop structure. Widely
-// referenced (real prototype already in functions.h from an earlier
-// session's "real prototype" fix) - many other functions depend on its
-// correct *behavior*, which this reconstruction has, just not matching
-// bytes.
+// NON-MATCHING: 23 of 24 instructions byte-identical (confirmed via
+// isolated harness) - assigning arg0 into a local `v` up front (rather
+// than mutating arg0 in place) fixed the previously-documented $f2/
+// $f12 register-allocation gap entirely; the same fix landed the
+// identical-shape func_15144BC8 right below byte-perfect in one try
+// (that one wraps into [0,360) via a literal constant; this one wraps
+// into [0, D_800A56A4) - confirmed 6.283185482, i.e. 2*PI radians, not
+// degrees - via its rodata value). The one remaining gap: target
+// schedules `c.lt.s $f0,$f12` (the loop guard, depending on the
+// just-loaded D_800A56A4) immediately after the `lwc1`, with
+// `mov.s $f2,$f12` (the independent arg0->v copy) pushed one slot
+// later; every source form tried here (original write order, reversed
+// comparison operand order) schedules the independent mov.s first
+// instead - a load-latency scheduling choice, immune to source
+// reordering. Widely referenced (real prototype already in
+// functions.h) - many other functions depend on its correct
+// *behavior*, which this reconstruction now has exactly.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B68.s")
 // f32 func_15144B68(f32 arg0) {
-//     while (arg0 > D_800A56A4) {
-//         arg0 -= D_800A56A4;
+//     f32 v = arg0;
+//
+//     while (v > D_800A56A4) {
+//         v -= D_800A56A4;
 //     }
-//     while (arg0 < 0.0f) {
-//         arg0 += D_800A56A4;
+//     while (v < 0.0f) {
+//         v += D_800A56A4;
 //     }
-//     return arg0;
+//     return v;
 // }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144BC8.s")
+f32 func_15144BC8(f32 arg0) {
+    f32 v;
+
+    v = arg0;
+    while (v > 360.0f) {
+        v -= 360.0f;
+    }
+    while (v < 0.0f) {
+        v += 360.0f;
+    }
+    return v;
+}
 
 s32 func_15144C2C( s32 arg0) {
     s16 tmp1 = arg0;
