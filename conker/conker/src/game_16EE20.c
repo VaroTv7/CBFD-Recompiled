@@ -658,7 +658,50 @@ void func_151450B4(struct17 *arg0, struct17 *arg1, struct17 *arg2) {
     arg2->unk8 = arg0->unk0 * arg1->unk4 - arg0->unk4 * arg1->unk0;
 }
 
+// NON-MATCHING: 47 of 50 words byte-identical (confirmed via isolated
+// harness), including every branch, every float op, and even the
+// duplicate sqrt.s target genuinely emits in the arg2!=NULL path.
+// Vector-normalizes arg0 into arg1 via reciprocal magnitude: if arg3
+// is NULL, redirects it to a local stack slot; computes
+// mag2=x^2+y^2+z^2, returning 0 if it's exactly 0.0f; otherwise takes
+// sqrtf(mag2), optionally writing it to *arg2 too, writes 1/mag to
+// *arg3, then scales arg0 by *arg3 into arg1 and returns 1. The only
+// gap is the stack frame: target reserves just 8 bytes (the single
+// f32 local at offset 0), while every source form tried here reserves
+// 16 bytes with the local at a nonzero offset - apparently caused by
+// having 3 named f32 locals (the local itself, plus mag2 and mag),
+// even though the other two live entirely in registers. Removing the
+// named mag2/mag locals (relying on IDO's own CSE across three
+// repeated inline expressions instead) does shrink the frame to 8
+// bytes, but changes which physical registers the sum-of-squares
+// computation uses, breaking several already-matching words - a net
+// loss, so not applied.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145128.s")
+// s32 func_15145128(struct17 *arg0, struct17 *arg1, f32 *arg2, f32 *arg3) {
+//     f32 local;
+//     f32 mag2;
+//     f32 mag;
+//
+//     if (arg3 == NULL) {
+//         arg3 = &local;
+//     }
+//     mag2 = arg0->unk0 * arg0->unk0 + arg0->unk4 * arg0->unk4 + arg0->unk8 * arg0->unk8;
+//     if (mag2 == 0.0f) {
+//         return 0;
+//     }
+//     if (arg2 != NULL) {
+//         mag = sqrtf(mag2);
+//         *arg2 = mag;
+//         *arg3 = 1.0f / mag;
+//     } else {
+//         mag = sqrtf(mag2);
+//         *arg3 = 1.0f / mag;
+//     }
+//     arg1->unk0 = *arg3 * arg0->unk0;
+//     arg1->unk4 = *arg3 * arg0->unk4;
+//     arg1->unk8 = *arg3 * arg0->unk8;
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151451F0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151452C4.s")
 
