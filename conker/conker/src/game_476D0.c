@@ -112,7 +112,43 @@ void func_150A7A00(f32 arg0, f32 arg1, s32 arg2, f32 arg3, f32 arg4, f32 arg5, f
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501A8C0.s")
 
+// NON-MATCHING: full branch/block topology recovered and verified via
+// isolated harness - the two OR-combined guard pairs
+// (unk2C<2.0||delta<unk30, and unk24<0.0||f2<unk28) were required to
+// reproduce target's shared-return-0 block structure (each pair's two
+// checks jump into or fall into the SAME return-0 code, rather than
+// each getting its own copy) and the exact bc1t/bc1fl polarity choice
+// for every branch - writing them as four separate sequential ifs
+// instead produced a completely different (still correct, but very
+// differently scheduled) branch shape. Every opcode/operand/branch now
+// matches except a register-permutation gap among the temps holding
+// D_800BE628 (the record array base), D_800BE624, and the
+// index*384 offset computation ($t7/$t8/$t9 in some order here vs
+// target's own choice) - tried both statement order and declaration
+// order for the three locals with no effect, matching the "immune to
+// restructuring" register-choice class documented elsewhere. Reads
+// D_800BE628[arg0] (a 0x180-byte record) at fields unk24/unk28/unk2C/
+// unk30, gating on arg0's record having enough valid history (unk2C)
+// and margin (unk30) against (D_800BE620-2), then a non-negative
+// unk24 and enough margin (unk28) against D_800BE624.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501AE94.s")
+// s32 func_1501AE94(s32 arg0) {
+//     f32 delta;
+//     char *rec;
+//     f32 f2;
+//
+//     delta = (f32) D_800BE620 - 2.0f;
+//     rec = (char *) D_800BE628 + arg0 * 384;
+//     f2 = (f32) D_800BE624;
+//
+//     if (*(f32 *) (rec + 0x2C) < 2.0f || delta < *(f32 *) (rec + 0x30)) {
+//         return 0;
+//     }
+//     if (*(f32 *) (rec + 0x24) < 0.0f || f2 < *(f32 *) (rec + 0x28)) {
+//         return 0;
+//     }
+//     return 1;
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501AF44.s")
 
