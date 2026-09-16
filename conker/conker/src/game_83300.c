@@ -1015,7 +1015,67 @@ void func_1505DFDC(struct127 *arg0) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E0C4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E650.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Looks up D_800D1588[type] (type = arg1->unk4, 0-254 or
+// sentinel 0xFF), treats the found pointer as one past an
+// allocate_memory-style header (byte length at -4, base pointer at
+// -8), and linear-searches base[] (0x18-byte records) for the first
+// record whose leading byte equals arg0, returning its index (or 0 on
+// any failure/not-found case).
+//
+// First hurdle: writing the search as a plain `for` loop got IDO's
+// -O2 to 4x-unroll it (each unrolled copy duplicating the early
+// `return i;`), producing a totally different shape from target's
+// single, non-unrolled loop body. Rewriting as `if (count != 0) { i =
+// 0; do { ...; i++; } while (i < count); }` - a guard wrapping a
+// do-while, instead of a for-loop or an early `if (count == 0) return
+// 0;` before an unconditional loop - avoided the unroller entirely
+// and reproduced target's single combined zero-count guard. The
+// remaining gap: target preserves arg0 in $a2 across the whole
+// function; every source form tried here (statement order,
+// declaration order) puts it in $a3 instead, which cascades into
+// several further register differences later in the function -
+// tried but not resolved this round.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E7CC.s")
+// u32 func_1505E7CC(s32 arg0, void *arg1) {
+//     u8 type;
+//     char *entry;
+//     s32 len;
+//     char *base;
+//     s32 count;
+//     char *rec;
+//     s32 i;
+//
+//     type = *(u8 *) ((char *) arg1 + 4);
+//     if (type == 0xFF) {
+//         return 0;
+//     }
+//     entry = (char *) D_800D1588[type];
+//     if (entry == NULL) {
+//         return 0;
+//     }
+//     len = *(s32 *) (entry - 4);
+//     if (len == 0) {
+//         return 0;
+//     }
+//     count = len / 24;
+//     base = *(char **) (entry - 8);
+//     if (base == NULL) {
+//         return 0;
+//     }
+//     if (count != 0) {
+//         rec = base;
+//         i = 0;
+//         do {
+//             if (arg0 == *(u8 *) rec) {
+//                 return i;
+//             }
+//             i += 1;
+//             rec += 0x18;
+//         } while (i < count);
+//     }
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505E874.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505ED34.s")
 
