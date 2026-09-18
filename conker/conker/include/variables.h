@@ -909,7 +909,7 @@ extern s32  D_800BE9E4;
 extern s32  D_800BE9E8;
 extern u8   D_800BE9EC;
 extern u8   D_800BE9ED;
-extern u16  *D_800BE9F4; // was u16
+extern s32  D_800BE9F4;
 extern s32  D_800BE9F8;
 
 extern struct14 D_800BE730;
