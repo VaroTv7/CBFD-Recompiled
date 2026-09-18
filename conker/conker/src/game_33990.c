@@ -23,6 +23,53 @@ void func_150064E0(void) {
 // requires jump table
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15007168.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_1500727C.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - a checksum/hash routine. Seeds an accumulator from two
+// global bytes (D_800BE2F2<<2 + 0xCC + D_800BE2F3<<3), then walks a
+// 100-byte table 4 bytes at a time, each byte left-shifted by its
+// position mod 4 (0,1,2,3) and folded into the running 16-bit-masked
+// sum, writes the result to D_800BE2F0, and conditionally calls
+// func_151DCEF0(&D_800BE900, 0x44, 0x70) (an OSMesgQueue global) if a
+// flag byte (D_8002AC5C) is zero.
+// Key finding: this loop's trip count is a compile-time-KNOWN
+// constant (25 iterations, both bounds are literals) and IDO -O2
+// fully unrolls ANY plain for/while/do-while form of it by 4x
+// (yielding ~130 instructions instead of target's clean single-body
+// loop) - this is a DIFFERENT unroll trigger than the
+// early-return-inside-loop case documented elsewhere in this project
+// (the do-while-guard fix for THAT case does nothing here). Marking
+// the loop counter itself `volatile` blocks the unroll but forces
+// extra spill/reload traffic for every reference to it inside the
+// loop body. The much better fix: make ONLY the loop's UPPER BOUND
+// volatile (a separate local set to the literal once before the
+// loop), leaving the counter itself a normal register variable -
+// this defeats IDO's "known trip count" full-unroll analysis (since
+// the bound is no longer provably constant) while keeping the counter
+// register-resident like target's, getting down to 59 vs target's 56
+// instructions (the remaining gap is just the volatile bound's own
+// spill/reload, which target's plain immediate compare doesn't need
+// at all).
+// void func_15007360(void) {
+//     s32 v0;
+//     s32 v1;
+//     volatile s32 bound;
+//     u8 *a0;
+//
+//     v0 = (D_800BE2F2 * 4 + 0xCC + D_800BE2F3 * 8) & 0xFFFF;
+//     a0 = D_800BE2F4;
+//     bound = 0x68;
+//     v1 = 4;
+//     while (v1 != bound) {
+//         v0 = (v0 + (a0[0] << (v1 & 3)) + (a0[1] << ((v1 + 1) & 3)) + (a0[2] << ((v1 + 2) & 3)) + (a0[3] << ((v1 + 3) & 3))) & 0xFFFF;
+//         a0 += 4;
+//         v1 += 4;
+//     }
+//     D_800BE2F0 = (s16) v0;
+//
+//     if (D_8002AC5C == 0) {
+//         func_151DCEF0(&D_800BE900, 0x44, 0x70);
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15007360.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15007440.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15007558.s")
