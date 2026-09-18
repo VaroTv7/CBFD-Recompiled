@@ -212,7 +212,46 @@ s32 func_150C2FCC(void *arg0) {
 //     return 1;
 // }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Computes a pitch ratio from arg1's unk2E4/unk2E8 fields
+// (defaulting to 1.0 when unk2E8 is 0 - getting target's exact
+// `beqzl` branch polarity required initializing the default
+// unconditionally before the guard, `ratio = 1.0f; if (unk2E8 != 0)
+// ratio = ...;`, rather than an if/else with the zero-case inside the
+// `if`, which instead compiled to the inverted `bnezl`), derives a
+// truncated integer "period" from 500*(1-ratio)+2, updates
+// arg1->unk2EC to period/3, normalizes (2 - old unk2EC) into a
+// non-negative "phase" via a bltzl +0x40 loop, and packs
+// (period&0xFFF)<<12 | 0xF2000000 | (phase&0xFFF) plus a fixed second
+// word (0x041FE03E) into the two-word command written at arg0,
+// returning arg0+8. Register roles differ throughout (this
+// reconstruction runs 6 instructions shorter, 46 vs target's 52) -
+// not otherwise investigated further this round.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C3160.s")
+// void *func_150C3160(void *arg0, void *arg1) {
+//     void *out;
+//     f32 ratio;
+//     s32 rawPeriod;
+//     s32 phase;
+//     s32 cmd0;
+//
+//     out = arg0;
+//     ratio = 1.0f;
+//     if (*(s32 *) ((char *) arg1 + 0x2E8) != 0) {
+//         ratio = (f32) *(s32 *) ((char *) arg1 + 0x2E4) / (f32) *(s32 *) ((char *) arg1 + 0x2E8);
+//     }
+//     rawPeriod = (s32) (500.0f * (1.0f - ratio) + 2.0f);
+//     phase = 2 - *(s32 *) ((char *) arg1 + 0x2EC);
+//     *(s32 *) ((char *) arg1 + 0x2EC) = rawPeriod / 3;
+//     while (phase < 0) {
+//         phase += 0x40;
+//     }
+//     cmd0 = ((rawPeriod & 0xFFF) << 12) | 0xF2000000 | (phase & 0xFFF);
+//     *(s32 *) out = cmd0;
+//     *(s32 *) ((char *) out + 4) = 0x041FE03E;
+//     out = (char *) out + 8;
+//     return out;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C3230.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C3574.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C3994.s")
