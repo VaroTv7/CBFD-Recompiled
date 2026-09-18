@@ -148,42 +148,49 @@ void func_15105BC8(struct204 *arg0) {
     }
 }
 
+// NON-MATCHING: replaces an earlier unverified auto-mips_to_c dump
+// (goto-style, never confirmed against a real compile) with a hand-
+// verified reconstruction. Searches the same D_800DCE50 bucket-list
+// table used by func_15168A4C/func_15168A9C (game_1944C0.c) - for
+// bucket row v1 (0,1) and column D_800A5770[v0] (v0 also 0,1), walks
+// the ->unk8 chain looking for a node with unk13==0x2E and
+// unk28==arg0, returning it. Declaring the loop counters as bare
+// `s32` with an explicit `& 0xFF` in each loop condition (matching
+// target's literal `andi/slti` pair) reproduces that shape exactly;
+// declaring them `u8` also gets the mask/slti right but makes IDO
+// switch the row-stride multiply from target's shift-decomposition
+// (sll/subu/sll/addu/sll) to a hardware `multu`. Even with `s32`
+// counters, IDO recognizes `v1 * 0x1A0` as an induction variable and
+// strength-reduces the whole inner loop into a running pointer
+// (`+= 0x1A0` each pass) instead of target's fresh recompute every
+// iteration - forcing it with `volatile` does restore the fresh
+// recompute, but also adds an unwanted stack frame (target has none
+// at all) and still uses `multu` rather than the shift chain, so it's
+// not applied. Net: correct control flow and chain-walk semantics,
+// but 10 fewer instructions than target (37 vs 47) from this stride-
+// computation strategy gap.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_15105C24.s")
 // void *func_15105C24(s32 arg0) {
-//     s32 temp_t4;
-//     s32 temp_t5;
-//     void *temp_a0;
-//     void *temp_a0_2;
-//     s32 phi_v1;
-//     s32 phi_v0;
-//     void *phi_a0;
+//     s32 v0;
+//     s32 v1;
+//     void *node;
 //
-//     phi_v0 = 0;
-// loop_1:
-//     phi_v1 = 0;
-// loop_2:
-//     temp_a0 = *((((((phi_v1 * 4) - phi_v1) * 4) + phi_v1) << 5) + 0x800DCE50 + (((phi_v0 * 4) + 0x800A0000)->unk5770 * 4));
-//     phi_a0 = temp_a0;
-//     if (temp_a0 != 0) {
-// loop_3:
-//         if ((phi_a0->unk13 == 0x2E) && (arg0 == phi_a0->unk28)) {
-//             return phi_a0;
-//         }
-//         temp_a0_2 = phi_a0->unk8;
-//         phi_a0 = temp_a0_2;
-//         if (temp_a0_2 != 0) {
-//             goto loop_3;
-//         }
-//     }
-//     temp_t4 = (phi_v1 + 1) & 0xFF;
-//     phi_v1 = temp_t4;
-//     if (temp_t4 < 2) {
-//         goto loop_2;
-//     }
-//     temp_t5 = (phi_v0 + 1) & 0xFF;
-//     phi_v0 = temp_t5;
-//     if (temp_t5 < 2) {
-//         goto loop_1;
-//     }
+//     v0 = 0;
+//     do {
+//         v1 = 0;
+//         do {
+//             node = *(void **) (D_800DCE50 + v1 * 0x1A0 + D_800A5770[v0] * 4);
+//             if (node != NULL) {
+//                 do {
+//                     if (*(u8 *) ((char *) node + 0x13) == 0x2E && *(s32 *) ((char *) node + 0x28) == arg0) {
+//                         return node;
+//                     }
+//                     node = *(void **) ((char *) node + 8);
+//                 } while (node != NULL);
+//             }
+//             v1 += 1;
+//         } while ((v1 & 0xFF) < 2);
+//         v0 += 1;
+//     } while ((v0 & 0xFF) < 2);
 //     return NULL;
 // }

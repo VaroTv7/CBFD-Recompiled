@@ -720,7 +720,7 @@ extern f32 D_800A56BC; // 57.2957763671875
 extern f32 D_800A56C0;
 extern f32 D_800A56C4;
 extern f32 D_800A56C8;
-extern s32 D_800A5770;
+extern s32 D_800A5770[];
 
 // in game_18D770.c
 extern u8  D_800A6690[5];  // "scale"
