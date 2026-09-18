@@ -7,6 +7,47 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_15104C44.s")
 
+// NON-MATCHING: byte selector dispatch on the same struct207/struct206
+// "cfg merge" family as func_15105548/func_15105848 in this file (case
+// 0x38). Full semantics recovered and verified via isolated harness:
+// when arg2 == 0x38 and the object's guard byte (unk0->unk14) is 1, it
+// tags the config record (unk8 = 300), fires an async task via
+// func_1000FD38(&func_1000EF40, obj, 0), then re-reads the object
+// pointer (a real double-read across the call, not CSE'd - matches
+// this codebase's usual "re-read after a call" pattern) and spawns an
+// effect via func_1000FA64 using coordinates read from it, matching
+// the call shape already confirmed at other func_1000FA64 call sites
+// in this codebase (e.g. game_1D2B10.c:482).
+// 45 vs target's 46 instructions: target loads the guard object
+// pointer into $v0 for the unk14 check, then does a separate `or
+// $a1,$v0,$zero` to move it into the call argument register; every
+// form tried here has IDO load the value directly into $a1 (the
+// argument register the value ends up needing anyway), skipping that
+// redundant move - genuinely one instruction shorter, not a wrong
+// value. Two smaller scheduling-only gaps remain from the same root
+// cause: the &func_1000EF40 lui/addiu pair lands one position later
+// here (target splits it across the two independent filler slots
+// after the guard-byte lbu; this version only has one filler
+// candidate available at that point), and the tail argument-store
+// order for func_1000FA64's stack args differs in a few places
+// (independent constant loads/stores with no data dependency between
+// them - order is an IDO scheduling choice, not semantics).
+// void func_15104FF8(struct207 *arg0, s32 arg1, u8 arg2) {
+//     struct206 *temp_v0;
+//     struct205 *v0;
+//     struct205 *v0b;
+//
+//     temp_v0 = &arg0->unk28;
+//     if (arg2 == 0x38) {
+//         v0 = temp_v0->unk0;
+//         if (v0->unk14 == 1) {
+//             *(s16 *) ((char *) temp_v0 + 0x8) = 0x12C;
+//             func_1000FD38(&func_1000EF40, v0, 0);
+//             v0b = temp_v0->unk0;
+//             func_1000FA64(0x236, *(s16 *) ((char *) v0b + 0x0), *(s16 *) ((char *) v0b + 0x2), *(s16 *) ((char *) v0b + 0x4), 0x4000, 0x5DC, 0x3E8, &func_1000EF40, v0b, 0, 8, 0);
+//         }
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_15104FF8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_131F30/func_151050B0.s")
