@@ -4,6 +4,46 @@
 #include "variables.h"
 
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Sets arg2's unk40 flag word (OR'd with 0x40400000, the
+// same bit pattern used as a literal float argument to func_1505E650
+// elsewhere in this codebase - likely 3.0f packed into that field)
+// and arg2's unk1 byte to 3, then relays most of its own 10
+// parameters into func_1513D524 (already given a real prototype
+// elsewhere - arg1 doing double duty as both the memcpy size below
+// AND func_1513D524's 7th positional arg). If that returns non-NULL,
+// memcpy's (arg0, arg1 bytes) into the result+0x110, zeroes a field at
+// +0x154, writes arg7 to +0x169, and - matching this codebase's
+// "recompute rather than trust a still-live register across a call"
+// pattern - increments a global counter (D_800DC9F0) once more before
+// returning the same pointer.
+// 49 vs target's 53 instructions: every source form tried here
+// collapses target's two distinct convergence points (an early-exit
+// path with its own `b`/delay-slot pair, then a second merge after
+// the increment check) into a single shared branch target, which is
+// genuinely shorter/smarter rather than wrong - same "IDO elides a
+// redundant jump my C didn't ask for" pattern as func_15104FF8 and
+// func_15008870 earlier this session. The instructions present also
+// show pure register-renaming (t6/t8/t9 vs t7/t8/t9 etc.) immune to
+// restructuring, consistent with the same unresolved category
+// documented elsewhere in this project.
+// void *func_151407D0(void *arg0, s32 arg1, void *arg2, u8 arg3, u8 arg4, u8 arg5, u8 arg6, s8 arg7, u8 arg8, s32 arg9) {
+//     void *v0;
+//
+//     *(u32 *) ((char *) arg2 + 0x40) |= 0x40400000;
+//     *(u8 *) ((char *) arg2 + 0x1) = 3;
+//
+//     v0 = func_1513D524((s32) arg2, arg3, arg4, arg5, 1, arg6, arg1, arg8, arg9);
+//     if (v0 != 0) {
+//         memcpy((char *) v0 + 0x110, arg0, arg1);
+//         *(s32 *) ((char *) v0 + 0x154) = 0;
+//         *(u8 *) ((char *) v0 + 0x169) = (u8) arg7;
+//         if (v0 != 0) {
+//             D_800DC9F0 += 1;
+//         }
+//     }
+//     return v0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151407D0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151408A4.s")
