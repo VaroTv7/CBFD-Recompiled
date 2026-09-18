@@ -4,19 +4,38 @@
 #include "variables.h"
 
 
+// NON-MATCHING: corrects a wrong element count from an earlier
+// attempt (the loop bound is genuinely 101 elements, confirmed by
+// target's own `addiu $s2, $s0, 0x1484` - 0x1484 / sizeof(struct115)
+// == 101 exactly - not 24 as previously assumed) and switches from
+// index-based to pointer-based iteration to match target's actual
+// shape (target compares two raw pointers, not an integer index
+// against a struct-relative byte offset). 21 of 23 words now match.
+// Remaining gap: target keeps THREE callee-saved registers alive
+// ($s0/$s1/$s2 - one of which, $s1, is saved to the stack but never
+// visibly used anywhere in the function), computing the end pointer
+// as a simple offset add from the already-computed base address; this
+// reconstruction only ever needs two locals (the walking pointer and
+// the end pointer) and IDO computes the base address twice from
+// scratch to fill both, regardless of whether the end pointer is
+// written as `p + 101` (reusing `p`) or `D_8008B4A8 + 101` (a fresh
+// global reference) - both produce identical output, so this is a
+// scheduling/register-pressure artifact immune to the source change.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167010.s")
-// NON-MATCHING: not hugely far away
 // void func_15167010(void) {
+//     struct115 *p;
+//     struct115 *end;
 //     void (*func)(void);
-//     s32 i;
 //
-//     for (i = 0; i < 24; i++)
-//     {
-//         func = D_8008B4A8[i].unk18;
+//     p = D_8008B4A8;
+//     end = p + 101;
+//     do {
+//         func = (void (*)(void)) p->unk18;
 //         if (func != NULL) {
 //             func();
 //         }
-//     }
+//         p += 1;
+//     } while (p < end);
 // }
 
 extern void (*D_8008CB64[])(void);
