@@ -1064,7 +1064,6 @@ f32  func_15048FC8();
 void func_15049688(f32 *arg0, f32 arg1, f32 *arg2, f32 arg3, f32 arg4, f32 arg5);
 void func_1505841C();
 void func_15058898();
-void func_1505A184();
 f32  func_1505A72C();
 void func_1505B5F8();
 void func_1505E650();

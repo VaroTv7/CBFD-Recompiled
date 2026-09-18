@@ -712,7 +712,60 @@ void func_1505959C(struct127 *arg0, s32 arg1) {
 // }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15059C84.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. arg0's low 16 bits are an unsigned angle; converts it (via
+// D_800994BC) and separately arg2*D_800994B8 into two angles, calls
+// the func_150AD780/func_150AD78C sin/cos-style helpers on each
+// (target genuinely calls both twice, once per angle, matching the
+// "recompute rather than cache" pattern seen elsewhere this session),
+// and writes three scaled-and-combined trig outputs through arg3,
+// arg4 (5th param, stack), and arg5 (6th param, stack) - arg5 gets
+// the arg2-angle's contribution, arg3/arg4 get the arg0-angle's.
+//
+// Real risk found and avoided this round: func_1505A184 itself had a
+// stale K&R-style `void func_1505A184();` in functions.h that
+// conflicted with a real `f32` 2nd/3rd parameter (same class of bug
+// fixed on func_15043BB8/func_15169850 earlier), so it's removed here
+// (matching the no-declaration precedent already used for
+// func_150AEDF8/func_151419D0) rather than given a real prototype.
+// func_150AD780/func_150AD78C themselves were NOT touched, even
+// though target's raw asm shows them receiving arguments directly via
+// $f12 (suggesting a plain `f32 func(f32)` signature) - the existing
+// real caller func_1505D34C (this file) passes them through a
+// `*(s32 *) &local` reinterpret-cast specifically to dodge the
+// K&R float-to-double default-promotion bug, and giving them a proper
+// f32 prototype would silently turn that caller's raw-bits pass into
+// an actual (very wrong) int-to-float value conversion. Reproducing
+// this function's own calls the same safe way (s32-reinterpret) avoids
+// that risk but costs the byte match: target passes straight through
+// $f12 with no stack round-trip at all, while every safe form tried
+// here spills to the stack and reloads via `lw`/mtc1, adding
+// instructions and pushing target's eagerly-live-across-both-calls
+// $f20 value into a deferred-recompute-after-the-calls shape instead.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505A184.s")
+// void func_1505A184(s32 arg0, f32 arg1, f32 arg2, f32 *arg3, f32 *arg4, f32 *arg5) {
+//     f32 half1;
+//     f32 cosArg;
+//     f32 angle;
+//     f32 s1;
+//     f32 c1;
+//     f32 s2;
+//     f32 c2;
+//
+//     half1 = arg1 * 0.5f;
+//     cosArg = arg2 * D_800994B8;
+//     c1 = func_150AD78C(*(s32 *) &cosArg);
+//     s1 = func_150AD780(*(s32 *) &cosArg);
+//     *arg5 = c1 * -half1;
+//     half1 = s1 * half1;
+//
+//     angle = (f32) (u16) arg0;
+//     angle = angle * D_800994BC;
+//     s2 = func_150AD780(*(s32 *) &angle);
+//     c2 = func_150AD78C(*(s32 *) &angle);
+//     *arg3 = s2 * half1;
+//     *arg4 = -c2 * half1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505A250.s")
 
 
