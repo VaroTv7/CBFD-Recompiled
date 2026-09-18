@@ -445,4 +445,39 @@ void func_15169824(struct102 *arg0) {
     func_10004074(arg0);
 }
 
+// NON-MATCHING: same "cfg" merge pattern as func_150AEDF8/func_151419D0
+// this session, but with a genuine 5th argument passed on the stack
+// (confirmed both by the raw asm's `lw $a0, 0x28($sp)` - the standard
+// o32 5th-stack-arg slot just above the 4-register save area - and by
+// every real call site in the unlinked src/game/ draft tree, all of
+// which pass 5 arguments in exactly this shape). The functions.h
+// prototype was previously the K&R-style `void func_15169850();`,
+// which conflicts with a `u8` 2nd parameter in the real definition
+// (same class of implicit-declaration/real-definition mismatch fixed
+// on func_15043BB8 earlier in this project) - given a full typed
+// prototype here. 34 of 39 real instructions (ignoring the jal's
+// embedded target) are byte-identical; the remaining gap is a single
+// $v0/$v1 register-pair swap in the second guard's two loads/compares/
+// store, cascading into 5 instruction encodings - tried reversed
+// comparison operand order and explicit named locals for both loaded
+// values (in both declaration orders), none matched target's pairing.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15169850.s")
+// void func_15169850(void *arg0, u8 arg1, void *arg2, void *arg3, void *arg4) {
+//     if (arg1 == 0) {
+//         if (*(s32 *) arg0 == *(s32 *) arg2 || *(u8 *) ((char *) arg0 + 4) == *(u8 *) arg3) {
+//             func_1516972C(arg4);
+//         }
+//         return;
+//     }
+//     if (arg1 == 0x2D) {
+//         if (*(s32 *) arg0 == *(s32 *) arg2) {
+//             *(s32 *) arg2 = *(s32 *) ((char *) arg0 + 4);
+//             *(u8 *) arg3 = *(u8 *) ((char *) arg0 + 9);
+//             return;
+//         }
+//         if (*(s32 *) ((char *) arg0 + 4) == *(s32 *) arg2) {
+//             *(s32 *) arg2 = *(s32 *) arg0;
+//             *(u8 *) arg3 = *(u8 *) ((char *) arg0 + 8);
+//         }
+//     }
+// }
