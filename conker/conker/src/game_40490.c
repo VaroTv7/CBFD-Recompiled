@@ -46,6 +46,71 @@ s32 func_1501396C(struct16 *arg0) {
 // another struct
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150139AC.s")
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - a state-transition guard/dispatcher. Sets arg0's unk16
+// flag bit 2, then returns 1 early if D_800D2E4C (a real struct102*
+// global)'s unk11 byte has bit 2 set AND D_800BE9F0==0x13, or if
+// D_800C35EA==1 and D_800C35E8 is 0xF/0x10/0x11 (all three, caught a
+// real bug here: an earlier attempt only checked the first two and
+// silently dropped the 0x11 case - fixed after noticing the isolated
+// harness was 2 instructions short of a believable match). Otherwise,
+// if arg0->unk18 is a valid index (<6) into the D_80082F28 function-
+// pointer table and that slot is non-NULL, converts arg0->unk1C
+// (treated as u32, not s32 - the classic bias-correct-if-negative
+// idiom) to a float, scales it by D_80096650, and calls the pointer
+// with (arg0, scaledValueAsRawBits).
+// 64 vs target's 64 instructions - exact count match, and the vast
+// majority of operations/offsets are identical. Two deliberate source
+// choices were needed to get here: wrapping the final null-pointer
+// check as `if (fn != 0) { ...; call(); } return 1;` instead of an
+// early `if (fn == 0) return 1;` (the latter made IDO speculatively
+// reload arg0->unk1C a second time after the branch, costing 2 extra
+// instructions), and giving the scaled value its own local (`prod`)
+// rather than reusing the unscaled one (reuse forced an unnecessary
+// stack round-trip for the cross-branch float value; target's
+// unscaled/scaled values also live in genuinely different physical
+// registers, $f6 vs $f0). The one remaining gap is target moving the
+// scaled result into $a1 via a single `mfc1` register-to-register
+// instruction, where every form tried here does it via a swc1+lw
+// stack round-trip instead - offset by this reconstruction saving an
+// instruction elsewhere, so the total still lands exactly on 64.
+// s32 func_15013C38(void *arg0) {
+//     u8 flags;
+//     struct102 *ptr;
+//     s32 v1;
+//     u8 v0;
+//     void (*fn)(void *, s32);
+//     s32 t4;
+//     f32 val;
+//     f32 prod;
+//
+//     flags = *((u8 *) arg0 + 0x16);
+//     v1 = *(s32 *) ((char *) arg0 + 0x18);
+//     *((u8 *) arg0 + 0x16) = flags | 4;
+//     ptr = D_800D2E4C;
+//     if ((*((u8 *) ptr + 0x11) & 4) != 0 && D_800BE9F0 == 0x13) {
+//         return 1;
+//     }
+//     if (D_800C35EA == 1) {
+//         v0 = D_800C35E8;
+//         if (v0 == 0xF || v0 == 0x10 || v0 == 0x11) {
+//             return 1;
+//         }
+//     }
+//     if (v1 >= 6) {
+//         return 1;
+//     }
+//
+//     fn = D_80082F28[v1];
+//     if (fn != 0) {
+//         t4 = *(s32 *) ((char *) arg0 + 0x1C);
+//         val = (f32) (u32) t4;
+//         prod = val * D_80096650;
+//
+//         fn(arg0, *(s32 *) &prod);
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15013C38.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15013D38.s")
