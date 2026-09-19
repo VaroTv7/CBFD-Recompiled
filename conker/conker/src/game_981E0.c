@@ -1545,6 +1545,60 @@ void func_150723E0(void) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15072420.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - initializes a gObjects slot. Skips entirely if
+// D_800BE616==0 and gCurrentObject->unk222 (a byte, doubling as a
+// gObjects index) is 0. Otherwise, on gObjects[gCurrentObject->
+// unk222] (stride 0x32C, matching struct127's real size), sets
+// several constant fields (unk101=4, unk104=0, unk125=0xFF, unk218=0,
+// unkE4/unkE6=0, unkEC/unkF0/unkDC/unkE0=1.0f) plus two derived from
+// live state (unk65 = gCurrentObjectIndex+1, unk5C = D_800D1580>>16,
+// unk232 = (u8) D_800D1580), then calls the still-undocumented (K&R-
+// declared here, matching this codebase's convention for calling an
+// under-referenced helper faithfully without guessing its body)
+// func_151B5BA0 on a SEPARATE gObjects entry - the one at
+// gCurrentObjectIndex directly, not the unk222-derived one. Both
+// gCurrentObject and gCurrentObjectIndex are genuinely read twice
+// (once for the early guard/first use, once again later with no
+// intervening write) - reproduced by re-expressing each access as its
+// own statement, needing an explicit `volatile` cast on the second
+// gCurrentObjectIndex read specifically since otherwise IDO CSEs the
+// two reads together (no such trick was needed for gCurrentObject's
+// own double-read, which reproduced naturally from two separate
+// statements alone).
+// 51 vs target's 53 instructions - every field offset, constant, and
+// the two double-reads match; the remaining 2-instruction gap is
+// this reconstruction being more efficient in ways not yet isolated
+// (same class of "IDO finds a shorter form than target used" already
+// seen repeatedly this session).
+// void func_1507266C(void) {
+//     u8 idx;
+//     s32 val;
+//     char *target;
+//
+//     if (D_800BE616 == 0 && *((u8 *) gCurrentObject + 0x222) == 0) {
+//         return;
+//     }
+//
+//     idx = *((u8 *) gCurrentObject + 0x222);
+//     val = D_800D1580;
+//     target = (char *) gObjects + idx * 0x32C;
+//     *((u8 *) target + 0x65) = gCurrentObjectIndex + 1;
+//     *(s32 *) (target + 0x5C) = val >> 16;
+//     *((u8 *) target + 0x101) = 4;
+//     *((u8 *) target + 0x104) = 0;
+//     *((u8 *) target + 0x125) = 0xFF;
+//     *(s32 *) (target + 0x218) = 0;
+//     *(s16 *) (target + 0xE4) = 0;
+//     *(s16 *) (target + 0xE6) = 0;
+//     *((u8 *) target + 0x232) = (u8) val;
+//     *(f32 *) (target + 0xEC) = 1.0f;
+//     *(f32 *) (target + 0xF0) = 1.0f;
+//     *(f32 *) (target + 0xDC) = 1.0f;
+//     *(f32 *) (target + 0xE0) = 1.0f;
+//
+//     func_151B5BA0((char *) gObjects + (*(volatile u8 *) &gCurrentObjectIndex) * 0x32C);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1507266C.s")
 
 void func_15072740(void) {
