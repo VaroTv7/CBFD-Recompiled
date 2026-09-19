@@ -1194,7 +1194,48 @@ void func_1505DFDC(struct127 *arg0) {
 //     return 0;
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505EEF4.s")
+// NON-MATCHING: sibling of func_1505EEF4 above - identical shape,
+// same technique applies verbatim, just a different global
+// (D_800CC3F7 instead of D_800CC40F) and a different struct127 type-
+// tag byte offset (0x127 instead of 0x13F, not individually named in
+// structs.h so accessed via raw offset cast). 53 vs target's 55
+// instructions, same gap (target keeps an explicit loop counter
+// alongside the walking pointer; this reconstruction's compile drops
+// it in favor of a precomputed end-of-array pointer comparison).
+// struct127 *func_1505EFD0(s32 arg0) {
+//     s32 i;
+//
+//     if (gObjects[0].interaction_state != 0 && arg0 == D_800CC3F7[0]) {
+//         return gObjects;
+//     }
+//     for (i = 1; i < 25; i++) {
+//         if (gObjects[i].interaction_state != 0 && *((u8 *) &gObjects[i] + 0x127) == arg0) {
+//             return &gObjects[i];
+//         }
+//     }
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505EFD0.s")
+// NON-MATCHING: third sibling of func_1505EEF4 above - identical
+// shape and technique, this time using D_800CC2D4 for the special-
+// cased slot-0 check and struct127's already-named `id` field (offset
+// 0x4) as the type tag instead of an unnamed offset. 53 vs target's
+// 55 instructions, same gap as its siblings (target keeps an explicit
+// loop counter alongside the walking pointer; this reconstruction's
+// compile drops it for a precomputed end-of-array pointer compare).
+// struct127 *func_1505F0AC(s32 arg0) {
+//     s32 i;
+//
+//     if (gObjects[0].interaction_state != 0 && arg0 == D_800CC2D4[0]) {
+//         return gObjects;
+//     }
+//     for (i = 1; i < 25; i++) {
+//         if (gObjects[i].interaction_state != 0 && gObjects[i].id == arg0) {
+//             return &gObjects[i];
+//         }
+//     }
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F0AC.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F188.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F298.s")
