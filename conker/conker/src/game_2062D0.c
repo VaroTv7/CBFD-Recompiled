@@ -103,6 +103,67 @@ s32 func_151D93F4(void *arg0, void *arg1) {
     return res;
 }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Returns 1 immediately if arg0's unk0C1 flag bit 0 is set.
+// Otherwise, on a substruct at arg0+0xA8, updates two "accumulator"
+// bytes (unk4 += unk6*D_800BE9E4, unk5 += unk7*D_800BE9E4 - the
+// global genuinely re-read a second time with no intervening call,
+// matching this codebase's established double-read idiom) and calls
+// the already-real, already-prototyped func_151423D8 (a trig/table
+// lookup confirmed via its real callers in game_16EE20.c) on each
+// updated byte minus 0x40, writing arg0->unk38/unk3C as
+// result*substructField + substructField0 - looks like advancing a
+// 2D oscillation/wobble phase and re-deriving its x/y projection.
+// Always returns 1 (both paths set v0=1 explicitly - the real
+// caller's `!= 0` check in this file is apparently vestigial).
+// 57 vs target's 57 instructions - exact count match. One remaining
+// gap: target's top guard uses a plain (non-likely) `beqz` even
+// though the delay-slot value (the +0xA8 substruct pointer) is only
+// useful on the fallthrough path - every source form tried here
+// either reproduces this exact "only-useful-on-one-path" pattern as a
+// `beqzl` (branch-likely, the form this project's rule would predict)
+// at the same total instruction count, or gets a plain `beqz` at the
+// cost of one extra instruction elsewhere (a second arg0 reload) -
+// so the two forms trade one specific difference for another; this
+// version keeps the exact total-count match and accepts the
+// likely-branch flag as the remaining gap.
+// s32 func_151D9450(void *arg0, void *arg1) {
+//     void *v1;
+//     s32 t0;
+//     s32 t5;
+//     u8 b4;
+//     u8 b5;
+//     s8 b6;
+//     s8 b7;
+//     f32 r0;
+//     f32 r1;
+//
+//     if ((*((u8 *) arg0 + 0xC1) & 1) != 0) {
+//         return 1;
+//     }
+//
+//     v1 = (char *) arg0 + 0xA8;
+//
+//     b6 = *((s8 *) v1 + 6);
+//     b4 = *((u8 *) v1 + 4);
+//     b7 = *((s8 *) v1 + 7);
+//     t0 = b6 * (*(volatile s32 *) &D_800BE9E4);
+//     b5 = *((u8 *) v1 + 5);
+//     b4 = (u8) (b4 + t0);
+//     *((u8 *) v1 + 4) = b4;
+//     t5 = b7 * (*(volatile s32 *) &D_800BE9E4);
+//     b5 = (u8) (b5 + t5);
+//     *((u8 *) v1 + 5) = b5;
+//
+//     r0 = func_151423D8((u8) (b4 - 0x40));
+//     *(f32 *) ((char *) arg0 + 0x38) = r0 * *(f32 *) ((char *) v1 + 8) + *(f32 *) v1;
+//
+//     b5 = *((u8 *) v1 + 5);
+//     r1 = func_151423D8((u8) (b5 - 0x40));
+//     *(f32 *) ((char *) arg0 + 0x3C) = r1 * *(f32 *) ((char *) v1 + 0xC) + *(f32 *) v1;
+//
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151D9450.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151D9534.s")
 
