@@ -93,6 +93,65 @@ void func_1513477C(struct102 *arg0) {
 void func_151348F0(f32 arg0, f32 arg1, s32 arg2, s32 arg3) {
 }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. arg0 points to the same anonymous 0x1C-byte "template"
+// struct literal-constructed by func_15136A50 in this file (f0/f4/f8
+// s32, fC/f10 f32, f14 s16, f16/f17/f18 u8, f19 s8) - sets its unk16
+// flags byte's bit 1, then relays type=0x2A plus its own arg1/arg2/
+// arg3 into the already-real func_15167A68(s32,s32,s32,s32,u8,s32)
+// (confirmed via its real prototype in game_1944C0.c and matching
+// call shapes in game_18D770.c/game_1FFF60.c/game_169510.c). On
+// success, memcpy's the template's 0x1C bytes into the new object at
+// +0x10, then treats the first 3 copied words as f32 pointers,
+// dereferences each into +0x2C/+0x30/+0x34, zeroes +0x3C, and stores
+// 1/(2*copied_+0x1C_value) at +0x38 - looks like resolving a
+// deferred-reference plane/axis setup (unk10/14/18 as pointers to
+// caller-owned floats, resolved once into the object's own storage).
+// 50 vs target's 50 instructions - branch structure, every store
+// offset, and even 5 individual instructions (the guard/memcpy/
+// prologue portion and 2 of the tail float stores) are byte-identical
+// once the tail computation's statement order was rewritten to mirror
+// target's exact load-then-defer-dereference interleaving (read t0,
+// read t1, read the scale field, square it, store *t0, THEN read t2,
+// compute the reciprocal, store *t1, zero +0x3C, store *t2, store the
+// reciprocal last). What remains is pure float-register-numbering
+// (target's $f0/$f4/$f6/$f8/$f10/$f16/$f18 vs whichever temps this
+// compile picks) on instructions whose ORDER and OFFSETS already
+// match exactly - the same "immune to restructuring" register-choice
+// class documented elsewhere in this project.
+// void *func_15134908(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
+//     void *v1;
+//     u8 flags;
+//     void *v0;
+//     f32 *t0;
+//     f32 *t1;
+//     f32 *t2;
+//     f32 half;
+//     f32 scale;
+//
+//     v1 = func_15167A68(0x2A, arg3, arg1 + 0x40, 1, (u8) arg2, 1);
+//     if (v1 == 0) {
+//         return 0;
+//     }
+//
+//     flags = *((u8 *) arg0 + 0x16);
+//     *((u8 *) arg0 + 0x16) = flags | 2;
+//     memcpy((char *) v1 + 0x10, arg0, 0x1C);
+//
+//     v0 = v1;
+//     t0 = *(f32 **) ((char *) v0 + 0x10);
+//     t1 = *(f32 **) ((char *) v0 + 0x14);
+//     half = *(f32 *) ((char *) v0 + 0x1C);
+//     half = half + half;
+//     *(f32 *) ((char *) v0 + 0x2C) = *t0;
+//     t2 = *(f32 **) ((char *) v0 + 0x18);
+//     scale = 1.0f / half;
+//     *(f32 *) ((char *) v0 + 0x30) = *t1;
+//     *(f32 *) ((char *) v0 + 0x3C) = 0.0f;
+//     *(f32 *) ((char *) v0 + 0x34) = *t2;
+//     *(f32 *) ((char *) v0 + 0x38) = scale;
+//     return v1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15134908.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151349D0.s")
