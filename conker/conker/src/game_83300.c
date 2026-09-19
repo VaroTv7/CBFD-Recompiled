@@ -1159,6 +1159,40 @@ void func_1505DFDC(struct127 *arg0) {
 //     return tmp;
 // }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - searches gObjects[25] for a live entry (interaction_state
+// != 0) whose unk13F byte equals arg0, returning &gObjects[i]. Slot 0
+// is handled specially: it's matched against D_800CC40F[0] instead of
+// its own unk13F (index 0 is apparently a reserved object with no
+// normal type tag). No source restructuring was needed - a plain
+// `for (i = 1; i < 25; i++)` naturally auto-unrolled 4x with the same
+// peek-ahead-load scheduling as target (load the NEXT element's
+// interaction_state in the current element's match-branch delay slot)
+// on the very first attempt, since this is the "early return inside
+// loop body" trigger this project already knows produces exactly this
+// shape.
+// 53 vs target's 55 instructions: every field offset, branch shape and
+// peek-ahead load matches; target additionally maintains an explicit
+// counter (v0, compared against 25) alongside the walking pointer,
+// while this reconstruction's compile eliminated the counter entirely
+// in favor of comparing the walking pointer directly against a
+// precomputed end-of-array address - genuinely fewer instructions for
+// equivalent behavior, the same "IDO finds a shorter form than target
+// used" pattern already seen several times this session (e.g.
+// func_15008870, func_1500707C).
+// struct127 *func_1505EEF4(s32 arg0) {
+//     s32 i;
+//
+//     if (gObjects[0].interaction_state != 0 && arg0 == D_800CC40F[0]) {
+//         return gObjects;
+//     }
+//     for (i = 1; i < 25; i++) {
+//         if (gObjects[i].interaction_state != 0 && gObjects[i].unk13F == arg0) {
+//             return &gObjects[i];
+//         }
+//     }
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505EEF4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505EFD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F0AC.s")
