@@ -1817,6 +1817,60 @@ void func_15074644(void) {
     gCurrentObject->unk31C->unk11A = (s8) D_800D1580;
 }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Sibling of func_15074644 above (same gCurrentObject->unk31C
+// struct126* access) - updates that sub-object's unk94 byte field
+// (declared s8 in structs.h, but read/written via u8 casts here since
+// target's lbu/sb sequence zero-extends, matching this codebase's
+// convention of trusting the actual load width over the struct's
+// declared signedness when they disagree). If D_800D1580==1, always
+// notifies via func_10011FDC(5) and sets unk94 = D_800D1580.
+// Otherwise, compares the CURRENT unk94 against 1: sets unk94 =
+// D_800D1580 unconditionally, and only if the byte used to be 1, also
+// notifies via func_10011FDC(0) and re-derives sub/unk94 = D_800D1580
+// again afterward (both call sites use gCurrentObject->unk31C and
+// D_800D1580 re-read fresh post-call, matching this codebase's usual
+// "don't trust values across an opaque call" pattern).
+// 36 vs target's 35 instructions - every operation, field offset, and
+// even the provably-dead duplicate `lbu` (a branch-likely scheduling
+// artifact matching the pattern documented elsewhere this project)
+// reproduce exactly, once the two branches' final byte-writes were
+// restructured to share ONE write statement at the end (mirroring
+// target's own shared merge point) instead of each branch writing
+// independently. The one remaining gap: target merges the epilogue's
+// $ra reload for the "byteVal != 1" early-exit with the main
+// post-write exit (both land on the same reload), while this
+// reconstruction's early `return;` for that case gets its own
+// separate reload - a genuine three-vs-two-exit-point difference that
+// didn't resolve with the forms tried.
+// void func_15074664(void) {
+//     struct126 *sub;
+//     s32 flag;
+//     u8 byteVal;
+//     s32 newVal;
+//
+//     sub = gCurrentObject->unk31C;
+//     if (sub == 0) {
+//         return;
+//     }
+//
+//     flag = D_800D1580;
+//     if (flag == 1) {
+//         func_10011FDC(5);
+//         sub = gCurrentObject->unk31C;
+//         newVal = D_800D1580;
+//     } else {
+//         byteVal = *((u8 *) sub + 0x94);
+//         *((u8 *) sub + 0x94) = (u8) flag;
+//         if (byteVal != 1) {
+//             return;
+//         }
+//         func_10011FDC(0);
+//         sub = gCurrentObject->unk31C;
+//         newVal = D_800D1580;
+//     }
+//     *((u8 *) sub + 0x94) = (u8) newVal;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15074664.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150746F0.s")
 // ?
