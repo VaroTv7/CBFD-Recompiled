@@ -118,4 +118,56 @@ void func_1507DE4C(struct127 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507DF10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507DFE4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507E114.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Struct unidentified (raw offset casts, matching the sibling
+// func_151380B4 in game_161520.c which reads the same arg0->unk1D4
+// field). If unk1D4 is 0, copies unk14/unk18/unk1C straight out to
+// *arg1/*arg2/*arg3. Otherwise builds a {0, unk150*30.0f, 0} triple,
+// picks a flags value from unk1D4 (+0x300 if unk0==1, +0xC0 if
+// unk0==0x1E, else unmodified - same offsets func_151380B4 in
+// game_161520.c uses), and calls the already-K&R-declared
+// func_15143134(data, out, flags) - a real 4th-argument call site
+// exists at game_161520.c:465, but here the raw asm never sets $a3
+// before the jal (it only spills arg3's OWN value there for reuse
+// right after the call), so this reconstruction calls it with 3 args
+// and lets the K&R convention leave $a3 holding this function's own
+// arg3 untouched, matching target exactly.
+// 52 vs target's 53 instructions: every operation, offset and branch
+// TARGET matches; the sole gap is the top-level unk1D4 guard, which
+// target compiles as a plain (non-likely) `beqz`, while every source
+// form tried here (`if (flag) {...} else {...}` and the reverse) picks
+// a `beqzl`/`bnezl` (branch-likely) instead - both directions tried,
+// same result each time.
+// void func_1507E1D0(void *arg0, f32 *arg1, f32 *arg2, f32 *arg3) {
+//     s32 flag;
+//     s32 type;
+//     s32 flags;
+//     f32 data[3];
+//     f32 out[3];
+//
+//     flag = *(s32 *) ((char *) arg0 + 0x1D4);
+//     if (flag != 0) {
+//         data[0] = 0.0f;
+//         data[1] = *(f32 *) ((char *) arg0 + 0x150) * 30.0f;
+//         data[2] = 0.0f;
+//
+//         type = *(s32 *) arg0;
+//         flags = *(s32 *) ((char *) arg0 + 0x1D4);
+//         if (type == 1) {
+//             flags += 0x300;
+//         } else if (type == 0x1E) {
+//             flags += 0xC0;
+//         }
+//
+//         func_15143134(data, out, flags);
+//
+//         *arg1 = out[0];
+//         *arg2 = out[1];
+//         *arg3 = out[2];
+//     } else {
+//         *arg1 = *(f32 *) ((char *) arg0 + 0x14);
+//         *arg2 = *(f32 *) ((char *) arg0 + 0x18);
+//         *arg3 = *(f32 *) ((char *) arg0 + 0x1C);
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507E1D0.s")
