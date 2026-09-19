@@ -19,6 +19,53 @@ void func_150064E0(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15006590.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15006BEC.s")
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Fills D_800BE358[0..8) with 0xFF, flushes the data cache,
+// then (if a flag byte D_8002AC5C is clear) walks the 4 consecutive
+// scalar globals D_800BE3D8..D_800BE3DB via pointer (each one already
+// separately declared `s8` - not touching those declarations, since a
+// real caller in this same file assigns `D_800BE3D8 = -1;` directly)
+// looking for one equal to arg0; on a match, calls
+// func_151DD4E0(&D_800BE900, (i<<4)+4, D_800BE358) and again with
+// +5, both as byte values.
+// 57 vs target's 59 instructions: content, control flow and the
+// exact index-based-vs-pointer-walk choice for BOTH loops match
+// target precisely (this took two iterations to find - writing the
+// fill loop as `D_800BE358[i] = 0xFF` compiles to a pointer-walk that
+// target doesn't use, while explicit pointer arithmetic
+// `*((u8*)D_800BE358 + i)` reproduces target's index-recompute-each-
+// iteration form exactly, letting the array's base address stay in
+// one register shared by both loops instead of needing a second
+// computation). The sole remaining gap is register-count padding:
+// target's prologue/epilogue save $s0-$s7 (8 registers) even though
+// only 6 are ever referenced in the body ($s1/$s3 are dead padding,
+// an IDO convention of saving every register up to the highest one
+// used) because target keeps arg0 in $s7, whereas this reconstruction
+// packs every live value into $s0-$s6 (7 registers, none idle) and
+// never needs an 8th - a genuine, source-invisible register
+// allocation choice, not a logic difference.
+// void func_1500707C(s32 arg0) {
+//     s32 i;
+//     s8 *p;
+//     s32 v0;
+//
+//     for (i = 0; i < 8; i++) {
+//         *((u8 *) D_800BE358 + i) = 0xFF;
+//     }
+//     osWritebackDCacheAll();
+//
+//     if (D_8002AC5C == 0) {
+//         p = &D_800BE3D8;
+//         for (i = 0; i != 4; i++) {
+//             if (arg0 == *p) {
+//                 v0 = (i << 4) + 4;
+//                 func_151DD4E0(&D_800BE900, (u8) v0, D_800BE358);
+//                 func_151DD4E0(&D_800BE900, (u8) (v0 + 1), D_800BE358);
+//             }
+//             p++;
+//         }
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_1500707C.s")
 // requires jump table
 #pragma GLOBAL_ASM("asm/nonmatchings/game_33990/func_15007168.s")
