@@ -559,6 +559,64 @@ void func_1513FA70(void *arg0, s16 arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513FFF4.s")
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness - a pure leaf struct-repack function, no calls/globals/
+// control flow at all. Unpacks 4 repeating 10-byte source records
+// (arg1+0x0, +0xA, +0x14, +0x1E) into 4 corresponding 16-byte
+// destination records (arg0+0x6, +0x16, +0x26, +0x36). Each record:
+// reads a u16 "wide" field and writes it to the record's first 2
+// dest bytes, then writes 4 s16 source fields truncated to bytes at
+// dest+6..+9 - but the u16 write gets immediately overwritten with a
+// hardcoded 0 right after (a genuine straight-line dead write with no
+// control flow involved at all, reproduced verbatim since target
+// itself contains it - not a branch-likely artifact this time, just
+// how the original source evidently read-then-discarded that field).
+// 46 vs target's 48 instructions - the field mapping, byte offsets
+// and the dead-write pattern all match exactly for all 4 records;
+// the only difference is target's raw asm explicitly adjusts a0/a1 by
+// constants (+0x30/+0x1E) via two real `addiu` instructions before
+// using small relative offsets, while every C form tried here -
+// direct absolute-offset casts, and explicitly introducing adjusted
+// pointer locals matching that exact structure - gets IDO to fold the
+// constant pointer arithmetic away entirely, which is strictly fewer
+// instructions for identical behavior.
+// void func_151400D0(void *arg0, void *arg1) {
+//     u16 first;
+//     char *d2;
+//     char *s2;
+//
+//     first = *(u16 *) ((char *) arg1 + 0x8);
+//     d2 = (char *) arg0 + 0x30;
+//     s2 = (char *) arg1 + 0x1E;
+//
+//     *(u16 *) (d2 + -0x2a) = first;
+//     *(s8 *) (d2 + -0x24) = (s8) *(s16 *) (s2 + -0x1e);
+//     *(s8 *) (d2 + -0x23) = (s8) *(s16 *) (s2 + -0x1c);
+//     *(s8 *) (d2 + -0x22) = (s8) *(s16 *) (s2 + -0x1a);
+//     *(u16 *) (d2 + -0x2a) = 0;
+//     *(s8 *) (d2 + -0x21) = (s8) *(s16 *) (s2 + -0x18);
+//
+//     *(u16 *) (d2 + -0x1a) = *(u16 *) (s2 + -0xc);
+//     *(s8 *) (d2 + -0x14) = (s8) *(s16 *) (s2 + -0x14);
+//     *(s8 *) (d2 + -0x13) = (s8) *(s16 *) (s2 + -0x12);
+//     *(s8 *) (d2 + -0x12) = (s8) *(s16 *) (s2 + -0x10);
+//     *(u16 *) (d2 + -0x1a) = 0;
+//     *(s8 *) (d2 + -0x11) = (s8) *(s16 *) (s2 + -0xe);
+//
+//     *(u16 *) (d2 + -0xa) = *(u16 *) (s2 + -0x2);
+//     *(s8 *) (d2 + -0x4) = (s8) *(s16 *) (s2 + -0xa);
+//     *(s8 *) (d2 + -0x3) = (s8) *(s16 *) (s2 + -0x8);
+//     *(s8 *) (d2 + -0x2) = (s8) *(s16 *) (s2 + -0x6);
+//     *(u16 *) (d2 + -0xa) = 0;
+//     *(s8 *) (d2 + -0x1) = (s8) *(s16 *) (s2 + -0x4);
+//
+//     *(u16 *) (d2 + 0x6) = *(u16 *) (s2 + 0x8);
+//     *(s8 *) (d2 + 0xc) = (s8) *(s16 *) (s2 + 0x0);
+//     *(s8 *) (d2 + 0xd) = (s8) *(s16 *) (s2 + 0x2);
+//     *(s8 *) (d2 + 0xe) = (s8) *(s16 *) (s2 + 0x4);
+//     *(u16 *) (d2 + 0x6) = 0;
+//     *(s8 *) (d2 + 0xf) = (s8) *(s16 *) (s2 + 0x6);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_151400D0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_15140190.s")
