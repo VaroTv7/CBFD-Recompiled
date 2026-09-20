@@ -942,6 +942,49 @@ u8 func_15145C90(s32 arg0) {
     }
 }
 
+// NON-MATCHING: batch vector-transform loop. Builds a local rotation
+// matrix via func_150A8050 from arg0's first 3 words (raw-bit floats)
+// then overwrites its translation row with arg0's s16 fields at
+// 0x10/0x12/0x14 (converted to float). Loops arg3 times over parallel
+// pointer arrays arg1[i] (source 3-float vector) and arg2[i]
+// (destination, written as 3 separate float* outputs), calling
+// func_150A7960(&mtx, x, y, z, &outX, &outY, &outZ) each iteration.
+// extern void func_150A7960(void *mtx, f32 x, f32 y, f32 z, f32 *outX, f32 *outY, f32 *outZ);
+//
+// void func_15145CD0(void *arg0, void **arg1, void **arg2, s32 arg3) {
+//     f32 mtx[4][4];
+//
+//     func_150A8050(&mtx, *(s32 *) arg0, *(s32 *) ((char *) arg0 + 4), *(s32 *) ((char *) arg0 + 8));
+//     mtx[3][0] = (f32) *(s16 *) ((char *) arg0 + 0x10);
+//     mtx[3][1] = (f32) *(s16 *) ((char *) arg0 + 0x12);
+//     mtx[3][2] = (f32) *(s16 *) ((char *) arg0 + 0x14);
+//
+//     if (arg3 > 0) {
+//         do {
+//             char *src = (char *) *arg1;
+//             char *dst = (char *) *arg2;
+//             func_150A7960(&mtx, *(f32 *) src, *(f32 *) (src + 4), *(f32 *) (src + 8),
+//                           (f32 *) dst, (f32 *) (dst + 4), (f32 *) (dst + 8));
+//             arg1++;
+//             arg2++;
+//             arg3--;
+//         } while (arg3 > 0);
+//     }
+// }
+// 58 vs target's 57 instructions - one extra. Stack frame size,
+// setup section, and loop body all match target exactly (same
+// relocations, same offsets, same call argument marshalling); the
+// gap is a single register-allocation quirk: target reuses the SAME
+// register ($s1) sequentially for `arg0`'s config pointer during
+// setup and then for the `arg1` array pointer during the loop (their
+// live ranges don't overlap), needing only 4 callee-saved registers
+// total, while this reconstruction's allocator gives them distinct
+// registers (5 total, one extra save/restore pair). Also, target's
+// loop-back branch is a plain `bgtz` with the second array pointer's
+// increment in its delay slot, while this compiles to a `bgtzl`
+// (branch-likely) with a speculative next-iteration reload in the
+// delay slot instead - tried reordering the three post-body
+// increment statements without effect.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145CD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145DB4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145EA4.s")
