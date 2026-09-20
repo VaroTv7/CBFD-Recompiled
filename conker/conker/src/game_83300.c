@@ -1326,6 +1326,36 @@ void func_150615DC(struct127 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_150619A8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15061B4C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_150623F4.s")
+// NON-MATCHING: scans the full gObjects[25] array; for each live
+// object (interaction_state != 0) whose unk65 equals arg0's own
+// array index plus one, and whose unk127 is 0xFF, calls
+// func_15060F28(obj, arg1). The index is recovered from arg0's own
+// pointer offset into gObjects via a genuine runtime division by
+// sizeof(struct127) (0x32C), matching IDO's usual div-by-zero/
+// overflow guard boilerplate.
+// void func_150626EC(struct127 *arg0, s32 arg1) {
+//     struct127 *obj;
+//     s32 idx;
+//
+//     obj = gObjects;
+//     do {
+//         if (obj->interaction_state != 0) {
+//             idx = ((char *) arg0 - (char *) gObjects) / 0x32C;
+//             if (idx + 1 == obj->unk65) {
+//                 if (obj->unk127 == 0xFF) {
+//                     func_15060F28(obj, arg1);
+//                 }
+//             }
+//         }
+//         obj = (struct127 *) ((char *) obj + 0x32C);
+//     } while (obj != (struct127 *) &D_800D121C);
+// }
+// 56 vs target's 58 instructions - smarter than target by 2. Every
+// division-guard instruction, field offset, and branch shape matches
+// target exactly; the gap is target computing `gObjects`'s address
+// via two independent lui/addiu pairs (once for the loop iterator,
+// once for the index-recovery subtraction) where this reconstruction
+// naturally shares a single computed address between both uses.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_150626EC.s")
 
 void func_150627D4(struct127 *arg0) {
