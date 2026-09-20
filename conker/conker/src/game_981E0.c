@@ -1136,7 +1136,30 @@ void func_150701F4(s32 arg0) {
     func_151C9740(gCurrentObject, 0xFF, 1);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15070224.s")
+struct225 *func_151602C0(Header *header, Header2 *header2, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 offset, s32 arg9, s32 argA);
+
+struct225 *func_15070224(void *arg0) {
+    Header header;
+    Header2 header2;
+    u8 rand1;
+    u8 rand2;
+
+    header.unk0 = 3;
+    header.unk1 = -1;
+
+    rand1 = func_150ADA20();
+    header.unk2 = ((u32) rand1 % 5) + 4;
+
+    header.unk4 = 0;
+
+    header2.unk0 = (s32) gCurrentObject->x_position;
+    header2.unk4 = (s32) gCurrentObject->y_position;
+    header2.unk8 = (s32) gCurrentObject->z_position;
+
+    rand2 = func_150ADA20();
+
+    return func_151602C0(&header, &header2, ((u32) rand2 % 3) + 4, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0xFF, 1);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15070300.s")
 
 void func_15070690(s32 arg0) {
