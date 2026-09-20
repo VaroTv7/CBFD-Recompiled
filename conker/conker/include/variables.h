@@ -450,6 +450,7 @@ extern s32  (*D_8008B0F0[])(void);
 extern u8   (*D_8008B1F8[])(struct225*);
 extern void (*D_8008B208[])(struct225*);
 extern void (*D_8008B2B0[])(struct225*);
+extern void (*D_8008B358[])(struct225*);
 extern s32 (*D_8008B36C[])(void);
 extern s32 (*D_8008B370[])(s32);
 extern void (*D_8008B374[])(s32);

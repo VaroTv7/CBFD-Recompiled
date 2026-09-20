@@ -622,6 +622,45 @@ void func_15161F2C(struct225 *arg0) {
     func_15163F50(arg0, &arg0->unk18);
 }
 
+// NON-MATCHING: same function-pointer-table dispatch idiom as
+// func_15161804/func_15161860 above (D_8008B358 instead of
+// D_8008B208/D_8008B2B0), gated by two record-update blocks selected
+// on arg2 (0 vs 0x2D/45) that compare/copy fields between arg0's
+// embedded record at +0x18/+0x1C and arg1's pointee.
+// void func_15161F4C(struct225 *arg0, void *arg1, u8 arg2) {
+//     s32 *recWord = (s32 *) ((char *) arg0 + 0x18);
+//     u8 *recByte = (u8 *) ((char *) arg0 + 0x1C);
+//     u8 selector;
+//
+//     if (arg2 == 0) {
+//         if (*recWord == *(s32 *) arg1 || *recByte == *(u8 *) ((char *) arg1 + 4)) {
+//             func_1516972C(arg0);
+//         }
+//     } else if (arg2 == 0x2D) {
+//         s32 otherWord0 = *(s32 *) arg1;
+//         if (otherWord0 == *recWord) {
+//             *recWord = *(s32 *) ((char *) arg1 + 4);
+//             *recByte = *(u8 *) ((char *) arg1 + 9);
+//         } else if (*(s32 *) ((char *) arg1 + 4) == *recWord) {
+//             *recWord = otherWord0;
+//             *recByte = *(u8 *) ((char *) arg1 + 8);
+//         }
+//     }
+//
+//     selector = *(u8 *) ((char *) arg0 + 0x1D);
+//     if (D_8008B358[selector] != 0) {
+//         D_8008B358[selector](arg0);
+//     }
+// }
+// 50 vs target's 57 instructions - a clean "smarter than target" gap.
+// Every branch shape, offset, and field access matches target 1:1
+// (same beql/bnel structure, same 0x18/0x1c/0x1d/4/8/9 offsets); the
+// difference is target reloading arg1 and arg2 from their stack spill
+// slots after the func_1516972C call even though neither is
+// referenced again afterward - genuinely dead reloads that target's
+// own compiler emitted anyway, which this reconstruction has no
+// reason to reproduce since arg0 alone survives the call in register
+// a0 here rather than needing a dedicated spill/reload roundtrip.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_15161F4C.s")
 
 struct225 *func_15162034(s32 arg0, u8 arg1, s32 arg2) {
