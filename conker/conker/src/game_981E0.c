@@ -2048,7 +2048,25 @@ void func_1507490C(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15074980.s")
+void func_15074980(void) {
+    s32 i;
+    f32 threshold;
+    struct126 *sub;
+
+    threshold = (f32) (D_800D1580 * 8);
+    if (D_8008FD8C > 0) {
+        i = 0;
+        do {
+            if (func_1505A72C(gCurrentObject, &gObjects[i]) < threshold) {
+                sub = gObjects[i].unk31C;
+                if (sub != 0) {
+                    sub->chasing = 0x14;
+                }
+            }
+            i++;
+        } while (i < D_8008FD8C);
+    }
+}
 
 void func_15074A44(void) {
     if (gCurrentObject->unk31C != 0) {
