@@ -719,6 +719,44 @@ void func_151450B4(struct17 *arg0, struct17 *arg1, struct17 *arg2) {
 //     arg1->unk8 = *arg3 * arg0->unk8;
 //     return 1;
 // }
+// NON-MATCHING: boolean range predicate. Calls func_151452C4 (still
+// raw asm) relaying most of this function's own params straight
+// through; bails false if it returns 0. Otherwise treats p8/p9 as
+// f32* and does a short-circuit range check: false if both *p8 and
+// *p9 are negative, true if *p8 is non-negative but *p9 is negative,
+// otherwise falls through to a final *p8 < p5 comparison. Semantics
+// fully traced instruction-by-instruction against target (including
+// which comparisons short-circuit and reuse a still-live FP condition
+// flag rather than recomputing it) and verified correct.
+// s32 func_151451F0(s32 a0, s32 a1, s32 a2, f32 arg3, f32 p5, s32 p6, s32 p7, f32 *p8, f32 *p9) {
+//     s32 v0 = func_151452C4(a0, a1, a2, arg3, p6, p7, p8, p9);
+//
+//     if (v0 == 0) {
+//         return 0;
+//     }
+//     if (*p8 < 0.0f && *p9 < 0.0f) {
+//         return 0;
+//     }
+//     if (*p8 < 0.0f) {
+//         /* fall through to final comparison */
+//     } else if (*p9 < 0.0f) {
+//         return 1;
+//     }
+//     return (*p8 < p5) ? 1 : 0;
+// }
+// 53 vs target's 53 instructions - exact count match. Rewriting every
+// comparison as a strict `< 0.0f` (matching target's raw c.lt.s
+// instructions one-for-one, instead of the mathematically-equivalent
+// `>= 0.0f` which compiled to c.le.s with swapped operands) closed
+// most of the gap. What's left: the initial `v0 == 0` guard compiles
+// inverted (bnez+forward-jump instead of target's direct beqz), the
+// 0.0f-constant and *p8 value land in swapped float registers, and
+// the third check's branch-likely polarity (bc1tl vs target's bc1fl)
+// didn't flip no matter how the guard was phrased (De Morgan negation,
+// if/else-if, and a fully nested if/else were all tried; the nested
+// form also regressed to redundant reloads of *p9 and p5 in each
+// branch, so was discarded). Same branch-polarity/register-numbering
+// near-miss family documented elsewhere in this project.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151451F0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151452C4.s")
 
