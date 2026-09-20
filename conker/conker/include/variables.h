@@ -711,6 +711,8 @@ extern f32 D_800A461C; // 10.30000019f
 extern f32 D_800A4620; // 0.5008999705f
 extern f32 D_800A5644;
 extern f32 D_800A5694;
+extern f32 D_800A5698;
+extern f32 D_800A569C;
 extern f32 D_800A56A4; // 6.283185482 (2*PI)
 extern f32 D_800A56A8;
 extern f32 D_800A56AC;

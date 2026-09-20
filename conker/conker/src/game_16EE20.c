@@ -572,6 +572,35 @@ f32 func_15143E64(vertex *arg0) {
 //     }
 //     return (f32) (v0 * v0) * D_800A5694;
 // }
+// NON-MATCHING: same unk15&3 dispatch idiom as func_15144598 just
+// above, but all four cases compute genuinely different values here
+// (no case-merging): 0 -> unk6^2 * D_800A5698 * unk8, 1 -> unk6^3 *
+// D_800A569C, 2 -> unk6*unk8*unkA, default -> 1.0f.
+// f32 func_1514462C(void *arg0) {
+//     s32 sel = *((u8 *) arg0 + 0x15) & 3;
+//     s16 v0;
+//     f32 x;
+//     f32 result;
+//
+//     result = 1.0f;
+//     if (sel == 0) {
+//         v0 = *(s16 *) ((char *) arg0 + 0x6);
+//         result = (f32) (v0 * v0) * D_800A5698 * (f32) (*(s16 *) ((char *) arg0 + 0x8));
+//     }
+//     if (sel == 1) {
+//         x = (f32) *(s16 *) ((char *) arg0 + 0x6);
+//         result = (x * D_800A569C) * x * x;
+//     }
+//     if (sel == 2) {
+//         result = (f32) (*(s16 *) ((char *) arg0 + 0x6) * *(s16 *) ((char *) arg0 + 0x8) * *(s16 *) ((char *) arg0 + 0xA));
+//     }
+//     return result;
+// }
+// 55 vs target's 56 instructions - one fewer (a "smarter than target"
+// near-miss), landed by giving `result` a default value up front and
+// writing each case as an independent guard rather than a switch or
+// if/else-if chain (both of those, like the sibling func_15144598
+// just above, compiled to a noticeably different decision tree).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514462C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514470C.s")
 f32 func_15144A74(vertex *arg0, vertex *arg1) {
