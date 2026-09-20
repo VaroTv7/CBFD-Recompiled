@@ -644,6 +644,7 @@ extern f32 D_80099F30;
 extern f32 D_80099F4C;
 
 extern f32 D_8009A020[];
+extern f32 D_8009A0D8;
 extern f32 D_8009A0E8;
 extern f32 D_8009A0EC;
 extern f32 D_8009A0F0;

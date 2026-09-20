@@ -1828,6 +1828,45 @@ void func_15073A28(void) {
     gCurrentObject->unk44 = (f32) D_800D1580;
 }
 
+// NON-MATCHING: sets gCurrentObject's owned gObjects slot (indexed by
+// unk124) up for a "target switch" - clears state, relays through
+// func_1505D024, sets a default unk1CC then conditionally overwrites
+// it from gCurrentObject's own y_position, marks immune=20, and
+// advances the facing angle into unk76.
+// void func_15073A50(void) {
+//     struct127 *obj;
+//     s32 raw;
+//
+//     obj = &gObjects[gCurrentObject->unk124];
+//
+//     if (obj->unk65 != 0) {
+//         gCurrentObject->unk13C = 0;
+//         obj->immune = 0;
+//
+//         raw = D_800D1580;
+//         func_1505D024(obj, *(volatile s32 *) &D_800D1580 & 0xFF00FF, 0, gCurrentObjectIndex);
+//
+//         obj->unk1CC = D_8009A0D8;
+//         if (raw * 2 < 0) {
+//             obj->unk1CC = gCurrentObject->y_position;
+//         }
+//
+//         obj->immune = 20;
+//         obj->unk76 = gCurrentObject->unk7A + raw;
+//     }
+// }
+// 58 vs target's 58 instructions - exact count match. Getting here
+// needed two fixes to the naive translation: forcing D_800D1580's
+// genuine double-read (target loads it twice back-to-back, once
+// unmasked for later reuse, once for the masked call argument) via a
+// volatile access on the second reference, and writing the unk1CC
+// assignment as an unconditional default followed by a conditional
+// overwrite rather than a clean if/else - target's own compiled form
+// unconditionally stores the D_8009A0D8 constant in the branch's
+// delay slot regardless of outcome, then conditionally overwrites it,
+// which only a literal "default then override" source shape
+// reproduces. Remaining gap is consistent register renaming plus an
+// 8-byte stack-frame size difference.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15073A50.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15073B38.s")
 
