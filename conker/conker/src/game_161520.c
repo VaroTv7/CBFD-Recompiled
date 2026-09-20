@@ -474,6 +474,43 @@ s32 func_151380B4(void *arg0, s32 arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151389A8.s")
 
+// NON-MATCHING: state-transition coordinator built entirely from calls
+// to sibling functions (func_15134070, func_151380B4 above, and the
+// still-raw func_15138120/func_1504715C/func_151382E0/func_15138424) -
+// gets a status code, bails early if it's 0x63, relays it through two
+// more helpers with a pair of local scratch buffers (0x14 and 0x28
+// bytes, matching target's own stack layout), then dispatches two more
+// calls using arg1's low byte read twice (target itself reads this
+// byte independently for each call - a genuine double-read, not a
+// bug). 53 vs target's 48 instructions - the extra 5 come from IDO
+// choosing to cache/spill the second `(u8) arg1` read across the
+// intervening call (store+reload pair) instead of re-issuing target's
+// second lbu directly, plus minor stack-frame sizing differences; both
+// register-forcing tricks tried (reading via a volatile s32* then
+// masking, and via a volatile u8* at a computed address) made it
+// worse, so this is left as the closest natural form.
+// s32 func_15138BC0(void *arg0, s32 arg1, s32 arg2) {
+//     u8 buf50[0x14];
+//     u8 buf28[0x28];
+//     s32 status;
+//     s32 result;
+//     u8 savedByte;
+//
+//     status = func_15134070(arg0);
+//     if (status == 0x63) {
+//         return status;
+//     }
+//
+//     savedByte = (u8) func_151380B4(arg0, status, (s32) buf50);
+//     result = func_15138120(arg0, status, 1);
+//     if (savedByte == 0) {
+//         return result;
+//     }
+//
+//     func_1504715C(buf28, arg0);
+//     func_151382E0(buf50, status, buf28, (u8) arg1, arg2);
+//     return func_15138424(arg0, buf50, status, buf28, (u8) arg1, arg2);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15138BC0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_15138C80.s")
