@@ -204,7 +204,24 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151424F4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142600.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142838.s")
+void func_15142838(Mtx *m, f32 scale02, f32 scale1, f32 rotX, f32 rotY, f32 rotZ, f32 transX, f32 transY, f32 transZ) {
+    f32 mtx[4][4];
+
+    func_150A8050(&mtx, *(s32 *) &rotX, *(s32 *) &rotY, *(s32 *) &rotZ);
+    mtx[3][0] = transX;
+    mtx[3][1] = transY;
+    mtx[3][2] = transZ;
+    mtx[0][0] *= scale02;
+    mtx[0][1] *= scale02;
+    mtx[0][2] *= scale02;
+    mtx[1][0] *= scale1;
+    mtx[1][1] *= scale1;
+    mtx[1][2] *= scale1;
+    mtx[2][0] *= scale02;
+    mtx[2][1] *= scale02;
+    mtx[2][2] *= scale02;
+    guMtxF2L(&mtx, m);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142914.s")
 // Looks up a packed RGB triplet from D_8008A160 (12 bytes per arg0,
 // 4 sub-entries of 3 bytes each selected by func_150ADA20()&3) and
