@@ -260,7 +260,38 @@ s32 func_150150A4(void) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15015104.s")
+typedef struct {
+    void *unk0;
+    u8 unk4;
+    s32 unk8;
+    u8 unkC;
+    s32 unk10;
+} EffectData;
+
+s32 func_15015104(struct134 *arg0) {
+    EffectData header;
+    s32 fdResult;
+    struct260 *result;
+
+    *((u8 *) arg0 + 0x14) = 1;
+
+    header.unk0 = arg0;
+    header.unk4 = (u8) arg0->unk1C;
+
+    func_1510F800(0);
+
+    fdResult = (s32) func_1510FD20(arg0->unk0, arg0->unk4);
+    header.unk8 = fdResult;
+
+    header.unkC = (arg0->unk20 ? 1 : 0) | (arg0->unk20 ? 2 : 0);
+    header.unk10 = 0;
+
+    result = func_15149130(300, -1, -1, -1, 0, 0x2C, (struct37 *) 0x14, 0xFF, 0);
+    if (result != 0) {
+        memcpy((char *) result + 0x28, &header, 0x14);
+    }
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150151D4.s")
 
 s32 func_15015300(struct134 *arg0) {
