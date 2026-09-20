@@ -459,30 +459,44 @@ void func_15161860(struct225 *arg0) {
     D_8008B2B0[arg0->unk12](arg0);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151618BC.s")
+// NON-MATCHING: copies the 10-word D_800A66E4 table onto the stack,
+// picks a random element via func_150ADA20() % 10, converts arg4's
+// x/y/z floats to ints, and relays everything into the confirmed
+// 10-arg func_10010F88 (real call site: src/game_77AD0.c:1066).
 // void func_151618BC(u16 arg0, s16 arg1, u8 arg2, s32 arg3, void *arg4, s16 arg5, s16 arg6) {
-//     ? sp38;
-//     ? *temp_t6;
-//     void *temp_t7;
-//     void *phi_t7;
-//     ? *phi_t6;
+//     s32 buf[10];
+//     s32 i;
+//     s32 idx;
+//     f32 *pos = (f32 *) arg4;
 //
-//     phi_t7 = &D_800A66E4;
-//     phi_t6 = &sp38;
-// loop_1:
-//     temp_t7 = phi_t7 + 0xC;
-//     temp_t6 = phi_t6 + 0xC;
-//     temp_t6->unk-C = (s32) *phi_t7;
-//     temp_t6->unk-8 = (s32) temp_t7->unk-8;
-//     temp_t6->unk-4 = (s32) temp_t7->unk-4;
-//     phi_t7 = temp_t7;
-//     phi_t6 = temp_t6;
-//     if (temp_t7 != (&D_800A66E4 + 0x24)) {
-//         goto loop_1;
+//     for (i = 0; i < 9; i += 3) {
+//         buf[i] = D_800A66E4[i];
+//         buf[i + 1] = D_800A66E4[i + 1];
+//         buf[i + 2] = D_800A66E4[i + 2];
 //     }
-//     temp_t6->unk0 = (s32) temp_t7->unk0;
-//     func_10010F88((sp + ((random_u32() % 0xAU) * 4))->unk38, arg0, arg1, arg2, arg3, (s32) arg4->unk0, (s32) arg4->unk4, (s32) arg4->unk8, (s32) arg5, (s32) arg6);
+//     buf[9] = D_800A66E4[9];
+//
+//     idx = func_150ADA20() % 10;
+//
+//     func_10010F88(buf[idx], arg0, arg1, arg2, arg3, (s32) pos[0], (s32) pos[1], (s32) pos[2], arg5, arg6);
 // }
+// 59 vs target's 57 instructions. Writing the copy loop as a manual
+// 3-at-a-time unroll (matching target's own odd 3+3+3+1 grouping,
+// with the RNG call's jal naturally overlapping the 10th element's
+// delayed store, exactly like target) was necessary - a plain `for`
+// or `do-while` loop over all 10 elements either fully unrolled with
+// an unrelated peel-2-then-4s split (no volatile bound) or compiled
+// to a clean non-unrolled loop shape entirely different from target
+// (volatile bound) - neither matched target's specific grouping, only
+// the manual 3-group form did. The remaining 2-instruction gap is a
+// redundant base-address computation: target derives the loop's end
+// boundary as `&D_800A66E4 + 0x24` (an offset from the same
+// already-loaded base register), while this reconstruction computes
+// the loop start and end addresses via two independent `lui`s -
+// switching to explicit pointer-walk style (src/dst/end pointers
+// instead of array indices) made this worse, not better, so left as
+// the closest natural form.
+#pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151618BC.s")
 
 struct225 *func_151619A0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     struct225 *temp_v0;
