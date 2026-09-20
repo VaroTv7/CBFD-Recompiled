@@ -288,6 +288,60 @@ f32 func_15142B44(f32 arg0) {
 //     }
 //     return arg0;
 // }
+// NON-MATCHING: gfx-command-emission cache/diff wrapper, same family
+// as func_15142B7C above but comparing 4 tracked VALUES (not bitmask
+// bits) against cached shorts D_800DD1C8/CA/CC/CE. If any of
+// arg1/arg2/arg3/arg4 differs from its cached counterpart: optionally
+// emits a 0xE7000000 "reset" command (gated on a byte flag at *arg5,
+// cleared afterward), then always emits a packed 0xFB000000 command
+// whose second word is the 4 values packed into bytes (arg1<<24 |
+// arg2<<16 | arg3<<8 | arg4), advances the buffer pointer by 8 for
+// each command emitted, and updates all 4 cached shorts. Returns the
+// unchanged pointer if all 4 already matched.
+// extern s16 D_800DD1C8;
+// extern s16 D_800DD1CA;
+// extern s16 D_800DD1CC;
+// extern s16 D_800DD1CE;
+//
+// void *func_15142C10(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 *arg5) {
+//     void *p;
+//     u8 flag;
+//
+//     if (arg1 != D_800DD1C8 || arg2 != D_800DD1CA || arg3 != D_800DD1CC || arg4 != D_800DD1CE) {
+//         flag = *(u8 *) arg5;
+//         if (flag == 1) {
+//             *(u32 *) arg0 = 0xE7000000;
+//             *(u32 *) ((char *) arg0 + 4) = 0;
+//             arg0 = (char *) arg0 + 8;
+//             *(u8 *) arg5 = 0;
+//         }
+//         p = arg0;
+//         *(u32 *) p = 0xFB000000;
+//         *(u32 *) ((char *) p + 4) = ((arg1 & 0xFF) << 24) | ((arg2 & 0xFF) << 16) | ((arg3 & 0xFF) << 8) | (arg4 & 0xFF);
+//         arg0 = (char *) arg0 + 8;
+//         D_800DD1C8 = arg1;
+//         D_800DD1CA = arg2;
+//         D_800DD1CC = arg3;
+//         D_800DD1CE = arg4;
+//     }
+//     return arg0;
+// }
+// 54 vs target's 56 instructions - two fewer (a "smarter than
+// target" near-miss). Every instruction present corresponds 1:1 with
+// a target instruction (same relocations, same shift/mask/or chain,
+// same branch structure), just with consistently renamed registers
+// (target keeps arg5's pointer in $v1 and the flag byte in $t1; this
+// keeps them in $a0/$v1 respectively) - the established "pure
+// register-renaming" near-miss category. The two missing instructions
+// trace to target's own func_15142B7C-documented `p = arg0` alias
+// idiom: target explicitly re-materializes `a0 = s0` right before the
+// first (flag-gated) command write, keeping that alias as a genuinely
+// separate register from the mutated `arg0`/buffer pointer. Adding an
+// explicit `p = arg0` there (or hoisting it to the top of the
+// function, matching the sibling's fix exactly) got optimized away or
+// changed the register-allocation strategy entirely (dropped the
+// $s0/stack-frame use altogether) rather than reproducing target's
+// specific redundant move - left as the closest natural form.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142C10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142CF0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142E24.s")
