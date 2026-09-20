@@ -272,6 +272,51 @@ void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA6F8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DA938.s")
+// NON-MATCHING: reads a 20-byte-stride record from a table at
+// arg0->unk94 (indexed by the signed byte at arg0->unk2D, read twice -
+// target's own genuine double-read, reproduced with a volatile second
+// access), builds a local Vec3f-shaped {x,y,z} payload from that
+// record's fields 0x0/0x8 plus the incoming float arg4, computes a
+// scale factor from a second record at arg0->unk98 (unk0 * 11.0f *
+// unk4C), then relays everything into func_151D9FC0 with several more
+// byte fields pulled from arg0 and the second record, finally setting
+// the second record's unk20 byte to 4.
+// s32 func_151DAA88(void *arg0, s32 arg1, s32 arg2, s32 arg3, f32 arg4, s32 arg5) {
+//     struct { f32 unk0; f32 unk4; f32 unk8; } vec;
+//     char *base = *(char **) ((char *) arg0 + 0x94);
+//     char *rec = *(char **) ((char *) arg0 + 0x98);
+//     s8 idx;
+//     f32 computed;
+//
+//     idx = *(s8 *) ((char *) arg0 + 0x2D);
+//     vec.unk0 = *(f32 *) (base + (u32) idx * 0x14);
+//
+//     idx = *(volatile s8 *) ((char *) arg0 + 0x2D);
+//     vec.unk8 = *(f32 *) (base + (u32) idx * 0x14 + 8);
+//
+//     vec.unk4 = arg4;
+//
+//     computed = (*(f32 *) rec * 11.0f) * *(f32 *) (rec + 0x4C);
+//
+//     func_151D9FC0(
+//         *(u8 *) (rec + 0x50),
+//         computed,
+//         *(u8 *) (rec + 0x1B),
+//         arg5,
+//         (s32) &vec,
+//         *(u8 *) ((char *) arg0 + 0xC),
+//         *(u8 *) ((char *) arg0 + 0x1)
+//     );
+//
+//     *(u8 *) (rec + 0x20) = 4;
+//     return 1;
+// }
+// Matches target's instruction count exactly (52/52), and every
+// individual operation/offset/constant is present and correctly
+// placed, but register allocation permutes (target: v0=base,
+// v1=record, this: v1=base, t0=record, etc.) and the stack frame is
+// 8 bytes larger (0x50 vs target's 0x48) for reasons not chased down
+// further.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAA88.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DAB58.s")
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Advances a
