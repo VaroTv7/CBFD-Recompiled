@@ -1418,5 +1418,51 @@ void func_15062BDC(struct127 *arg0, f32 arg1, f32 arg2) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062D10.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062E24.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062FC0.s")
+// NON-MATCHING: notifies every other live-flagged gObjects entry
+// (excluding arg0's own recovered index) whose unk31C sub-object
+// hasn't already reacted (unk1AC == 0), calling
+// func_15194FF4(arg0, &gObjects[i], 1) for each. Adds struct126's
+// previously-undocumented trailing byte field unk1AC.
+// void func_15063168(struct127 *arg0) {
+//     s32 i;
+//     s32 selfIdx;
+//     struct126 *sub;
+//
+//     if (D_8008FD8C > 0) {
+//         selfIdx = ((char *) arg0 - (char *) gObjects) / 0x32C;
+//
+//         i = 0;
+//         do {
+//             if (i == selfIdx) {
+//                 goto next;
+//             }
+//             if (!((1 << i) & D_800CC268)) {
+//                 goto next;
+//             }
+//             sub = gObjects[i].unk31C;
+//             if (sub == 0) {
+//                 goto next;
+//             }
+//             if (sub->unk1AC != 0) {
+//                 goto next;
+//             }
+//             func_15194FF4(arg0, &gObjects[i], 1);
+//         next:
+//             i++;
+//         } while (i < D_8008FD8C);
+//     }
+// }
+// 59 vs target's 59 instructions - exact count match. A plain
+// `for` loop with `continue` statements compiled with a genuinely
+// duplicate `D_8008FD8C > 0` check (the established guard-then-loop
+// unroll/duplicate-check pitfall), and restructuring as a guarded
+// do-while with manual `i++; continue;` before each early-exit
+// branch bloated it further (each branch got its own increment
+// instruction instead of sharing one). Consolidating every early-exit
+// path onto a single shared `next: i++;` label via `goto` was what
+// finally collapsed it to one check and one increment, matching
+// target's count exactly. Remaining gap is a 3-instruction scheduling
+// reorder in the prologue (same instructions, different order) plus
+// the usual register-renaming.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15063168.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15063254.s")

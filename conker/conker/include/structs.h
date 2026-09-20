@@ -1036,6 +1036,7 @@ typedef struct {
     u8  pad1A2[0x7];
     u8  unk1A9;
     s16 unk1AA;
+    u8  unk1AC;
 } struct126;
 
 typedef struct {
