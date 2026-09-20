@@ -1008,6 +1008,33 @@ void func_1506FCFC(s32 arg0) {
     func_15196438(gCurrentObject, 5, 0xFF, 0);
 }
 
+// NON-MATCHING: full semantics recovered and verified via isolated
+// harness. Randomizes one float parameter (func_150ADA68()*10.0f +
+// 40.0f) and passes it, along with gCurrentObject, its unk3B byte
+// field, and a fixed set of otherwise-constant arguments, into the
+// already-real, already-prototyped 17-parameter effect/particle
+// spawner func_150E2EA4 (matches its real prototype exactly, param
+// for param). arg0 (this function's own parameter) is spilled per
+// this codebase's usual K&R boilerplate but never actually read -
+// gCurrentObject is used directly instead.
+// 47 vs target's 48 instructions - every constant (414.0f, 20.0f,
+// 10.0f, 40.0f, 50.0f, 3, 3, 5, 1, -1, 1) lands in the exact right
+// argument slot. The one gap: target constructs 0.0f into two
+// separate float registers ($f2 and $f12) for the four zero-valued
+// arguments, while this reconstruction's compile recognizes all four
+// can share one already-materialized zero register - one fewer
+// instruction for identical behavior.
+// void func_1506FD30(void *arg0) {
+//     f32 rnd;
+//     f32 scaled;
+//
+//     rnd = func_150ADA68();
+//     scaled = rnd * 10.0f + 40.0f;
+//
+//     func_150E2EA4(gCurrentObject, *((u8 *) gCurrentObject + 0x3B), 1, -1,
+//                   0.0f, 0.0f, D_80099EA0, 0.0f, 0.0f, 414.0f,
+//                   3, 3, 5, 20.0f, scaled, 1, 50.0f);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506FD30.s")
 
 void func_1506FDF0(s32 arg0) {
