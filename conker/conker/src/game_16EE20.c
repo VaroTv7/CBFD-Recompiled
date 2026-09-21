@@ -860,6 +860,46 @@ s32 func_151454BC(u8 arg0, f32 arg1, struct17 *arg2) {
     return 1;
 }
 
+// NON-MATCHING: relays through func_1514563C (defaulting arg4 to a
+// local scratch float if null, matching the established "output
+// pointer with a stack-local fallback" idiom), then copies arg0 into
+// *arg3 verbatim if the call failed or the output threshold is
+// negative, adds arg0+arg1 into *arg3 if the threshold exceeds 1.0,
+// or leaves *arg3 untouched for a threshold in [0.0, 1.0].
+// void func_15145548(struct17 *arg0, struct17 *arg1, s32 arg2, struct17 *arg3, f32 *arg4) {
+//     f32 local;
+//     f32 *ptr = arg4;
+//     s32 result;
+//
+//     if (ptr == 0) {
+//         ptr = &local;
+//     }
+//
+//     result = func_1514563C(arg0, arg1, arg2, ptr);
+//
+//     if (result == 0) {
+//         arg3->unk0 = arg0->unk0;
+//         arg3->unk4 = arg0->unk4;
+//         arg3->unk8 = arg0->unk8;
+//     } else {
+//         f32 threshold = *ptr;
+//         if (threshold < 0.0f) {
+//             arg3->unk0 = arg0->unk0;
+//             arg3->unk4 = arg0->unk4;
+//             arg3->unk8 = arg0->unk8;
+//         } else if (threshold > 1.0f) {
+//             arg3->unk0 = arg0->unk0 + arg1->unk0;
+//             arg3->unk4 = arg0->unk4 + arg1->unk4;
+//             arg3->unk8 = arg0->unk8 + arg1->unk8;
+//         }
+//     }
+// }
+// 61 vs target's 61 instructions - exact count match on the first
+// attempt. The only structural difference is register allocation:
+// target keeps arg3 alive across the func_1514563C call via a stack
+// spill/reload pair instead of a callee-saved register (costing it a
+// different, but equal-count, instruction mix), and correspondingly
+// uses a smaller 0x28-byte frame versus this reconstruction's 0x30.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145548.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514563C.s")
 
