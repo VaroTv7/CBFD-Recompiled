@@ -1119,7 +1119,7 @@ f32  func_15144B68(f32 arg0);
 void func_1514D3B0();
 void *  func_1515D6D0();
 void func_1515D4D4();
-void func_15169260();
+void func_15169260(void *arg0, s32 arg1, void *arg2, u8 arg3);
 void func_1516944C();
 void func_15169850(void *arg0, u8 arg1, void *arg2, void *arg3, void *arg4);
 void func_15174690();
