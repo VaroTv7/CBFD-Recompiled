@@ -1069,6 +1069,7 @@ extern s32 D_800D1548;
 extern struct127 *D_800D154C;
 
 extern f32 D_800D1874;
+extern s32 D_800D187C;
 extern f32 D_800D1878;
 extern s32 D_800D1880;
 extern u8  D_800D1890;

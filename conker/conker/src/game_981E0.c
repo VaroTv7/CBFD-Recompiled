@@ -382,6 +382,69 @@ void func_1506BF1C(void) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506BF5C.s")
+// NON-MATCHING: decrements the ring-buffer counter D_800D187C
+// (bailing if already 0), unpacks D_800D1580 into three 11-bit
+// fields (bits 0-10, 11-21, 22-32) alongside the decremented
+// counter's own low 11 bits, picks a selector 0/2/3/4 by which
+// packed field (checked highest-to-lowest) is first nonzero, and
+// (for a nonzero selector) relays through func_1000F568 before
+// picking a slot from the same 4-word local buffer via a runtime
+// byte offset. If the picked value is nonzero, clears bit 16 and the
+// low 11 bits of D_800D187C, ORs the picked value back in, writes it
+// to D_800D1580, and calls func_1506BF5C().
+// void func_1506C32C(void) {
+//     s32 fields[4];
+//     s32 counter;
+//     s32 packed;
+//     s32 sel;
+//     s32 idx;
+//     s32 chosen;
+//
+//     counter = D_800D187C;
+//     if (counter == 0) {
+//         return;
+//     }
+//
+//     counter--;
+//     D_800D187C = counter;
+//     packed = D_800D1580;
+//
+//     fields[0] = counter & 0x7FF;
+//     fields[1] = packed & 0x7FF;
+//     fields[2] = (packed >> 11) & 0x7FF;
+//     fields[3] = (packed >> 22) & 0x7FF;
+//
+//     if (fields[3] != 0) {
+//         sel = 4;
+//     } else if (fields[2] != 0) {
+//         sel = 3;
+//     } else if (fields[1] != 0) {
+//         sel = 2;
+//     } else {
+//         sel = 0;
+//     }
+//
+//     if (sel == 0) {
+//         idx = 0;
+//     } else {
+//         func_1000F568(fields[0], sel);
+//         idx = packed - fields[0];
+//     }
+//
+//     chosen = *(s32 *) ((char *) fields + idx * 4);
+//
+//     if (chosen != 0) {
+//         s32 masked = D_800D187C & 0xFFFEF800;
+//         D_800D187C = masked;
+//         D_800D1580 = chosen | masked;
+//         func_1506BF5C();
+//     }
+// }
+// 62 vs target's 59 instructions. Keeping `packed` as a local
+// variable (letting IDO spill/reload it across the func_1000F568
+// call as needed) landed closer than re-reading D_800D1580 a second
+// time after the call, which needed an extra address computation and
+// came out worse (65 instructions) - tried and reverted.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506C32C.s")
 
 void func_1506C418(void) {
