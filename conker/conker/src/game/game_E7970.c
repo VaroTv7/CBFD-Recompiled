@@ -163,7 +163,7 @@ void func_150BAA14(void *arg0, s32 arg1, void * arg2) {
     f32 sp74;
     if ((*(s32 *)((char *)(arg0) + 0x1D4)) != 0) {
         sp43 = func_150BA930(&sp6C, arg0, &sp48, arg1);
-        func_151D5404(&sp6C, 0x44A36000, 0x44FA0000, 0x3A03126F, 0xC, 0xF, 0xFF, 0);
+        func_151D5404(&sp6C, 1307.0f, 2000.0f, 0.0005f, 0xC, 0xF, 0xFF, 0);
         func_15143E94(5, 0x4022);
         if (sp43 != 0) {
             sp44 = (s32) ((*(s32 *)((char *)((D_800DBFF0 + (D_80082FA4 * 0x9A0))) + 0x380)) * D_8009FE64);

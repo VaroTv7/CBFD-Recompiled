@@ -203,7 +203,7 @@ void func_150DECC0(void *arg0, s32 arg1, s32 arg2) {
     func_15165F80(-1, (s32) (*(s32 *)((char *)(arg0) + 0x0)), (s32) (*(s32 *)((char *)(arg0) + 0x4)), (s32) (*(s32 *)((char *)(arg0) + 0x8)), 0x1E, 0x32, 0, (s32) arg1, arg2);
     temp_f22_2 = D_800A0F18;
     temp_f24_2 = D_800A0F1C;
-    func_151D5404(arg0, 0x43FD0000, temp_f22_2, temp_f24_2, 0xF, 0x14, (s32) arg1, arg2);
+    func_151D5404(arg0, 506.0f, temp_f22_2, temp_f24_2, 0xF, 0x14, (s32) arg1, arg2);
     func_151D5334(arg0, 0x43FD0000, temp_f22_2, temp_f24_2, 5, (s32) arg1, arg2);
     func_151D5514(arg0, arg1, arg2);
     func_151D3FF4(arg0, arg1, arg2);

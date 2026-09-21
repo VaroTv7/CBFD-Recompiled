@@ -72,7 +72,7 @@ void func_150E0870(void *arg0, s32 arg1, s32 arg2) {
             sp44 = random_u32();
             func_150E7FEC((sp40 * 125.0f) + 204.0f, sp44, ((sp44 % 101U) + 0x9B) & 0xFF, &sp50, &sp80, (random_u32() % 302U) + 0x1F4, 0, 1, 0, 0, 0, temp_s1, 0);
         }
-        func_151D5404(&sp8C, 0x43FD0000, 0x447D4000, 0x3A8163D3, 0xF, 0x14, temp_s1, arg2);
+        func_151D5404(&sp8C, 506.0f, 1013.0f, 0.0009871668311944718f, 0xF, 0x14, temp_s1, arg2);
         func_151D5334(&sp8C, 0x43FD0000, 0x447D4000, 0x3A8163D3, 5, temp_s1, arg2);
         func_151D5514(&sp8C, temp_s1 & 0xFF, arg2);
         func_151D3FF4(&sp8C, temp_s1 & 0xFF, arg2);

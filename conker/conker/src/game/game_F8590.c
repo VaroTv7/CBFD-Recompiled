@@ -155,7 +155,7 @@ void func_150CB1F4(void *arg0, s32 arg1, void * arg2) {
     f32 sp128;
     if (((*(s32 *)((char *)(arg0) + 0x1D4)) != 0) && (func_150CB0E0(&sp124, arg0, &sp100, arg1) != 0)) {
         func_1512D748((D_800BE9E8 * 0x9A0) + D_800DBFF0, 7, 1);
-        func_151D5404(&sp124, 0x44BBC000, 0x453B8000, 0x39AEC33E, 0xC, 0xF, 0xFF, 0);
+        func_151D5404(&sp124, 1502.0f, 3000.0f, 0.0003333333333333333f, 0xC, 0xF, 0xFF, 0);
         func_150CCD90(sp12C, &spFC, &spF8, &spF4);
         temp_a1 = (u32) spFC;
         spF3 = (u8) temp_a1;

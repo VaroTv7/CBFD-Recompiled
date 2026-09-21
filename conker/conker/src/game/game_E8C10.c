@@ -1129,7 +1129,7 @@ void func_150BD070(s32 arg0, s32 arg1) {
     sp70 = (f32) (*(f32 *)((char *)(sp188) + 0x0));
     sp74 = (f32) (*(f32 *)((char *)(sp188) + 0x2));
     sp78 = (f32) (*(f32 *)((char *)(sp188) + 0x4));
-    func_151D5404(&sp70, 0x43FD0000, 0x447D4000, 0x3A8163D3, 0xF, 0x14, temp_s4, arg1);
+    func_151D5404(&sp70, 506.0f, 1013.0f, 0.0009871668311944718f, 0xF, 0x14, temp_s4, arg1);
 }
 
 void func_150BD740(void *arg0, s32 arg1, void * arg2) {

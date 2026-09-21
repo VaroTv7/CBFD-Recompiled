@@ -1132,7 +1132,7 @@ void *func_15195AA8();
 void func_151B8DB0();
 void func_151BA468(void *arg0, void *arg1, s32 arg2);
 void func_151BC5A4(void *arg0, void *arg1, s32 arg2);
-void func_151D5404();
+void func_151D5404(void *arg0, f32 arg1, f32 arg2, f32 arg3, s16 arg4, s16 arg5, s32 arg6, s32 arg7);
 void func_151D5714();
 void * func_151D8868();
 void func_151D9B8C();

@@ -1755,7 +1755,7 @@ void func_150F1D10(void *arg0, s32 arg1, s32 arg2) {
         spE8 = (*(s32 *)((char *)(arg0) + 0x18)) + 20.0f;
         spEC = (*(s32 *)((char *)(arg0) + 0x1C));
         spE0 = ((*(s32 *)((char *)(arg0) + 0x14C)) + (*(s32 *)((char *)(arg0) + 0x150))) * 0.5f;
-        func_151D5404(&spE4, 0x43FD0000, 0x447D4000, 0x3A8163D3, 0xF, 0x14, temp_s1, arg2);
+        func_151D5404(&spE4, 506.0f, 1013.0f, 0.0009871668311944718f, 0xF, 0x14, temp_s1, arg2);
         func_151D5334(&spE4, 0x43FD0000, 0x447D4000, 0x3A8163D3, 5, temp_s1, arg2);
         func_151D5514(&spE4, temp_s1 & 0xFF, arg2);
         func_10010F88((random_u32() & 8) + 0x2B6, 0x7FFF, 0, 0, 0, (s32) spE4, (s32) spE8, (s32) spEC, 0xFA0, 0x1770);

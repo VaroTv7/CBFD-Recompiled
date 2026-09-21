@@ -375,7 +375,7 @@ void func_151C05A4(void *arg0, s32 arg1, s32 arg2) {
 }
 
 void func_151C05F0(void *arg0, s32 arg1, s32 arg2) {
-    func_151D5404(0x44480000, 0x44FA0000, 0x3A03126F, 0xF, 0x14, (s32) arg1, arg2);
+    func_151D5404(arg0, 800.0f, 2000.0f, 0.0005f, 0xF, 0x14, (s32) arg1, arg2);
 }
 
 void func_151C0644(f32 *arg0, s32 arg1, s32 arg2) {

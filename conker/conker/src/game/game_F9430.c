@@ -220,7 +220,7 @@ void func_150CBF80(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
             sp65 = sp162;
             sp66 = sp161;
             func_1514C678(sp174, sp178, sp17C, (random_float() * 70.0f) + 70.0f, 0, 0xFF, (s32) temp_s0_2, 0x12, 0, 0.0f, &sp64, (s32) arg3);
-            func_151D5404(&sp174, 0x43FA0000, 0x459C4000, 0x3951B717, 0xC, 0xF, 0xFF, 0);
+            func_151D5404(&sp174, 500.0f, 5000.0f, 0.0002f, 0xC, 0xF, 0xFF, 0);
         }
     }
 }

@@ -828,6 +828,6 @@ void func_151A6C90(void *arg0, s32 arg1, s32 arg2) {
             var_f18 += 4294967296.0f;
         }
         func_151541B8(temp_f12, temp_f14, &sp9C, temp_f12, 0x3FD20C49, var_f18, 0.0f, temp_s0, arg2);
-        func_151D5404(&sp9C, 0x44BBC000, 0x453B8000, 0x39AEC33E, 0xC, 0xF, 0xFF, 0);
+        func_151D5404(&sp9C, 1502.0f, 3000.0f, 0.0003333333333333333f, 0xC, 0xF, 0xFF, 0);
     }
 }

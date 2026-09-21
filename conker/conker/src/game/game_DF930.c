@@ -35,7 +35,7 @@ void func_150B2494(void *arg0, void * arg1, void * arg2) {
     sp40 = (*(s32 *)((char *)(arg0) + 0x180));
     sp44 = (*(s32 *)((char *)(arg0) + 0x1C));
     func_1514C678(sp3C, sp40, sp44, 0x43070000, 0, 0xFF, (random_u32() % 15U) + 0x1B, 7, 0, 0.0f, 0, 0xFF);
-    func_151D5404(&sp3C, 0x44BBC000, 0x453B8000, 0x39AEC33E, 0xC, 0xF, 0xFF, 0);
+    func_151D5404(&sp3C, 1502.0f, 3000.0f, 0.0003333333333333333f, 0xC, 0xF, 0xFF, 0);
     func_151D3FF4(&sp3C, 0xFF, 0);
 }
 

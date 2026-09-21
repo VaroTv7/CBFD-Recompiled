@@ -64,7 +64,7 @@ void func_15103E40(s32 arg0, s32 arg1, s32 *arg2, s32 arg3, s32 arg4, s32 arg5, 
         }
         sp48 = var_a0;
         func_150E83AC((u32) var_a0, (s16) ((random_u32((u32) var_a0) % 62U) + 0x78), arg5, arg6);
-        func_151D5404(arg2, 0x43FD0000, 0x447D4000, 0x3A8163D3, 0xF, 0x14, (s32) arg5, arg6);
+        func_151D5404(arg2, 506.0f, 1013.0f, 0.0009871668311944718f, 0xF, 0x14, (s32) arg5, arg6);
         func_151D5334(arg2, 0x43FD0000, 0x447D4000, 0x3A8163D3, 5, (s32) arg5, arg6);
         func_151D5514(arg2, arg5, arg6);
         if (arg3 != 0) {
