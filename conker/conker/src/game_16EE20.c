@@ -986,6 +986,42 @@ u8 func_15145C90(s32 arg0) {
 // delay slot instead - tried reordering the three post-body
 // increment statements without effect.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145CD0.s")
+// NON-MATCHING: batch vector-transform loop, same family as the
+// near-miss func_15145CD0 just above but with contiguous 3-float
+// array elements (not arrays of pointers) for both the source (arg1)
+// and destination (arg2) arrays.
+// extern void func_150A7960(void *mtx, f32 x, f32 y, f32 z, f32 *outX, f32 *outY, f32 *outZ);
+//
+// void func_15145DB4(void *arg0, void *arg1, void *arg2, s32 arg3) {
+//     f32 mtx[4][4];
+//
+//     func_150A8050(&mtx, *(s32 *) arg0, *(s32 *) ((char *) arg0 + 4), *(s32 *) ((char *) arg0 + 8));
+//     mtx[3][0] = (f32) *(s16 *) ((char *) arg0 + 0x10);
+//     mtx[3][1] = (f32) *(s16 *) ((char *) arg0 + 0x12);
+//     mtx[3][2] = (f32) *(s16 *) ((char *) arg0 + 0x14);
+//
+//     if (arg3 > 0) {
+//         do {
+//             func_150A7960(&mtx, *(f32 *) arg1, *(f32 *) ((char *) arg1 + 4), *(f32 *) ((char *) arg1 + 8),
+//                           (f32 *) arg2, (f32 *) ((char *) arg2 + 4), (f32 *) ((char *) arg2 + 8));
+//             arg1 = (char *) arg1 + 0xC;
+//             arg2 = (char *) arg2 + 0xC;
+//             arg3--;
+//         } while (arg3 > 0);
+//     }
+// }
+// 55 vs target's 60 instructions - smarter than target. Landed
+// cleanly on the first attempt with the guarded do-while (natural
+// plain `bgtz` loop-back, matching target exactly, no anti-unroll
+// tricks needed) by mutating the arg1/arg2 parameters directly rather
+// than introducing local pointer aliases. Target uses a noticeably
+// larger stack frame (0x98 vs this reconstruction's 0x80) and more
+// callee-saved registers overall - likely the same register-
+// generation-reuse pattern documented on func_15145CD0 (keeping
+// arg0's config pointer and the arg1 array pointer in the SAME
+// physical register across their non-overlapping live ranges costs
+// target extra spill bookkeeping this reconstruction doesn't need),
+// though not confirmed instruction-by-instruction here.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145DB4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145EA4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15146078.s")
