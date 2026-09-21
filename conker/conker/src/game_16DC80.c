@@ -168,29 +168,45 @@ s32 func_15141818(s32 arg0, s32 arg1) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_1514182C.s")
-// f32 func_1514182C(void *arg0, void *arg1, s32 arg2, f32 arg3, s32 arg4, s32 arg5) {
-//     f32 sp6C;
-//     f32 sp68;
-//     f32 sp64;
-//     ? sp34;
-//     f32 temp_f0;
-//     f32 temp_f12;
-//     f32 temp_f2;
+// NON-MATCHING: independently re-verified the stale reconstruction
+// below (it's correct against the raw asm), but fixed its two type
+// errors against the confirmed real caller's forward declaration
+// (func_15141928 two functions below): the shared signature declares
+// this `void`-returning with `s32 arg3` (not `f32`/non-void as the
+// stale header claimed), even though arg3's raw bits are genuinely
+// used as a float in the body - reinterpret-cast rather than retype,
+// matching this codebase's established convention for exactly this
+// caller/callee type-mismatch shape. The trailing "return temp_f0"
+// in the original comment was also wrong for a void function - target
+// just happens to still have arg0->unk34 sitting in $f0 at exit as a
+// side effect of the computation, not a real return; the caller
+// (func_15141928) never uses the value either way.
+// void func_1514182C(void *arg0, void *arg1, s32 arg2, s32 arg3, f32 arg4, f32 arg5) {
+//     f32 mtx[4][4];
+//     f32 f0, f2, f12;
+//     f32 realArg3 = *(f32 *) &arg3;
 //
-//     func_150A8050(&sp34, arg4, 0, arg5);
-//     sp64 = arg1->unk0;
-//     sp68 = arg1->unk4;
-//     sp6C = arg1->unk8;
-//     func_150A7960(&sp34, 0, arg2, 0, arg0 + 0x34, arg0 + 0x38, arg0 + 0x3C);
-//     temp_f0 = arg0->unk34;
-//     temp_f2 = arg0->unk38;
-//     temp_f12 = arg0->unk3C;
-//     arg0->unk40 = (f32) (temp_f0 + ((temp_f0 - arg1->unk0) * arg3 * 500.0f));
-//     arg0->unk44 = (f32) (temp_f2 + ((temp_f2 - arg1->unk4) * arg3 * 500.0f));
-//     arg0->unk48 = (f32) (temp_f12 + ((temp_f12 - arg1->unk8) * arg3 * 500.0f));
-//     return temp_f0;
+//     func_150A8050(&mtx, *(s32 *) &arg4, 0, *(s32 *) &arg5);
+//
+//     func_150A7960(&mtx, 0.0f, arg2, 0.0f,
+//                   (f32 *) ((char *) arg0 + 0x34), (f32 *) ((char *) arg0 + 0x38), (f32 *) ((char *) arg0 + 0x3C));
+//
+//     f0 = *(f32 *) ((char *) arg0 + 0x34);
+//     f2 = *(f32 *) ((char *) arg0 + 0x38);
+//     f12 = *(f32 *) ((char *) arg0 + 0x3C);
+//
+//     *(f32 *) ((char *) arg0 + 0x40) = f0 + ((f0 - *(f32 *) arg1) * realArg3 * 500.0f);
+//     *(f32 *) ((char *) arg0 + 0x44) = f2 + ((f2 - *(f32 *) ((char *) arg1 + 4)) * realArg3 * 500.0f);
+//     *(f32 *) ((char *) arg0 + 0x48) = f12 + ((f12 - *(f32 *) ((char *) arg1 + 8)) * realArg3 * 500.0f);
 // }
+// 61 vs target's 63 instructions - smarter than target. Target
+// rematerializes the 500.0f constant into three separate float
+// registers (one per field's multiply) instead of reusing a single
+// loaded copy across all three, a well-established "target
+// redundantly recomputes a constant" gap seen throughout this
+// project that hasn't proven reliably forceable via source
+// restructuring.
+#pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_1514182C.s")
 
 void func_1514182C(void *arg0, void *arg1, s32 arg2, s32 arg3, f32 arg4, f32 arg5);
 
