@@ -1291,6 +1291,69 @@ void func_1505DFDC(struct127 *arg0) {
 //     return 0;
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F0AC.s")
+// NON-MATCHING: exact 68/68 instruction match; only difference is a
+// float-register swap - target keeps the 1.0f constant in $f0 and
+// D_8009962C in $f2, this reconstruction gets IDO to pick $f2 for the
+// former and $f0 for the latter (both then get used identically
+// everywhere else). Bulk-zeroes the whole struct127 (0x32C bytes, 4 at
+// a time) via a guarded do-while, then explicitly reinitializes a
+// scatter of fields to fixed constants (scale/gravity floats, several
+// 0xFF/0xFFFF "unset" sentinels, timer/animation halfwords), rolls a
+// random cooldown value via func_150ADA20 (needs (u32) on the result
+// to get the same divu the target uses for `% 0x32`, otherwise IDO
+// picks a signed div), and calls the already-matching
+// func_150615DC(arg0) partway through.
+// void func_1505F188(struct127 *arg0) {
+//     f32 tmp;
+//     void *p;
+//     void *end;
+//     u8 rnd;
+//
+//     p = arg0;
+//     end = (u8 *) arg0 + 0x32C;
+//     if (p < end) {
+//         do {
+//             p = (u8 *) p + 4;
+//             *(s32 *) ((u8 *) p - 4) = 0;
+//         } while (p < end);
+//     }
+//
+//     tmp = D_8009962C;
+//     *((u8 *) arg0 + 0x2FD) = 2;
+//     *(s16 *) ((u8 *) arg0 + 0x38) = -10000;
+//     arg0->xz_scale = 1.0f;
+//     arg0->y_scale = 1.0f;
+//     arg0->unk118 = tmp;
+//     arg0->unk180 = tmp;
+//     *((u8 *) arg0 + 0x1DC) = 0xFF;
+//     arg0->unk127 = 0xFF;
+//     arg0->unk84.uh = 0xFFFF;
+//     arg0->unk13F = 0xFF;
+//     *(void **) ((u8 *) arg0 + 0x2C4) = (u8 *) arg0 + 4;
+//     *((u8 *) arg0 + 0x2C8) = 1;
+//     *((u8 *) arg0 + 0x2C9) = 1;
+//     arg0->id = 0xFF;
+//     arg0->unk2CB = 0x32;
+//     arg0->unk48 = 1.0f;
+//     arg0->gravity = D_80099630;
+//
+//     rnd = func_150ADA20();
+//     arg0->unk6E = (u32) rnd % 0x32 + 0x32;
+//     func_150615DC(arg0);
+//
+//     *((u8 *) arg0 + 0x1DD) = 0xFF;
+//     *((u8 *) arg0 + 0x1DE) = 0xFF;
+//     *((u8 *) arg0 + 0x1DF) = 0xFF;
+//     *(s16 *) ((u8 *) arg0 + 0x18C) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x18E) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x190) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x192) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x194) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x196) = 0xA;
+//     *(s16 *) ((u8 *) arg0 + 0x198) = 0xA;
+//     *(s16 *) ((u8 *) arg0 + 0x19A) = 0;
+//     *(s16 *) ((u8 *) arg0 + 0x19C) = 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F188.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505F298.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1506045C.s")
