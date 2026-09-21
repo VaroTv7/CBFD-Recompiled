@@ -866,7 +866,7 @@ s32 func_151454BC(u8 arg0, f32 arg1, struct17 *arg2) {
 // *arg3 verbatim if the call failed or the output threshold is
 // negative, adds arg0+arg1 into *arg3 if the threshold exceeds 1.0,
 // or leaves *arg3 untouched for a threshold in [0.0, 1.0].
-// void func_15145548(struct17 *arg0, struct17 *arg1, s32 arg2, struct17 *arg3, f32 *arg4) {
+// void func_15145548(struct17 *arg0, struct17 *arg1, struct17 *arg2, struct17 *arg3, f32 *arg4) {
 //     f32 local;
 //     f32 *ptr = arg4;
 //     s32 result;
@@ -901,6 +901,48 @@ s32 func_151454BC(u8 arg0, f32 arg1, struct17 *arg2) {
 // different, but equal-count, instruction mix), and correspondingly
 // uses a smaller 0x28-byte frame versus this reconstruction's 0x30.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145548.s")
+// NON-MATCHING: closest-point-on-line-toward-target helper. Computes
+// t = (dot(dir,a2) - dot(dir,a0)) / dot(dir,dir), returning 0 for a
+// degenerate (zero-length) direction; otherwise writes t to *arg4
+// (defaulting to a local scratch float if null, the same fallback
+// idiom as the sibling func_15145548) and a0 + t*dir to *a3.
+// s32 func_1514563C(struct17 *a0, struct17 *a1, struct17 *a2, struct17 *a3, f32 *arg4) {
+//     f32 local;
+//     f32 *tp = arg4;
+//     f32 denom;
+//     f32 t;
+//     f32 dotA0, dotA2;
+//
+//     if (tp == 0) {
+//         tp = &local;
+//     }
+//
+//     denom = a1->unk0 * a1->unk0 + a1->unk4 * a1->unk4 + a1->unk8 * a1->unk8;
+//
+//     if (denom == 0.0f) {
+//         return 0;
+//     }
+//
+//     dotA0 = a1->unk0 * a0->unk0 + a1->unk4 * a0->unk4 + a1->unk8 * a0->unk8;
+//     dotA2 = a1->unk0 * a2->unk0 + a1->unk4 * a2->unk4 + a1->unk8 * a2->unk8;
+//     t = (dotA2 - dotA0) / denom;
+//
+//     *tp = t;
+//
+//     a3->unk0 = a0->unk0 + t * a1->unk0;
+//     a3->unk4 = a0->unk4 + *tp * a1->unk4;
+//     a3->unk8 = a0->unk8 + *tp * a1->unk8;
+//
+//     return 1;
+// }
+// 63 vs target's 65 instructions - smarter than target. Reproduced
+// target's genuine double-read of *tp for the unk4/unk8 field writes
+// (target re-reads the pointer rather than reusing the already-live
+// `t` register there, matching the established double-read idiom),
+// but target additionally reloads `t` from its own stack home for
+// the FIRST field write too, where this reconstruction keeps it
+// register-resident - a minor register-residency gap, not chased
+// further after a reordering attempt made no difference.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_1514563C.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15145740.s")
