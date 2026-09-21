@@ -364,7 +364,30 @@ void func_15168E34(s32 *arg0, s32 arg1) {
 //     } while (tag != -0x21);
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F08.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168F84.s")
+void func_15168F84(s32 arg0, s32 *arg1, s32 *arg2) {
+    if (arg0 == 0) {
+        *arg1 = 1;
+        *arg2 = 0x41;
+    } else if (arg0 == 1) {
+        *arg1 = 0x42;
+        *arg2 = 0x4F;
+    } else if (arg0 == 2) {
+        *arg1 = 0x50;
+        *arg2 = 0x58;
+    } else if (arg0 == 3) {
+        *arg1 = 0x59;
+        *arg2 = 0x5C;
+    } else if (arg0 == 5) {
+        *arg1 = 0x61;
+        *arg2 = 0x63;
+    } else if (arg0 == 6) {
+        *arg1 = 0x64;
+        *arg2 = 0x65;
+    } else {
+        *arg1 = 0x5D;
+        *arg2 = 0x60;
+    }
+}
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Thin wrapper
 // forwarding arg0/(u8)arg1 to func_15169070 with two fixed leading
 // args. Target computes the `arg1 & 0xFF` mask directly from the
