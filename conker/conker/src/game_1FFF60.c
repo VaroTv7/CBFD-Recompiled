@@ -99,6 +99,35 @@ void func_151D2E14(struct102 *arg0) {
 //     }
 // }
 
+// NON-MATCHING: exact 36/36 instruction match; only difference is one
+// register choice - target holds the reloaded unk18 byte in $t8 before
+// masking, this reconstruction gets IDO to pick $a0 instead (both then
+// feed the same andi/sb pair). Allocates via func_15167A68(0x3E, ...),
+// same "type tag" pattern as sibling func_151D2BA4 above but for a
+// different (smaller, 0x10-byte) blob copied to +0x10; clears three
+// fields (+0x20 half, +0x24/+0x28 words) and unsets bit 1 of the byte
+// at +0x18 on the new object. Struct layout unidentified, using raw
+// offset casts like the neighboring near-misses in this file.
+// void *func_151D2F00(void *arg0, void *arg1, u8 arg2, s32 arg3) {
+//     void *v1;
+//     void *v0;
+//     u8 flags;
+//
+//     v1 = func_15167A68(0x3E, arg3, (u8 *) arg1 + 0x30, 1, arg2, 1);
+//     if (v1 == NULL) {
+//         return NULL;
+//     }
+//
+//     memcpy((u8 *) v1 + 0x10, arg0, 0x10);
+//     v0 = v1;
+//     flags = *((u8 *) v0 + 0x18);
+//     *(s16 *) ((u8 *) v0 + 0x20) = 0;
+//     *(s32 *) ((u8 *) v0 + 0x24) = 0;
+//     flags &= 0xFFFD;
+//     *(s32 *) ((u8 *) v0 + 0x28) = 0;
+//     *((u8 *) v0 + 0x18) = flags;
+//     return v0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1FFF60/func_151D2F00.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1FFF60/func_151D2F90.s")
