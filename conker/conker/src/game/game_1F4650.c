@@ -729,7 +729,7 @@ s32 func_151C82D0(void *arg0) {
         (*(s32 *)((char *)(temp_a1_2) + 0x60)) = (s32) ((*(s32 *)((char *)(temp_a1_2) + 0x60)) & 0xFFFDFFFF);
     }
     if ((*(s32 *)((char *)(temp_s0_2) + 0x86)) & 8) {
-        (*(s8 *)((char *)(arg0) + 0x5C)) = (s8) (u32) ((func_150AD78C((*(s8 *)((char *)(temp_s0_2) + 0x98)), (*(s8 *)((char *)(temp_s0_2) + 0x4C)), (*(s8 *)((char *)(temp_s0_2) + 0x50)), 0xFFFDFFFF, 0x20000) * 112.5f) + D_800AAC54);
+        (*(s8 *)((char *)(arg0) + 0x5C)) = (s8) (u32) ((func_150AD78C((*(f32 *)((char *)(temp_s0_2) + 0x98))) * 112.5f) + D_800AAC54);
         (*(s32 *)((char *)(temp_s0_2) + 0x98)) = func_15144B68((*(s32 *)((char *)(temp_s0_2) + 0x98)) + ((*(s32 *)((char *)(temp_s0_2) + 0x9C)) * D_800BE9A4));
     }
     return 1;

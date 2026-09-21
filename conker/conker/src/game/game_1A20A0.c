@@ -798,7 +798,7 @@ block_132:
         if ((*(s32 *)((char *)(*(void **)&(arg0)) + 0xBC)) < 60.0f) {
             (*(s32 *)((char *)(*(void **)&(arg0)) + 0xBC)) = 60.0f;
         }
-        spA8 = func_150AD78C((*(s32 *)((char *)(*(void **)&(arg0)) + 0xB4)), 0);
+        spA8 = func_150AD78C((*(f32 *)((char *)(*(void **)&(arg0)) + 0xB4)));
         temp_f2_12 = (*(s32 *)((char *)(*(void **)&(arg0)) + 0xBC));
         (*(f32 *)((char *)(*(void **)&(arg0)) + 0x98)) = (f32) ((temp_f2_12 * func_150AD780((*(f32 *)((char *)(*(void **)&(arg0)) + 0xB4)))) + D_800A719C);
         (*(f32 *)((char *)(*(void **)&(arg0)) + 0xA0)) = (f32) ((temp_f2_12 * spA8) + D_800A71A0);
@@ -812,7 +812,7 @@ block_132:
     spAC = (*(s32 *)((char *)(*(void **)&(arg0)) + 0xA8)) * D_800A71A8;
     spB0 = (*(s32 *)((char *)(*(void **)&(arg0)) + 0xAC)) * D_800A71A8;
     spB4 = (*(s32 *)((char *)(*(void **)&(arg0)) + 0xB0)) * D_800A71A8;
-    spA8 = func_150AD78C(spAC, 0);
+    spA8 = func_150AD78C(spAC);
     spA4 = func_150AD78C(spB0);
     spA0 = func_150AD780(spAC);
     temp_f4 = spA0 * func_150AD780(spB0);
@@ -1118,7 +1118,7 @@ void func_1517725C(s32 arg0) {
     temp_t6 = arg0 & 0xFF;
     temp_s0 = (temp_t6 * 0x38) + &D_8008D0B0;
     temp_s1 = *(&D_800DDE88 + (temp_t6 * 0x14));
-    temp_f2 = func_150AD78C((*(s32 *)((char *)(temp_s0) + 0x24)) * D_800A71AC, temp_t6) * (*(s32 *)((char *)(temp_s0) + 0x28));
+    temp_f2 = func_150AD78C((*(f32 *)((char *)(temp_s0) + 0x24)) * D_800A71AC) * (*(s32 *)((char *)(temp_s0) + 0x28));
     (*(s32 *)((char *)(temp_s0) + 0x18)) = temp_f2;
     temp_f20 = temp_f2 * D_800A71B0;
     sp28 = func_150AD78C(temp_f20);
@@ -1134,7 +1134,7 @@ void func_1517725C(s32 arg0) {
     (*(s16 *)((char *)(temp_s1) + 0x122)) = (s16) temp_f8;
     (*(s16 *)((char *)(temp_s1) + 0xA2)) = (s16) temp_f8;
     (*(s16 *)((char *)(temp_s1) + 0xB2)) = (s16) temp_f8;
-    temp_f2_3 = func_150AD78C(((*(s32 *)((char *)(temp_s0) + 0x24)) - 30.0f) * D_800A71B4, temp_a0) * (*(s32 *)((char *)(temp_s0) + 0x28));
+    temp_f2_3 = func_150AD78C(((*(f32 *)((char *)(temp_s0) + 0x24)) - 30.0f) * D_800A71B4) * (*(s32 *)((char *)(temp_s0) + 0x28));
     (*(s32 *)((char *)(temp_s0) + 0x18)) = temp_f2_3;
     temp_f20_2 = temp_f2_3 * D_800A71B8;
     sp28 = func_150AD78C(temp_f20_2);

@@ -362,10 +362,10 @@ void func_1512D070(void *arg0) {
     }
     guMtxIdentF(&sp38);
     temp_f2 = (*(s32 *)((char *)(arg0) + 0x7DC));
-    temp_f14 = func_150AD78C((*(s32 *)((char *)(arg0) + 0x7B0))) * temp_f2;
+    temp_f14 = func_150AD78C((*(f32 *)((char *)(arg0) + 0x7B0))) * temp_f2;
     sp38 = (2.0f * temp_f14) + (2.0f * temp_f2) + 1.0f;
     temp_f2_2 = (*(s32 *)((char *)(arg0) + 0x7DC));
-    sp4C = (func_150AD780((*(s32 *)((char *)(arg0) + 0x7B0)), temp_f14) * temp_f2_2) + temp_f2_2 + 1.0f;
+    sp4C = (func_150AD780((*(f32 *)((char *)(arg0) + 0x7B0))) * temp_f2_2) + temp_f2_2 + 1.0f;
     guMtxF2L(&sp38, &sp78);
     temp_a0 = *(&D_800DC2A0 + (D_800BE9C0 * 4)) + ((*(s32 *)((char *)(arg0) + 0x23D)) << 6);
     guMtxCatL(temp_a0, &sp78, temp_a0);

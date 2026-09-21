@@ -42,7 +42,7 @@ void func_15165C80(f32 *arg0, s32 arg1, f32 arg2, f32 *arg3, f32 arg4, f32 arg5,
     temp_f14 = *arg3;
     sp30 = temp_f14;
     sp24 = temp_f12;
-    temp_f2 = func_150AD78C(temp_f12, temp_f14) * arg2;
+    temp_f2 = func_150AD78C(temp_f12) * arg2;
     sp3C = temp_f2;
     temp_f0 = func_150AD780(temp_f12);
     temp_t8 = ((s32) arg7 >> 1) & 0xFF;

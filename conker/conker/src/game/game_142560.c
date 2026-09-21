@@ -564,8 +564,8 @@ void func_15115E0C(void *arg0, void *arg1) {
     f32 temp_f12;
     f32 temp_f14;
 
-    sp1C = func_150AD780((*(s32 *)((char *)(arg0) + 0x4)) * D_800A2FA0);
-    temp_f0 = func_150AD78C((*(s32 *)((char *)(arg0) + 0x4)) * D_800A2FA4, arg0);
+    sp1C = func_150AD780((*(f32 *)((char *)(arg0) + 0x4)) * D_800A2FA0);
+    temp_f0 = func_150AD78C((*(f32 *)((char *)(arg0) + 0x4)) * D_800A2FA4);
     temp_f12 = (*(f32 *)((char *)(arg1) + 0x14)) - (f32) (*(f32 *)((char *)(arg0) + 0x10));
     temp_f14 = (*(f32 *)((char *)(arg1) + 0x1C)) - (f32) (*(f32 *)((char *)(arg0) + 0x14));
     if (((*(s32 *)((char *)(arg0) + 0x4F)) & 4) == 4) {

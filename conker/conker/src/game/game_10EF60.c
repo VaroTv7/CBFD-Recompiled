@@ -315,13 +315,13 @@ void func_150E1D14(void *arg0) {
 block_43:
 block_44:
     if ((*(s32 *)((char *)(arg0) + 0xD6)) > 0) {
-        sp10C = func_150AD78C((*(s32 *)((char *)(arg0) + 0xA0)));
-        temp_f0_2 = func_150AD780((*(s32 *)((char *)(arg0) + 0xA0)));
+        sp10C = func_150AD78C((*(f32 *)((char *)(arg0) + 0xA0)));
+        temp_f0_2 = func_150AD780((*(f32 *)((char *)(arg0) + 0xA0)));
         sp118 = 0.0f;
         sp114 = 0.0f - (sp10C * -1.0f);
         sp110 = 0.0f + (temp_f0_2 * -1.0f);
-        sp10C = func_150AD78C((*(s32 *)((char *)(arg0) + 0xA4)));
-        temp_f0_3 = func_150AD780((*(s32 *)((char *)(arg0) + 0xA4)));
+        sp10C = func_150AD78C((*(f32 *)((char *)(arg0) + 0xA4)));
+        temp_f0_3 = func_150AD780((*(f32 *)((char *)(arg0) + 0xA4)));
         temp_f4 = temp_f0_3 * sp118;
         sp120 = sp114;
         var_f14 = temp_f4 + (sp10C * sp110);
