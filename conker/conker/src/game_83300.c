@@ -296,6 +296,60 @@ s32 func_1505693C(struct127 *arg0, s32 arg1) {
     return 0;
 }
 
+// NON-MATCHING: 63 vs target's 66 instructions - three fewer (a
+// "smarter than target" near-miss). Target unconditionally spills the
+// raw (untruncated) arg1/arg2 to their o32 stack argument-save slots
+// before masking each to a byte - a debug-info convention this
+// reconstruction doesn't reproduce (couldn't find a source form that
+// forces it back). Target also compiles the `row[2] < arg1` test as a
+// single annulled-delay-slot `beql` (its consequent is one
+// instruction) instead of a separate compare-and-jump; this
+// reconstruction's equivalent if/else-if lands functionally identical
+// but one instruction longer via a plain branch. Reads
+// D_80099A3C[arg2*10 + N] as a raw byte table (10-byte stride rows);
+// picks a table-row offset based on two threshold checks plus a
+// signed comparison of unk78 vs unk76, then - unless that byte reads
+// 0xFF - reinitializes several struct127 fields (allocation age,
+// timers, a flags nibble, facing angles, a flag byte) on the object.
+// void func_15056A00(struct127 *arg0, s32 arg1, s32 arg2) {
+//     u8 *row;
+//     u8 v0;
+//     u16 v1;
+//     u16 t2;
+//
+//     arg1 = (u8) arg1;
+//     arg2 = (u8) arg2;
+//     row = (u8 *) D_80099A3C + arg2 * 10;
+//
+//     if (row[7] < arg1) {
+//         v0 = 5;
+//     } else if (row[2] < arg1) {
+//         v0 = 2;
+//     } else {
+//         v0 = 0;
+//     }
+//     v1 = arg0->unk76;
+//
+//     t2 = arg0->unk78;
+//     if ((s16) (t2 - v1) < 0) {
+//         v0 += 3;
+//     } else {
+//         v0 += 4;
+//     }
+//
+//     if (row[v0] != 0xFF) {
+//         arg0->unk218 -= 5;
+//         arg0->unk21C = 0x4E20;
+//         arg0->unk223 = 0xD;
+//         arg0->unk44 = 0.0f;
+//         arg0->unkF4 &= ~0xE;
+//         arg0->unkF4 |= 4;
+//         arg0->unk78 = v1;
+//         arg0->unk7A = v1;
+//         arg0->unk138 = 0;
+//         arg0->unk244 = row[v0];
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15056A00.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15056B08.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_1505841C.s")
