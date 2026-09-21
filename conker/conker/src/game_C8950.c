@@ -217,6 +217,62 @@ void func_1509B8FC( s32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509BFB0.s")
 
 // need a bigger brain
+// NON-MATCHING: randomly picks an index 0-3, and (skipping entirely
+// unless D_800D2E4C is null or a second random roll has bit 4 set)
+// allocates one new 0x1B-byte block per index up to and including the
+// pick, frees every allocated block except the picked one, then
+// either promotes the picked block to D_800D2E4C directly (if it was
+// previously null) or bcopy's the old D_800D2E4C's contents into the
+// newly-picked block, swaps it in, and frees the old one.
+// void func_1509C120(void) {
+//     s32 idx;
+//     struct102 *old;
+//     s32 arr[4];
+//     s32 i;
+//
+//     idx = func_150ADA20() & 3;
+//     old = D_800D2E4C;
+//
+//     if (old == 0 || (func_150ADA20() & 4) != 0) {
+//         if (idx >= 0) {
+//             i = 0;
+//             do {
+//                 arr[i] = allocate_memory(0x1B, 0xFF, 2, 0);
+//                 i++;
+//             } while (i <= idx);
+//         }
+//
+//         if (idx >= 0) {
+//             i = 0;
+//             do {
+//                 if (i != idx) {
+//                     func_10004074((void *) arr[i]);
+//                 }
+//                 i++;
+//             } while (i <= idx);
+//         }
+//
+//         {
+//             s32 kept = arr[idx];
+//             if (old != 0) {
+//                 D_800D2E4C = (struct102 *) kept;
+//                 bcopy(old, D_800D2E4C, 0x1B);
+//                 func_10004074(old);
+//             } else {
+//                 D_800D2E4C = (struct102 *) kept;
+//             }
+//         }
+//     }
+// }
+// 69 vs target's 66 instructions. The two fill/consume loops each
+// needed a guarded do-while (matching target's own two separate
+// bound checks) rather than a `for` loop, which duplicated its guard
+// against an outer `if`. Computing the picked block's address once
+// into a local (`kept`) before branching on `old != 0` - rather than
+// re-expressing `arr[idx]` in both branches - closed most of a larger
+// gap by letting the two branches share one address computation, but
+// target still needs about 3 fewer instructions in that tail section
+// that further restructuring didn't close.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509C120.s")
 
 void func_1509C228(void) {
