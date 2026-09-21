@@ -77,7 +77,7 @@ void func_150B10F0(void * *arg0) {
             gObjects[0].unk168 = sp4C;
         }
     }
-    func_1505E650(arg0, 0, 0x3F800000, 0, 0.0f, 0.0f, 0);
+    func_1505E650(arg0, 0, 1.0f, 0, 0.0f, 0.0f, 0);
 }
 
 void func_150B12FC(void * *arg0) {
@@ -300,7 +300,7 @@ void func_150B19E0(void * *arg0) {
     (*(f32 *)((char *)(arg0) + 0x40)) = (f32) ((f32) (s16) ((*(f32 *)((char *)(arg0) + 0x7A)) + 0x4000) * 0.005493164f);
     func_15059140((f32)(s32)(arg0));
     func_150597FC(arg0);
-    func_1505E650(arg0, 0, 0x3F800000, 0, 0.0f, 0.0f, 0);
+    func_1505E650(arg0, 0, 1.0f, 0, 0.0f, 0.0f, 0);
     func_1502178C(arg0, 0, -1);
     if (((*(u32 *)((char *)(arg0) + 0x13D)) != 0) && ((u32) (random_u32() & 0xFF) < 0x28U)) {
         sp80 = (*(f32 *)((char *)(arg0) + 0x14C)) * (f32) (random_u32() % 40U);

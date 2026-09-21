@@ -696,7 +696,7 @@ void func_1505959C(struct127 *arg0, s32 arg1) {
     if (arg0->id == 0x89) {
         phi_v1 = 5;
     }
-    func_1505E650(&gObjects[arg1], D_800860C0[phi_v1], D_800860CC[phi_v1], 0x00000000, 0x00000000, 0x00000000, 0);
+    func_1505E650(&gObjects[arg1], D_800860C0[phi_v1], D_800860CC[phi_v1], 0.0f, 0.0f, 0.0f, 0);
     arg0->stunned = 0xFE;
     arg0->unk105 = 0;
     arg0->unk106 = func_1505E7CC(D_800860E4[phi_v1], arg0);

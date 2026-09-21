@@ -469,7 +469,7 @@ void func_15064A14(void *arg0) {
             }
         }
     }
-    func_1505E650((void *) (var_v1 & 0xFFFF), 0x3F800000, 6.0f, 0, 0.0f, 0);
+    func_1505E650(arg0, var_v1 & 0xFFFF, 1.0f, 6.0f, 0.0f, 0.0f, 0);
     func_150649A0((*(s32 *)((char *)(arg0) + 0x65)) - 1, gCurrentObjectIndex);
 }
 

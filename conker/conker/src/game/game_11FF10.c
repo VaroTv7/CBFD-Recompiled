@@ -707,7 +707,7 @@ block_80:
             var_v0_3 = 0x17;
             var_f2_3 += D_800A19D4;
         }
-        func_1505E650(arg0, var_v0_3 & 0xFFFF, var_f2_3, 0x41100000, 0.0f, 0.0f, 0);
+        func_1505E650(arg0, var_v0_3 & 0xFFFF, var_f2_3, 9.0f, 0.0f, 0.0f, 0);
     }
 }
 

@@ -1066,7 +1066,7 @@ void func_1505841C();
 void func_15058898();
 f32  func_1505A72C();
 void func_1505B5F8();
-void func_1505E650();
+void func_1505E650(void *arg0, s32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, s32 arg6);
 u32  func_1505E7CC();
 void func_1505E874();
 struct127* func_1505F0AC();

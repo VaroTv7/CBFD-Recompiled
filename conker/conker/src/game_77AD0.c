@@ -353,7 +353,7 @@ void func_1504BB88(struct127 *arg0) {
         arg0->unk83 = 0xFF;
         arg0->disable_run = 0xFF;
         if (arg0->interaction_state == 1) {
-            func_1505E650(arg0, 0xD6, 0x3F933333, 0x40400000, 0x00000000, 0x00000000, 0);
+            func_1505E650(arg0, 0xD6, 1.15f, 3.0f, 0.0f, 0.0f, 0);
         }
         arg0->unk25C &= ~0x10;
     }
@@ -573,7 +573,7 @@ void func_1505250C(struct127 *arg0, s32 arg1) {
 void func_15052EF0(struct127 *arg0) {
     arg0->immune = 100;
     arg0->unk40 =  ((s16) (arg0->unk7A + 16384)) * 0.005493164f;
-    func_1505E650(arg0, 0, 0x3F800000, 0x00000000, 0x00000000, 0x00000000, 0);
+    func_1505E650(arg0, 0, 1.0f, 0.0f, 0.0f, 0.0f, 0);
 }
 
 struct127 *func_15052F58(s32 arg0, s32 arg1) {
@@ -1068,7 +1068,7 @@ void func_15055A2C(s32 arg0, f32 arg1, f32 arg2, f32 arg3, s32 arg4) {
 
 void func_15055B0C(struct127 *arg0, s32 arg1) {
     arg0->interaction_state = 39;
-    func_1505E650(arg0, arg0->unk84.uh, 0, 0x00000000, 0x00000000, 0x00000000, 0);
+    func_1505E650(arg0, arg0->unk84.uh, 0, 0.0f, 0.0f, 0.0f, 0);
     arg0->unkE4 = 0;
     arg0->unkE6 = 0;
     arg0->unk21C = arg1;

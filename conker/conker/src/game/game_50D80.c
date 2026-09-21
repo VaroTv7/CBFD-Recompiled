@@ -703,7 +703,7 @@ block_14:
                         sp88 = (s32) temp_t1_2;
                         sp98 = var_f14;
                         sp94 = temp_f16;
-                        func_1505E650(0.0f, var_f14, arg5, temp_t1_2 & 0xFFFF, 1.0f, var_f14, 0.0f, 0.0f, var_t0_2);
+                        func_1505E650(arg5, temp_t1_2 & 0xFFFF, 1.0f, var_f14, 0.0f, 0.0f, var_t0_2);
                     }
                     if (temp_f16 > 0.0f) {
                         var_f2 = 2.0f * ((*(s32 *)((char *)((*(s32 *)((char *)(arg5) + 0x2D0))) + 0x18)) / temp_f16);
@@ -713,7 +713,7 @@ block_14:
                     if ((*(s32 *)((char *)(arg0) + 0x5)) != 0) {
                         var_f2 = 0.0f;
                     }
-                    func_1505E650(0.0f, var_f14, arg5, temp_t1_2 & 0xFFFF, var_f2, var_f14, 0.0f, 0.0f, var_t0_2);
+                    func_1505E650(arg5, temp_t1_2 & 0xFFFF, var_f2, var_f14, 0.0f, 0.0f, var_t0_2);
                 }
             }
         }

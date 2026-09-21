@@ -4539,7 +4539,7 @@ void func_151E7F60(s32 arg0, s32 arg1) {
         }
         sp30 = temp_a0_3;
         func_15083384(temp_a0_3, (*(s32 *)((char *)(temp_t0) + 0x6)));
-        func_1505E650(temp_a0_3, 0xF, 0x3F800000, 0, 0.0f, 0.0f, 0);
+        func_1505E650(temp_a0_3, 0xF, 1.0f, 0, 0.0f, 0.0f, 0);
     }
 }
 
