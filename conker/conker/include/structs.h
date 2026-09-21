@@ -2479,6 +2479,11 @@ typedef struct {
     f32 unk174;
     f32 unk178;
     f32 unk17C;
+    f32 unk180;
+    f32 unk184;
+    f32 unk188;
+    f32 unk18C;
+    f32 unk190;
 } struct210;
 
 typedef struct {

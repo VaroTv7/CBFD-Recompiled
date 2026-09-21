@@ -141,6 +141,41 @@ void func_15141250(struct210 *arg0) {
 //     return 1;
 // }
 
+// NON-MATCHING: 4-way threshold interpolation into arg0->unk158
+// based on where arg0->unk17C falls among unk180/unk184/unk188 (a
+// piecewise ease-in/ease-out curve using unk170/unk174/unk178/unk190
+// as the curve's endpoints/rate), then advances the phase unk17C by
+// D_800BE9A4 and wraps it back down against unk18C in a do-while.
+// Extends struct210 with five previously-undocumented trailing f32
+// fields (unk180-unk190).
+// s32 func_151415D4(struct210 *arg0) {
+//     if (arg0->unk17C < arg0->unk180) {
+//         arg0->unk158 = arg0->unk174;
+//     } else if (arg0->unk17C < arg0->unk184) {
+//         arg0->unk158 = arg0->unk174 + arg0->unk178 * ((arg0->unk17C - arg0->unk180) * arg0->unk190);
+//     } else if (arg0->unk17C < arg0->unk188) {
+//         arg0->unk158 = arg0->unk170;
+//     } else {
+//         arg0->unk158 = arg0->unk174 + arg0->unk178 * (1.0f - (arg0->unk17C - arg0->unk188) * arg0->unk190);
+//     }
+//
+//     arg0->unk17C += D_800BE9A4;
+//     if (arg0->unk18C < arg0->unk17C) {
+//         do {
+//             arg0->unk17C -= arg0->unk18C;
+//         } while (arg0->unk18C < arg0->unk17C);
+//     }
+//
+//     return 1;
+// }
+// 65 vs target's 69 instructions - smarter than target. Target keeps
+// a pointer to arg0->unk170 in a register and addresses every field
+// through it, re-reading several fields a second time rather than
+// reusing an already-live value (the genuine double-read idiom,
+// naturally reproduced here via direct struct field access without
+// needing any special tricks); this reconstruction is a few
+// instructions leaner overall, most likely from not needing the
+// extra pointer-materialization step target's addressing style costs.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151415D4.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16DC80/func_151416E8.s")
