@@ -81,7 +81,7 @@ void func_151934B4(void *arg0) {
             sp38 = (f32) (*(f32 *)((char *)(arg0) + 0x9C));
             sp3C = (f32) (*(f32 *)((char *)(arg0) + 0xA6));
             sp40 = (f32) (*(f32 *)((char *)(arg0) + 0xA0));
-            func_151DBCBC(5, 0x41F00000, 0xFF, 0, &sp38, (s32) (*(s32 *)((char *)(arg0) + 0xC)), (s32) (*(s32 *)((char *)(arg0) + 0x1)));
+            func_151DBCBC(5, 30.0f, 0xFF, 0, &sp38, (s32) (*(s32 *)((char *)(arg0) + 0xC)), (s32) (*(s32 *)((char *)(arg0) + 0x1)));
         }
         (*(s32 *)((char *)(arg0) + 0x98)) = -1;
     }

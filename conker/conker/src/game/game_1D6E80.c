@@ -730,7 +730,7 @@ void func_151AABC4(void *arg0, s32 arg1) {
             sp78 = spBC;
             sp7C = sp98;
             sp80 = spC4;
-            func_151DBCBC(sp87, 0x42200000, 0x96, &sp9C, &sp78, 0xFF, 1);
+            func_151DBCBC(sp87, 40.0f, 0x96, &sp9C, &sp78, 0xFF, 1);
             (*(s32 *)((char *)&(sp34) + 0x0)) = (s32) (*(s32 *)((char *)&(sp78) + 0x0));
             (*(s32 *)((char *)&(sp34) + 0x4)) = (s32) (*(s32 *)((char *)&(sp78) + 0x4));
             (*(s32 *)((char *)&(sp34) + 0x8)) = (s32) (*(s32 *)((char *)&(sp78) + 0x8));

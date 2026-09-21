@@ -233,7 +233,7 @@ u8 func_151D9B34(void) {
 
 void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 arg6) {
     f32 temp_f8 = arg1 * 0.5f;
-    func_151DBCBC(arg0, *(s32 *) &temp_f8, arg2, arg3, arg4, arg5, arg6);
+    func_151DBCBC(arg0, temp_f8, arg2, arg3, arg4, arg5, arg6);
     if ((arg0 != 5) && (arg0 != 2)) {
         f32 temp_f18 = arg1 * D_800AB46C;
         func_151DA08C(arg0, *(s32 *) &temp_f18, 0x3F8147AE, arg2, 100, arg3, arg4, arg5, arg6);
