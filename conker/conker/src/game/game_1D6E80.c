@@ -1336,5 +1336,5 @@ void func_151ABE00(void *arg0) {
 
     sp18 = arg0;
     sp1C = (*(s32 *)((char *)(arg0) + 0x3B));
-    func_1516944C(0x20, &sp18, 0xC, arg0);
+    func_1516944C(0x20, &sp18, 0xC);
 }
