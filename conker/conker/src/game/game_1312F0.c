@@ -10,7 +10,7 @@
 
 
 s32 func_15046C80();            /* extern */
-void * func_1504715C();                        /* extern */
+void func_1504715C();                        /* extern */
 void * func_15055A2C();             /* extern */
 u32 random_u32();                             /* extern */
 f32 random_float();                                /* extern */

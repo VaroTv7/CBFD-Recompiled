@@ -16,7 +16,7 @@ void * func_150A7A48();               /* extern */
 void * func_150A7DA0();              /* extern */
 void * func_150AD8B0();                   /* extern */
 u32 random_u32();                                /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 s32 func_1510F8D8();                /* extern */
 void * memcpy();                            /* extern */
 void func_1503DF0C();

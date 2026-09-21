@@ -11,7 +11,7 @@
 
 void * func_150A7960(); /* extern */
 f32 random_float();                                /* extern */
-void * func_1510F800();                            /* extern */
+void func_1510F800();                            /* extern */
 s32 func_15132A4C();        /* extern */
 s32 func_151407D0(); /* extern */
 s32 func_1516037C();           /* extern */

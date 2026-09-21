@@ -9,7 +9,7 @@
 #include "variables.h"
 
 
-void * func_1510F800();                       /* extern */
+void func_1510F800();                       /* extern */
 extern void *D_800DBE48;
 s32 func_1503F800();
 

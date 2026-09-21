@@ -10,7 +10,7 @@
 
 
 s32 func_15046C80();              /* extern */
-void * func_1504715C();                       /* extern */
+void func_1504715C();                       /* extern */
 s32 func_1509BE40();                      /* extern */
 void * func_15141F78();        /* extern */
 void * func_15142180();               /* extern */

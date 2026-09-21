@@ -29,7 +29,7 @@ void * func_15152B38();                       /* extern */
 void * func_151541B8(); /* extern */
 void * func_151602C0(); /* extern */
 void * func_15164F0C();                  /* extern */
-void * func_151C329C();                     /* extern */
+void func_151C329C();                     /* extern */
 s32 func_151C4B0C(); /* extern */
 void * func_151D3F14();                      /* extern */
 void * func_151D4408(); /* extern */
@@ -260,7 +260,7 @@ block_16:
             spF4 = 0xFF;
             spF0 = (*(s32 *)((char *)(arg9) + 0x3B));
             if (arg16 != 0) {
-                spF8 = func_10010F88(0, arg16, 0x4650, -0x1F4, 0, -1, (s32) spA8, (s32) spAC, (s32) spB0, 0x3E8, 0x7D0);
+                spF8 = func_10010F88(arg16, 0x4650, -0x1F4, 0, -1, (s32) spA8, (s32) spAC, (s32) spB0, 0x3E8, 0x7D0);
             } else {
                 spF8 = 0;
             }

@@ -447,7 +447,7 @@ s32 func_150B8F44(void *arg0, void *arg1, f32 arg2, f32 arg3, f32 arg4) {
     (*(f32 *)((char *)(arg0) + 0x50)) = (f32) ((*(f32 *)((char *)(arg0) + 0x50)) * temp_f0);
     (*(f32 *)((char *)(arg0) + 0x54)) = (f32) ((*(f32 *)((char *)(arg0) + 0x54)) * temp_f0);
     (*(f32 *)((char *)(arg0) + 0x58)) = (f32) ((*(f32 *)((char *)(arg0) + 0x58)) * temp_f0);
-    func_10010F88(temp_f12, arg3, D_8008873C, 0xFA00, 0, 0, 0, (s32) (*(s32 *)((char *)(arg1) + 0x14)), (s32) (*(s32 *)((char *)(arg1) + 0x18)), (s32) (*(s32 *)((char *)(arg1) + 0x1C)), 0x3E8, 0xFA0);
+    func_10010F88(D_8008873C, 0xFA00, 0, 0, 0, (s32) (*(s32 *)((char *)(arg1) + 0x14)), (s32) (*(s32 *)((char *)(arg1) + 0x18)), (s32) (*(s32 *)((char *)(arg1) + 0x1C)), 0x3E8, 0xFA0);
     return 1;
 }
 

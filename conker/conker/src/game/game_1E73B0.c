@@ -12,14 +12,14 @@
 s32 func_1000F568();                            /* extern */
 void * func_1503F404(); /* extern */
 s32 func_15046C80();            /* extern */
-void * func_1504715C();                     /* extern */
+void func_1504715C();                     /* extern */
 void * func_15055A2C();             /* extern */
 void * func_150A7960(); /* extern */
 s32 func_150AC9C0(); /* extern */
 u32 random_u32();                           /* extern */
 f32 random_float();                          /* extern */
 void * func_150E7FEC(); /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 s32 func_15130374();            /* extern */
 void * func_1513170C();                                  /* extern */
 void * func_1513264C(); /* extern */

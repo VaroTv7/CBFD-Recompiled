@@ -22,7 +22,7 @@ s32 func_150A4FA0();                        /* extern */
 s32 func_150A6500();            /* extern */
 s32 func_150AB1F0();        /* extern */
 void * func_150AC3E4();          /* extern */
-void * func_1510F800();                     /* extern */
+void func_1510F800();                     /* extern */
 s32 func_15145C90();                /* extern */
 void func_15044660(void *arg0, f32 arg1, f32 arg2, void * arg3);
 void * *func_15044964(); /* static */

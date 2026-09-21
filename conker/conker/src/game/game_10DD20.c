@@ -11,7 +11,7 @@
 
 void * func_1502178C();                         /* extern */
 s32 func_15046C80();            /* extern */
-void * func_1504715C();                     /* extern */
+void func_1504715C();                     /* extern */
 s32 func_150535F4();                             /* extern */
 void * func_15056B08();                            /* extern */
 void * func_150585F0();                            /* extern */

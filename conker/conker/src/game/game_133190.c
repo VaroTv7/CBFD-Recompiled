@@ -25,7 +25,7 @@ void *func_15144B34();                           /* extern */
 s32 func_15146078();     /* extern */
 void * func_1515C244();          /* extern */
 void *func_15167A68();      /* extern */
-void * func_151C329C();          /* extern */
+void func_151C329C();          /* extern */
 void * func_151D5D60();    /* extern */
 void * func_151D5E30();                    /* extern */
 void * memcpy();                         /* extern */

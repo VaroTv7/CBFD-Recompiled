@@ -10,7 +10,7 @@
 
 
 s32 func_15042E3C();                        /* extern */
-void * func_1504715C();                               /* extern */
+void func_1504715C();                               /* extern */
 void *func_1509B570();                             /* extern */
 void *func_150CFF10(); /* extern */
 void * func_150D6730();                              /* extern */

@@ -44,7 +44,7 @@ void func_150C4D20(void *arg0) {
         temp_f4 = (s32) (temp_f12 - 256.0f);
         sp44 = temp_f2;
         sp38 = temp_f4;
-        func_10010F88(temp_f12, 0x43800000, 0xF, 0x55F0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0x1F4, 0x3E8);
+        func_10010F88(0xF, 0x55F0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0x1F4, 0x3E8);
         var_v0 = temp_f4;
     }
     (*(s32 *)((char *)(arg0) + 0x7C)) = var_v0;

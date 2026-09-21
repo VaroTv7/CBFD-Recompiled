@@ -20,7 +20,7 @@ void * func_150597FC();                               /* extern */
 void * func_1505A770();                               /* extern */
 void *func_1505EEB0();                        /* extern */
 u8 random_u32();                                 /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 s32 func_1510F8D8();                /* extern */
 void * func_15167D84();          /* extern */
 extern s32 D_8008CAE0;

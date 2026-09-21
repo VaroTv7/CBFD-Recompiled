@@ -10,7 +10,7 @@
 
 
 s32 func_150A3A70();                        /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 extern f32 D_800A2370;
 
 void func_151045E0(s32 arg0, void * arg1, void * arg2) {

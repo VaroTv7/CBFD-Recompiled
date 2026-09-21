@@ -9,7 +9,7 @@
 #include "variables.h"
 
 s32 func_15046C80();            /* extern */
-void * func_1504715C();                     /* extern */
+void func_1504715C();                     /* extern */
 void * func_150A7960(); /* extern */
 u32 random_u32();                                /* extern */
 f32 random_float();                                /* extern */

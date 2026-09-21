@@ -17,7 +17,7 @@ void * func_150A44F0();                       /* extern */
 s32 func_150A7960(); /* extern */
 s32 random_u32();                                /* extern */
 f32 random_float();                                /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 s32 func_1510F8CC();                             /* extern */
 s32 func_1510F8D8();            /* extern */
 void * func_1511490C();                       /* extern */
@@ -27,7 +27,7 @@ void * func_1516865C();                /* extern */
 void * func_15168800();                        /* extern */
 void * func_15171D4C(); /* extern */
 void * func_15171F04(); /* extern */
-void * func_151C329C();                       /* extern */
+void func_151C329C();                       /* extern */
 s32 func_151EF610();                          /* extern */
 void func_150E4550(f32 arg0, f32 arg1, f32 arg2, s32 arg3, s32 arg4, s16 **arg5, s32 arg6);
 s32 func_150E4E04(f32 arg0, f32 arg1, f32 arg2, s32 arg3, s32 arg4, s16 **arg5, s32 arg6);

@@ -28,7 +28,7 @@ s32 func_150AD9A0();         /* extern */
 u32 random_u32();                                /* extern */
 void *func_1510B7B4();                   /* extern */
 s32 func_1510F720(s32, s32, s32, s32 (*)[]);        /* extern */
-void * func_1510F800();                                 /* extern */
+void func_1510F800();                                 /* extern */
 void *func_15167A68();          /* extern */
 void * func_151EFE00();                             /* extern */
 void * guMtxF2L2();                         /* extern */

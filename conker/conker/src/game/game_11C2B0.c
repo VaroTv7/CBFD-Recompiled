@@ -33,7 +33,7 @@ void * func_151617C4();                            /* extern */
 void * func_151617E4();                            /* extern */
 s32 func_151A7950();              /* extern */
 s32 func_151C229C(); /* extern */
-void * func_151C329C();                    /* extern */
+void func_151C329C();                    /* extern */
 void * func_151D3FF4();                   /* extern */
 void * func_151D5334();     /* extern */
 void * func_151D5514();                   /* extern */

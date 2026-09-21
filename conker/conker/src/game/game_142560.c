@@ -819,7 +819,7 @@ void func_1511650C(void *arg0, s32 arg1, s32 arg2, f32 arg3) {
         temp_f12 = (var_f12 * arg3) - 500.0f;
         if (temp_a0 == 0) {
             if (D_800A2FCC < temp_f14) {
-                (*(s16 *)((char *)(arg0) + 0x74)) = func_10010F88(temp_f12, temp_f14, arg2, temp_v0 & 0xFFFF, (s16) (s32) temp_f12, 0, -1, (s32) (*(s16 *)((char *)(arg0) + 0x10)), (s32) (*(s16 *)((char *)(arg0) + 0x12)), (s32) (*(s16 *)((char *)(arg0) + 0x14)), 0x3E8, 0x1770);
+                (*(s16 *)((char *)(arg0) + 0x74)) = func_10010F88(arg2, temp_v0 & 0xFFFF, (s16) (s32) temp_f12, 0, -1, (s32) (*(s16 *)((char *)(arg0) + 0x10)), (s32) (*(s16 *)((char *)(arg0) + 0x12)), (s32) (*(s16 *)((char *)(arg0) + 0x14)), 0x3E8, 0x1770);
             }
         } else {
             temp_a1 = temp_v0 & 0xFFFF;
@@ -1871,7 +1871,7 @@ void func_15118F24(void *arg0) {
                 sp60 = var_f14;
                 sp5C = var_f12;
                 sp4C = temp_t6;
-                func_10010F88(var_f12, var_f14, 0x4BA, 0x5DC0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0xC8, 0x9C4);
+                func_10010F88(0x4BA, 0x5DC0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0xC8, 0x9C4);
                 var_f16 += D_800A3154;
             }
         }
@@ -1898,7 +1898,7 @@ void func_15118F24(void *arg0) {
                     sp64 = 0.0f;
                     sp5C = var_f12;
                     sp4C = 3;
-                    func_10010F88(var_f12, var_f14, 0x4BB, 0x5DC0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0xC8, 0x9C4);
+                    func_10010F88(0x4BB, 0x5DC0, 0, 0, 0, (s32) (*(s32 *)((char *)(arg0) + 0x10)), (s32) (*(s32 *)((char *)(arg0) + 0x12)), (s32) (*(s32 *)((char *)(arg0) + 0x14)), 0xC8, 0x9C4);
                     var_v0 = 3;
                     var_f18_2 = 0.0f;
                 }
