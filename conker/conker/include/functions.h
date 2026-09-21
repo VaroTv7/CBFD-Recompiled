@@ -1107,7 +1107,7 @@ s32  func_15123934();
 s32  func_151239CC();
 void func_15127EB8();
 void func_1512D748();
-struct210 *func_1513C350();
+struct210 *func_1513C350(struct210 *arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, s32 arg5, s32 arg6, struct167 *arg7, s32 arg8, u8 arg9, s32 argA);
 void *func_1513D2F0();
 s32  func_1513D6FC(void *arg0, s32 arg1, f32 arg2, f32 arg3, s32 arg4, s32 arg5, s32 arg6);
 void  func_1513E13C(void *arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, s32 arg6);
