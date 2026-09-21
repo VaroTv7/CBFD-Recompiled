@@ -32,7 +32,7 @@ extern f32 D_800AA568;
 extern f32 D_800AA56C;
 extern f32 D_800AA570;
 
-void func_151B8DB0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+void func_151B8DB0(s32 arg0, u8 arg1, u8 arg2, s32 arg3) {
     s32 sp1BC;
     s16 sp1B4;
     s16 sp1B2;
