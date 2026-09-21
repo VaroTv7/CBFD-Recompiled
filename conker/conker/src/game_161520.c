@@ -556,6 +556,44 @@ s32 func_151380B4(void *arg0, s32 arg1, s32 arg2) {
 //     }
 // }
 
+// NON-MATCHING: builds a fixed-layout 0x3C-byte effect-params blob on
+// the stack (position copied from arg0, several hardcoded shorts and
+// floats, plus D_800A4964/4968/496C/4960) and relays it into the
+// confirmed 8-arg func_15152190 alongside D_800A4268/D_800A4270 and
+// arg1/arg2. Declares the six previously-undocumented globals.
+// void func_1513A5E0(void *arg0, u8 arg1, s32 arg2) {
+//     u8 buf[0x3C];
+//     char *p = buf;
+//
+//     *(s32 *) (p + 0x0) = 7;
+//     *(s32 *) (p + 0x4) = 7;
+//     *(s32 *) (p + 0x8) = *(s32 *) arg0;
+//     *(s32 *) (p + 0xC) = *(s32 *) ((char *) arg0 + 4);
+//     *(s32 *) (p + 0x10) = *(s32 *) ((char *) arg0 + 8);
+//     *(s16 *) (p + 0x14) = 0;
+//     *(s16 *) (p + 0x16) = 0xFF;
+//     *(s16 *) (p + 0x18) = -0x32;
+//     *(s16 *) (p + 0x1A) = 0x1B;
+//     *(f32 *) (p + 0x1C) = 4.0f;
+//     *(f32 *) (p + 0x20) = 4.0f;
+//     *(f32 *) (p + 0x24) = D_800A4964;
+//     *(f32 *) (p + 0x28) = D_800A4968;
+//     *(s16 *) (p + 0x2C) = 0x19;
+//     *(s16 *) (p + 0x2E) = 0x28;
+//     *(f32 *) (p + 0x30) = D_800A4960;
+//     *(f32 *) (p + 0x34) = D_800A4960;
+//     *(f32 *) (p + 0x38) = D_800A496C;
+//
+//     func_15152190(buf, &D_800A4268, &D_800A4270, 2, 0, 1, arg1, arg2);
+// }
+// 62 vs target's 64 instructions. func_15152190 is a widely shared
+// K&R-declared function (same class as func_1505E650) - passing its
+// 5th argument as a literal `0.0f` triggers the K&R float-to-double
+// promotion bug (compiles to an 8-byte `sdc1` instead of a 4-byte
+// `swc1`, corrupting the rest of the stack-argument layout); passing
+// the plain integer `0` instead (matching its real bit pattern
+// without triggering promotion, since only genuine float/double
+// values get promoted) fixed it.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A5E0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A6E0.s")
