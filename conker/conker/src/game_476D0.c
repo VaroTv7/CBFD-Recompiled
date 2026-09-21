@@ -154,43 +154,49 @@ void func_150A7A00(f32 arg0, f32 arg1, s32 arg2, f32 arg3, f32 arg4, f32 arg5, f
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501B0A0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501B22C.s")
-// JUSTREG: I think?
+// NON-MATCHING: computes two rotation sub-blocks (from unk74/unk78,
+// scaled by 0.5 and the D_80096900/D_80096904 constants) via
+// cosf/sinf and writes them into D_800BE628[arg0]'s unk88-unkB4
+// fields. The stale "JUSTREG" comment's reconstruction (including its
+// double-negation on unk88/unk94/unkA4/unkB0) was independently
+// verified correct against the raw asm.
 // void func_1501B22C(s32 arg0) {
-//     f32 tmp0;
-//     f32 tmp1;
-//     f32 tmp2;
-//     f32 tmp3;
-//     f32 tmp4;
-//     f32 tmp5;
-//     f32 tmp6;
-//     f32 tmp7;
+//     struct259 *rec = (struct259 *) ((char *) D_800BE628 + arg0 * 0x180);
+//     f32 tmp0, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
 //
-//     struct259 *temp_s0;
-//
-//     temp_s0 = D_800BE628 + (arg0 * 0x180);
-//     tmp0 = temp_s0->unk74 * 0.5f;
+//     tmp0 = rec->unk74 * 0.5f;
 //     tmp7 = -tmp0;
-//     tmp5 = temp_s0->unk78 * 0.5f;
+//     tmp5 = rec->unk78 * 0.5f;
 //     tmp7 *= D_80096900;
 //     tmp3 = cosf(tmp7);
 //     tmp7 = sinf(tmp7);
-//     temp_s0->unk9C = tmp7;
-//     temp_s0->unk90 = tmp7;
+//     rec->unk9C = tmp7;
+//     rec->unk90 = tmp7;
 //     tmp3 = -tmp3;
-//     temp_s0->unk88 = -tmp3;
-//     temp_s0->unk94 = tmp3;
-//     temp_s0->unk98 = 0.0f;
-//     temp_s0->unk8C = 0.0f;
+//     rec->unk88 = -tmp3;
+//     rec->unk94 = tmp3;
+//     rec->unk98 = 0.0f;
+//     rec->unk8C = 0.0f;
 //     tmp6 = tmp5 * D_80096904;
 //     tmp2 = cosf(tmp6);
 //     tmp0 = sinf(tmp6);
 //     tmp4 = -tmp2;
 //     tmp0 = -tmp0;
-//     temp_s0->unkA0 = 0.0f;
-//     temp_s0->unkB0 = -tmp4;
-//     temp_s0->unkA8 = tmp0;
-//     temp_s0->unkB4 = tmp0;
-//     temp_s0->unkAC = 0.0f;
-//     temp_s0->unkA4 = tmp4;
+//     rec->unkA0 = 0.0f;
+//     rec->unkB0 = -tmp4;
+//     rec->unkA8 = tmp0;
+//     rec->unkB4 = tmp0;
+//     rec->unkAC = 0.0f;
+//     rec->unkA4 = tmp4;
 // }
+// 59 vs target's 59 instructions - exact count match, same 64-byte
+// stack frame, and every register plays the identical role as
+// target's under the standard float-register alias table (f0=fv0,
+// f2=fv1, f8=ft2, f10=ft3, f12=fa0, f16=ft4, etc.) - splitting the
+// computation into separate named temps (tmp0..tmp7, matching the
+// stale comment's own style) rather than reusing 2-3 shared locals
+// was needed to avoid IDO choosing a callee-saved float register
+// (sdc1/ldc1-saved $f20) to hold a value across the cosf/sinf calls,
+// which target never does. Remaining gap is minor: a few local stack
+// slots land at different offsets within the same frame.
+#pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501B22C.s")
