@@ -178,7 +178,7 @@ void func_15009BD0(s32 arg0, s32 arg1) {
 
     tmp.unk4 = 0.0f;
     tmp.unk8 = 90.0f;
-    tmp.unk0 = func_15187EC0(0, 0x00000000, 0, 0, 0, 220, 220, 255);
+    tmp.unk0 = func_15187EC0(0, 0.0f, 0, 0, 0, 220, 220, 255);
     temp_v0 = func_1516387C(arg0, 2, 16, 300, 0, 12, 255, 1);
     if (temp_v0 != 0) {
         memcpy(&temp_v0->unk18, &tmp, 12);
@@ -191,7 +191,7 @@ void func_15009C7C(s32 arg0, s32 arg1) {
 
     tmp.unk4 = 0.0f;
     tmp.unk8 = 50.0f;
-    tmp.unk0 = func_15187EC0(0, 0x00000000, 0, 0, 0, 220, 220, 255);
+    tmp.unk0 = func_15187EC0(0, 0.0f, 0, 0, 0, 220, 220, 255);
     temp_v0 = func_1516387C(arg0, 2, 16, 300, 0, 12, 255, 1);
     if (temp_v0 != 0) {
         memcpy(&temp_v0->unk18, &tmp, 12);
@@ -240,7 +240,7 @@ void func_15009F74(s32 arg0, s32 arg1) {
 
     tmp.unk4 = 0.0f;
     tmp.unk8 = 60.0f;
-    tmp.unk0 = func_15187EC0(1, 0x3DCCCCCD, 100, 100, 100, 255, 100, 100);
+    tmp.unk0 = func_15187EC0(1, 0.1f, 100, 100, 100, 255, 100, 100);
     temp_v0 = func_1516387C(arg0, 2, 16, 300, 0, 12, 255, 1);
     if (temp_v0 != 0) {
         memcpy(&temp_v0->unk18, &tmp, 12);

@@ -16,28 +16,24 @@ extern s32 D_800DF700;
 extern s32 D_800DF70C;
 extern s32 D_800DF7B4;
 
-s32 func_15187EC0(s32 arg0, void * *arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+s32 func_15187EC0(s32 arg0, f32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, u8 arg6, u8 arg7) {
     s32 temp_t1;
-    s8 temp_t6;
-    s8 temp_t7;
     void *temp_v0;
 
-    temp_t6 = arg2 & 0xFF;
-    temp_t7 = arg3 & 0xFF;
     if (D_800DF7B4 < 5) {
         temp_v0 = (D_800DF7B4 * 0x24) + &D_800DF700;
-        (*(s32 *)((char *)(temp_v0) + 0x14)) = arg1;
-        (*(s32 *)((char *)(temp_v0) + 0x6)) = temp_t6;
-        (*(s32 *)((char *)(temp_v0) + 0x0)) = temp_t6;
-        (*(s32 *)((char *)(temp_v0) + 0x7)) = temp_t7;
-        (*(s32 *)((char *)(temp_v0) + 0x1)) = temp_t7;
-        (*(s32 *)((char *)(temp_v0) + 0x8)) = arg4;
-        (*(s32 *)((char *)(temp_v0) + 0x2)) = arg4;
+        (*(f32 *)((char *)(temp_v0) + 0x14)) = arg1;
+        (*(u8 *)((char *)(temp_v0) + 0x6)) = arg2;
+        (*(u8 *)((char *)(temp_v0) + 0x0)) = arg2;
+        (*(u8 *)((char *)(temp_v0) + 0x7)) = arg3;
+        (*(u8 *)((char *)(temp_v0) + 0x1)) = arg3;
+        (*(u8 *)((char *)(temp_v0) + 0x8)) = arg4;
+        (*(u8 *)((char *)(temp_v0) + 0x2)) = arg4;
         (*(s32 *)((char *)(temp_v0) + 0x10)) = arg0;
-        (*(s32 *)((char *)(temp_v0) + 0x3)) = arg5;
-        (*(s32 *)((char *)(temp_v0) + 0x4)) = arg6;
-        (*(s32 *)((char *)(temp_v0) + 0x5)) = arg7;
-        bzero(arg1, (char *)(temp_v0) + 0x18);
+        (*(u8 *)((char *)(temp_v0) + 0x3)) = arg5;
+        (*(u8 *)((char *)(temp_v0) + 0x4)) = arg6;
+        bzero((char *)(temp_v0) + 0x18, 0xC);
+        (*(u8 *)((char *)(temp_v0) + 0x5)) = arg7;
         temp_t1 = D_800DF7B4 + 1;
         D_800DF7B4 = temp_t1;
         return temp_t1 - 1;
