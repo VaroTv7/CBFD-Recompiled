@@ -836,7 +836,7 @@ void func_151DB330();
 void func_151DB3D8();
 void func_151DB43C();
 void func_151DBBD4();
-void func_151DC484();
+void func_151DC484(void *arg0, void *arg1, u8 arg2, u8 arg3, s32 arg4);
 void func_151F0080();
 void func_151F00E0();
 
