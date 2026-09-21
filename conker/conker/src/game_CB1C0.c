@@ -25,7 +25,7 @@ s32 func_1509DD50(s32 arg0, struct214 *arg1) {
 }
 
 s32 func_1509DDC4(s32 arg0, s32 arg1) {
-    func_15178E14(arg0 & 0xff, arg0);
+    func_15178E14(arg0 & 0xff);
     return 0;
 }
 
