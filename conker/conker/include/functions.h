@@ -972,7 +972,7 @@ s32  func_1000EE70();
 //func_1000F4D8
 //func_1000F568
 s32  func_1000F6B8(s32 arg0, s16 arg1, s16 arg2, s16 arg3, s32 *arg4, s32 arg5, s32 arg6);
-void func_1000F85C();
+void func_1000F85C(u16 arg0, s16 arg1, s32 arg2);
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4, s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9);
 u16  func_1000FA64(u16 arg0, u8 arg1, s16 arg2, s16 arg3, s32 arg4, u16 arg5, s16 arg6, s32 arg7, s32 arg8, s32 arg9, s32 arg10, s32 arg11);
 //func_1000FC18
