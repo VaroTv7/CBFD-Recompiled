@@ -83,6 +83,70 @@ void func_15167AD8(void *arg0, u8 arg1, s32 arg2) {
         *((u8 *) v0 + 0x23) = 0xFF;
     }
 }
+// NON-MATCHING: dispatches through D_8008CA20[arg0->unk24] if
+// nonzero, then updates a timer pair (unk14/unk16, an accumulator and
+// its per-tick delta) gated on arg0->unk22's sign, comparing against
+// a byte fetched through arg0->unk10, and finally notifies
+// func_1516972C if the post-update accumulator (divided by 256, i.e.
+// its high byte) reaches that same threshold byte.
+// void func_15167B44(void *arg0) {
+//     u8 dispatch = *(u8 *) ((char *) arg0 + 0x24);
+//     s8 v1;
+//
+//     if (dispatch != 0) {
+//         D_8008CA20[dispatch](arg0);
+//     }
+//
+//     v1 = *(s8 *) ((char *) arg0 + 0x22);
+//
+//     if (v1 > 0) {
+//         u8 v0 = *(u8 *) ((char *) arg0 + 0x23);
+//         if (v1 < v0) {
+//             *(u8 *) ((char *) arg0 + 0x23) = v0 - v1;
+//         } else {
+//             u8 otherByte = *(u8 *) (*(char **) ((char *) arg0 + 0x10) + 4);
+//             *(s16 *) ((char *) arg0 + 0x14) = otherByte << 8;
+//         }
+//     } else if (v1 < 0) {
+//         s16 a2 = *(s16 *) ((char *) arg0 + 0x14);
+//         u8 t4 = *(u8 *) (*(char **) ((char *) arg0 + 0x10) + 4);
+//         s32 t2 = a2 / 256;
+//
+//         if (t2 >= t4 - 1) {
+//             u8 v0b = *(u8 *) ((char *) arg0 + 0x23);
+//             s32 a1 = -v1;
+//             if (a1 < v0b) {
+//                 *(u8 *) ((char *) arg0 + 0x23) = v0b - a1;
+//                 *(s16 *) ((char *) arg0 + 0x14) = a2 - *(s16 *) ((char *) arg0 + 0x16);
+//             }
+//         }
+//     }
+//
+//     *(s16 *) ((char *) arg0 + 0x14) += *(s16 *) ((char *) arg0 + 0x16);
+//     {
+//         s16 t3 = *(s16 *) ((char *) arg0 + 0x14);
+//         u8 t5 = *(u8 *) (*(char **) ((char *) arg0 + 0x10) + 4);
+//         s32 t4b = t3 / 256;
+//
+//         if (t4b >= t5) {
+//             func_1516972C(arg0);
+//         }
+//     }
+// }
+// 70 vs target's 69 instructions - off by one, with every section
+// (the dispatch call, the branch tree, and the shared tail)
+// independently matching target's instruction count exactly and
+// every register playing the same role under consistent renaming.
+// Two fixes got it this close: reading arg0->unk22 AFTER the dispatch
+// call rather than before (reading it early forced it to be spilled
+// across the call, costing 2 instructions target doesn't spend), and
+// writing the `-v1 < v0b` comparison as plain signed s32 arithmetic
+// rather than an explicit `s8`-then-`(u8)` round trip (which added
+// spurious sign-extend/mask instructions and, separately, flipped the
+// comparison to an unsigned `sltu` where target uses signed `slt`).
+// The `/ 256` divisions correctly reproduce target's sign-correcting
+// shift-by-8 idiom (IDO's standard lowering for signed division by a
+// power of two) without writing the shift out by hand.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167B44.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167C58.s")
 void *func_15167D84(void *arg0, s32 arg1, s32 arg2, s8 arg3, u8 arg4, s32 arg5) {
