@@ -79,7 +79,22 @@ void func_151F2BA8(void) {
     osSetIntMask(mask);
 }
 
+// NON-MATCHING: target spills `mask` to the stack across the two osSetIntMask
+// calls and recomputes D_800E0E04's address separately for each of the three
+// accesses (no CSE), where IDO here keeps mask in a0 and caches the address
+// in one register; 21 vs 25 instructions, semantics identical.
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2BE8.s")
+// void func_151F2BE8(void) {
+//     u32 mask = osSetIntMask(1);
+//
+//     if (D_800E0E04 == 5) {
+//         D_800E0E04 = 6;
+//     } else {
+//         D_800E0E04 = 2;
+//     }
+//
+//     osSetIntMask(mask);
+// }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2C4C.s")
 
