@@ -75,7 +75,61 @@ void func_15141DA4(void *arg0, s32 arg1, s32 arg2) {
     }
 }
 
+// NON-MATCHING: 79 vs target's 80 instructions. Walks arg0's unk2F4
+// linked list via the K&R func_1514ECE0(node, 0x1A, &out) iterator,
+// and for any node whose unk10-owner's unk28 type-id matches arg1,
+// records it as found and overwrites that owner's halfword field 0xE
+// with D_8008A0B4[arg1].unk4. If nothing matched, allocates a new
+// effect via func_15149130 (arg0->unk3B is loaded and stashed to the
+// stack but never read again - matches the caller's own asm exactly,
+// so kept as a genuine dead store) and links it in via func_1514EC1C.
+// Semantics confirmed via the existing caller func_15141DA4, which
+// already establishes arg1 as a D_8008A0B4 index and arg0 as a raw
+// pointer. The one-instruction gap and 8-byte-larger stack frame are
+// from the compiler's own scratch-slot ordering for the arg1/arg0/
+// category snapshot preceding the allocator call, not a semantic
+// difference - tweaking local declaration order shifted the slots but
+// never closed the gap.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15141E38.s")
+// extern s32 func_1514ECE0();
+// extern void *func_1514EC1C();
+//
+// void func_15141E38(void *arg0, s32 arg1) {
+//     s32 buf;
+//     void *found = 0;
+//
+//     buf = *(s32 *) ((char *) arg0 + 0x2F4);
+//
+//     if (func_1514ECE0(buf, 0x1A, &buf) != 0) {
+//         do {
+//             void *cur = (void *) buf;
+//             void *type = *(void **) ((char *) cur + 0x10);
+//
+//             if (arg1 == *(s32 *) ((char *) type + 0x28)) {
+//                 found = cur;
+//                 *(s16 *) ((char *) type + 0xE) = (s16) D_8008A0B4[arg1].unk4;
+//             }
+//             buf = *(s32 *) ((char *) cur + 0x14);
+//         } while (func_1514ECE0(buf, 0x1A, &buf) != 0);
+//     }
+//
+//     if (found == 0) {
+//         u8 snapshot[0xC];
+//         volatile u8 category = *(u8 *) ((char *) arg0 + 0x3B);
+//         void *newObj;
+//
+//         *(s32 *) snapshot = arg1;
+//         *(s32 *) (snapshot + 4) = (s32) arg0;
+//
+//         newObj = func_15149130((s16) D_8008A0B4[arg1].unk4, -1, -1, -1, 1, 0x32,
+//                                 (struct37 *) 0xC, 0xFF, 1);
+//
+//         if (newObj != 0) {
+//             memcpy((char *) newObj + 0x28, snapshot, 0xC);
+//             func_1514EC1C(newObj, arg0, 0x1A);
+//         }
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15141F78.s")
 // NON-MATCHING: need to determine arguments
 // void func_1513C650(s32, s32, s32, u16, s32, s32, s32, f32, f32, s32, s32, s32, s32, s32, u8, s32);
