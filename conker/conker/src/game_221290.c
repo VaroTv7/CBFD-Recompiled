@@ -10,7 +10,44 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6970.s")
+extern s16 D_800AEB7C[];
+
+// Copies 0x240 floats from the unk4664 scratch buffer into unk4F64.
+// When the channel selected by arg1 is active (unk3C98 set) and in
+// mode 2, the copy is scattered through a per-(unk3BA4, unk3BB4)
+// permutation table in D_800AEB7C, optionally preceded by 0x24
+// straight copies; otherwise it is a plain sequential copy.
+s32 func_151F6970(void *arg0, s32 arg1) {
+    s16 *tbl;
+    f32 *dst;
+    f32 *src;
+    s32 i;
+
+    tbl = (s16 *) ((char *) D_800AEB7C
+                   + *(s32 *) ((char *) arg0 + 0x3BA4) * 3456
+                   + *(s32 *) ((char *) arg0 + 0x3BB4) * 1152);
+    dst = (f32 *) ((char *) arg0 + 0x4F64);
+    src = (f32 *) ((char *) arg0 + 0x4664);
+    i = 0;
+
+    if (*(s32 *) ((char *) arg0 + arg1 * 4 + 0x3C98) != 0 &&
+        *(s32 *) ((char *) arg0 + arg1 * 4 + 0x3CA0) == 2) {
+        if (*(s32 *) ((char *) arg0 + arg1 * 4 + 0x3CA8) != 0) {
+            while (i++ < 0x24) {
+                *dst++ = *src++;
+            }
+        }
+        while (i < 0x240) {
+            dst[tbl[i++]] = *src++;
+        }
+    } else {
+        while (i++ < 0x240) {
+            *dst++ = *src++;
+        }
+    }
+
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6B28.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F78B4.s")
