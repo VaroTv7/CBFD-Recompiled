@@ -138,4 +138,10 @@ void func_151F3C34(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F3C4C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F3D78.s")
+void func_151F3D78(void) {
+    s32 sp1C;
+    void *fp;
+
+    fp = (*(void *(**)(void *)) ((char *) n_syn + 0x24))(&sp1C);
+    ((void (*)(void *, s32, s32)) fp)((void *) (D_800E0D80 + D_800E0DE4), 0x810, 0);
+}
