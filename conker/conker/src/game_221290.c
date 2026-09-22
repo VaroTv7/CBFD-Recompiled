@@ -14,7 +14,50 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6B28.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F78B4.s")
+// NON-MATCHING: 72 vs target's 74 instructions, on the same streaming
+// buffer struct as func_151F85C4 above (fields unk18/unk1C/unk201C/
+// unk2020/unk3F88, unk0/unk4 a callback userdata+fnptr pair). Compacts
+// the window by discarding the first 0x1000 consumed bytes when
+// unk201C+unk3F88 gets close to full, refills via the object's own
+// fill callback, zero-pads any short read, then advances the position
+// and byte-count fields and returns the old position. `obj` needed the
+// same `volatile` trick as func_151F85C4 to avoid being kept in a
+// register across the whole function; unlike that sibling, target here
+// reuses one reload of `obj` for every field access within a single
+// C statement/block (not per access), which this reconstruction's
+// literal per-field volatile reads don't reproduce - narrower attempts
+// to force target's exact one-reload-per-block boundary (caching a
+// plain local pointer freshly read from `obj` at the top of each
+// statement) landed at 62 instructions (too few reloads), while making
+// even `shiftAmt` volatile overshot to 78 (too many). This is the
+// closest of several variants tried.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F7F60.s")
+// s32 func_151F7F60(void *arg0) {
+//     void *volatile obj = arg0;
+//     s32 shiftAmt = 0x1000;
+//     s32 bytesRead;
+//
+//     if (*(s32 *) ((char *) obj + 0x201C) + *(s32 *) ((char *) obj + 0x3F88) >= 0x1FFC) {
+//         bcopy((char *) obj + shiftAmt + 0x1C, (char *) obj + 0x1C, shiftAmt);
+//         *(s32 *) ((char *) obj + 0x201C) -= shiftAmt;
+//         *(s32 *) ((char *) obj + 0x2020) -= shiftAmt << 3;
+//     }
+//
+//     bytesRead = ((s32 (*)(void *, void *, s32, s32)) (*(void **) ((char *) obj + 4)))(
+//         *(void **) obj,
+//         (char *) obj + *(s32 *) ((char *) obj + 0x201C) + 0x1C,
+//         *(s32 *) ((char *) obj + 0x3F88),
+//         -1);
+//
+//     if (bytesRead < *(s32 *) ((char *) obj + 0x3F88)) {
+//         bzero((char *) obj + bytesRead + 0x1C, *(s32 *) ((char *) obj + 0x3F88) - bytesRead);
+//     }
+//
+//     *(s32 *) ((char *) obj + 0x18) += *(s32 *) ((char *) obj + 0x3F88);
+//     *(s32 *) ((char *) obj + 0x201C) += *(s32 *) ((char *) obj + 0x3F88);
+//
+//     return *(s32 *) ((char *) obj + 0x201C) - *(s32 *) ((char *) obj + 0x3F88);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F8088.s")
 // NON-MATCHING: init function for the fixed-address global buffer
 // D_800E1880 (not yet declared anywhere - see extern below). Sets
