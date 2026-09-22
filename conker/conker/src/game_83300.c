@@ -1532,7 +1532,77 @@ void func_15062BDC(struct127 *arg0, f32 arg1, f32 arg2) {
     }
 }
 
+extern s32 D_800C4488;
+
+// NON-MATCHING: 67 vs target's 69 instructions (smarter than target).
+// Packs two 12-bit fields (plus a preserved top byte) back into an
+// 8-byte "keyframe" element indexed by D_800C4488[arg0][arg4] + arg1*8
+// (D_800C4488/D_800D19A0 are both raw-cast scalars standing in for
+// arrays, matching this project's established idiom elsewhere - see
+// game_6A3D0.c/game_1A8060.c). D_800D19A0[arg0] gates the whole
+// function (return immediately if null - a parallel table's presence
+// check). If arg5 is set, the two output fields are just arg2/arg3
+// masked to 12 bits with no clamping; otherwise each field is offset
+// from the CURRENT value's corresponding 12-bit sub-field (read from
+// the element's first word) and wrapped into a valid range derived
+// from the element's second word - matches target's own asymmetric
+// branch shape exactly (a plain `bgez` guards the first field's wrap,
+// a branch-likely `bgezl` guards the second's), which is strong
+// evidence the control-flow reconstruction is correct even though the
+// two fields needed separate `if (arg5)` blocks (a single combined
+// block landed further away, sharing one test where target's own
+// codegen keeps two). Remaining gap: target spills and reloads arg1
+// from its stack home slot before the one place it's used; this
+// reconstruction just keeps it live in a register the whole time -
+// no call or later use to hang a forced-spill trick on.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062D10.s")
+// void func_15062D10(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+//     s32 base1;
+//     void *base2;
+//     void *elemBase;
+//     void *elem;
+//     s32 a2;
+//     s32 threshold1;
+//     s32 threshold0;
+//     s32 v0;
+//     s32 v1;
+//
+//     base1 = *(s32 *) ((char *) &D_800D19A0 + arg0 * 4);
+//     if (base1 == 0) {
+//         return;
+//     }
+//     base2 = *(void **) ((char *) &D_800C4488 + arg0 * 4);
+//     elemBase = *(void **) ((char *) base2 + arg4 * 4);
+//     elem = (char *) elemBase + arg1 * 8;
+//
+//     a2 = *(s32 *) ((char *) elem + 4);
+//     threshold1 = ((a2 >> 12) & 0xFFF) + 2;
+//     threshold0 = (a2 & 0xFFF) + 2;
+//
+//     if (arg5 != 0) {
+//         v0 = arg2 & 0xFFF;
+//     } else {
+//         a2 = *(s32 *) ((char *) elem + 0);
+//         v0 = ((a2 >> 12) & 0xFFF) + arg2;
+//         if (threshold1 < v0) {
+//             v0 = v0 - threshold1;
+//         } else if (v0 < 0) {
+//             v0 = v0 + threshold1;
+//         }
+//     }
+//
+//     if (arg5 != 0) {
+//         v1 = arg3 & 0xFFF;
+//     } else {
+//         v1 = (a2 & 0xFFF) + arg3;
+//         if (threshold0 < v1) {
+//             v1 = v1 - threshold0;
+//         } else if (v1 < 0) {
+//             v1 = v1 + threshold0;
+//         }
+//     }
+//     *(s32 *) ((char *) elem + 0) = (a2 & 0xFF000000) | (v1 & 0xFFF) | ((v0 & 0xFFF) << 12);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062E24.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_83300/func_15062FC0.s")
 // NON-MATCHING: notifies every other live-flagged gObjects entry
