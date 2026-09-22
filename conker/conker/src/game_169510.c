@@ -557,7 +557,53 @@ void func_1513FA70(void *arg0, s16 arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513FAB4.s")
 
+// NON-MATCHING: 50 vs target's 55 instructions - five fewer (smarter
+// than target). Writes 8 halfwords into arg0 based on two independent
+// bits of arg2, each pair complementary (one field gets the computed
+// value when the bit is set, its partner gets it when the bit is
+// clear, matching target's identical write-order and per-branch
+// value selection exactly). D_80090B60[arg1] (12-byte stride, u16
+// fields at +6/+8) supplies the two base magnitudes, each read once,
+// decremented, then left-shifted by 6 and split between the four
+// field pairs by the arg2 bit tests. The whole gap traces to one
+// thing: target holds arg0 in a callee-saved $s0 (with its own
+// 8-byte frame just to spill/restore it), while this reconstruction
+// keeps it in $a0 directly - there being no call and no other
+// register pressure in this leaf function to give IDO a reason to
+// promote it to a saved register, this near-miss shape looks
+// structural rather than reachable from source phrasing.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513FFF4.s")
+// extern s32 D_80090B60;
+//
+// void func_1513FFF4(void *arg0, u8 arg1, u8 arg2) {
+//     char *entry;
+//     u16 v1;
+//     u16 a0local;
+//     s32 v0;
+//
+//     if (arg1 != 0xFF) {
+//         entry = (char *) &D_80090B60;
+//         entry = entry + arg1 * 12;
+//         v1 = (u16) (*(u16 *) (entry + 6) - 1);
+//         a0local = (u16) (*(u16 *) (entry + 8) - 1);
+//
+//         v0 = (arg2 & 1) ? (v1 << 6) : 0;
+//         *(s16 *) ((char *) arg0 + 0x38) = v0;
+//         *(s16 *) ((char *) arg0 + 0x8) = v0;
+//
+//         v0 = (arg2 & 1) ? 0 : (v1 << 6);
+//         *(s16 *) ((char *) arg0 + 0x28) = v0;
+//         *(s16 *) ((char *) arg0 + 0x18) = v0;
+//
+//         v0 = (arg2 & 2) ? (a0local << 6) : 0;
+//         *(s16 *) ((char *) arg0 + 0x1A) = v0;
+//         *(s16 *) ((char *) arg0 + 0xA) = v0;
+//
+//         v0 = (arg2 & 2) ? 0 : (a0local << 6);
+//         *(s16 *) ((char *) arg0 + 0x3A) = v0;
+//         *(s16 *) ((char *) arg0 + 0x2A) = v0;
+//     }
+// }
 
 // NON-MATCHING: full semantics recovered and verified via isolated
 // harness - a pure leaf struct-repack function, no calls/globals/
