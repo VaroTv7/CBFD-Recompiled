@@ -101,28 +101,39 @@
 // }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_EF410/func_150C2424.s")
-// NON-MATCHING: semantics fully recovered and verified via isolated
-// harness - clamps (arg0->unk1C << 3) to 0xFF, stores it as a byte
-// into *(arg0->unk98 + 0x1B), then hits the same "unsigned byte tested
-// as if signed" dead-branch pattern already seen in func_1506196C and
-// func_150AED9C in this session: target masks the clamped value to a
-// byte and branches on it as if it could be negative (always false in
-// practice, so the `return 0` arm is provably dead code) - reproducing
-// that literally (an `if ((u8) v < 0) return 0;` before the real
-// return) gets the exact register roles right (unlike the two earlier
-// instances) but IDO still emits one extra unconditional branch to
-// merge the clamp/no-clamp cases that target achieves via pure
-// fallthrough - 16 instructions vs target's 15, every declaration
-// order and if/else-vs-ternary-vs-goto phrasing tried produces the
-// identical extra branch.
+// NON-MATCHING (JUSTREG): semantics fully recovered - clamps
+// (arg0->unk1C << 3) to 0xFF, stores it as a byte into
+// *(arg0->unk98 + 0x1B), then hits the same "unsigned byte tested as
+// if signed" dead-branch pattern already seen in func_1506196C and
+// func_150AED9C: target masks the clamped value to a byte and
+// branches on it as if it could be negative (always false in
+// practice, so the `return 0` arm is provably dead code), reproduced
+// literally by the `if ((u8) v < 0) return 0;` below.
+//
+// UPDATED 2026-09-22: now an exact 15/15 match, every opcode, operand
+// and offset identical to target; only two scratch register names
+// differ (target's t6/t7 vs this build's a2/t6). The previously
+// documented extra unconditional branch (16 vs 15 instructions) is
+// GONE. The fix was the clamp's phrasing: the earlier attempt used
+// `if (t6 < 0x100) { v1 = t6; } else { v1 = 0xFF; }`, and if/else,
+// ternary and goto forms all emitted a branch to merge the two arms.
+// Writing it instead as assign-then-conditionally-override -
+// `v1 = t6; if (t6 >= 0x100) { v1 = 0xFF; }` - lets IDO put the
+// common assignment in the compare's delay slot and let the override
+// fall through, which is exactly how target merges the two cases.
+// Worth trying this fourth form on any near-miss whose recorded gap
+// is "one extra branch merging two assignment arms".
+//
+// This function emits zero relocations, so the isolated object is
+// authoritative here - the remaining register difference will not
+// change on linking.
 // s32 func_150C251C(void *arg0) {
 //     void *v0 = *(void **) ((char *) arg0 + 0x98);
 //     s32 v1 = *(s16 *) ((char *) arg0 + 0x1C);
 //     s32 t6 = v1 << 3;
 //
-//     if (t6 < 0x100) {
-//         v1 = t6;
-//     } else {
+//     v1 = t6;
+//     if (t6 >= 0x100) {
 //         v1 = 0xFF;
 //     }
 //
