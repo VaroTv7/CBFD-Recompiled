@@ -514,6 +514,195 @@ s32 func_151F6B28(void *arg0, s32 arg1, s32 arg2) {
 
     return 1;
 }
+// NON-MATCHING (ONE WORD): MPEG side-info / header parse for one frame.
+// 569 of 569 instructions, and 568 of the 569 words are correct - 542
+// already byte-identical and 26 more differing only in a relocated
+// immediate (the func_151F8960 calls and the two table loads, all of
+// which resolve at link time).  The single genuine difference is at
+// 151F7060: target emits `addu $a1, $t9, $t0` (arg0 first) where this
+// build emits `addu $a1, $t0, $t9` (the 0x2068 offset first) for the
+// second argument of the indirect call.  Eight source spellings were
+// tried - `(char *) arg0 + off + 0x2024`, `off + (char *) arg0 +
+// 0x2024`, `(char *) arg0 + (off + 0x2024)`, `(char *) arg0 + 0x2024 +
+// off`, `&((char *) arg0)[off] + 0x2024`, a u32-typed offset, a
+// (u32)-cast integer add, and a `char *` parameter - and every one of
+// them produces the offset-first order.  Routing the offset through a
+// local does give arg0-first but spills it, costing three extra words.
+// This is the already-recorded stop signal: a transposed pair of
+// REGISTER operands on a single `addu` is not source-controllable.
+//
+// Three shapes were needed to reach this point, all of them the
+// "one expression keeps its temps alive across the branch" rule that
+// func_151F4F38 established, applied to a new case:
+//
+//  1. `X = cond ? A : B` rather than if/else, for the four sites that
+//     store a constant into a field (unk206C twice, unk3F8C, unk3F90).
+//     Target reuses the arg0 register loaded for the condition when it
+//     stores in the fall-through arm; an if/else reloads arg0 there,
+//     costing one word per site.  Note the taken (else) arm reloads in
+//     both versions - only the fall-through arm is dominated by the
+//     condition block, so only it can reuse.
+//
+//  2. A TERNARY USED AS A STATEMENT, with its value discarded, for the
+//     two `unk3F8C == 1` sites that call func_151F8960 with a different
+//     bit count in each arm:
+//         cond ? f(a, b, 5) : f(a, b, 3);
+//     This still emits two separate `jal`s, exactly like an if/else,
+//     but it is one expression, so the fall-through arm reuses arg0.
+//     Writing it as a plain if/else reloads arg0 and also flips the
+//     argument-setup order (a2 first instead of a0/a1 first).  Worth
+//     remembering: a ternary is usable purely for its codegen shape
+//     even where nothing consumes the result.
+//
+//  3. Operand order on the final subtraction.  Target evaluates
+//     unk206C before unk2068 inside the parenthesised sum, so the
+//     source is `(unk206C + unk2068)`, not `(unk2068 + unk206C)` -
+//     the usual right-operand-first rule for commutative `+`.
+//
+// D_800B06BC and D_800B0734 are two-dimensional s32 tables indexed
+// [unk3BA4][unk3BB0] and [unk3BA4][unk3BB4], with 15 and 4 entries per
+// row respectively; declaring them that way reproduces target's
+// `*60 + *4` and `*16 + *4` address arithmetic exactly.
+//
+// Semantics: picks the header size from unk3BA4/unk3BC0 (0x11/0x20/9),
+// pulls that many bytes through the indirect reader at arg0->unk4 and
+// bails out returning 0 on a short read, then advances unk18, derives
+// the channel count unk3F8C and granule count unk3F90, and walks the
+// side info with func_151F8960 - main_data_begin into unk3BF4, private
+// bits, the per-channel scfsi table at unk3BF8, then for every granule
+// and channel the part2_3_length / big_values / global_gain /
+// scalefac_compress / window_switching block at unk3C78..unk3D00.
+// Finally it looks up the bitrate and sample-rate table entries into
+// unk3F7C / unk3F80, computes the frame size (x144/x72 divided by the
+// rate) into unk3F84, and leaves the remaining byte count in unk3F88.
+// s32 func_151F6FD0(void *arg0) {
+//     s32 n;
+//     s32 ch;
+//     s32 j;
+//     s32 sfLen;
+//     s32 gr;
+//     s32 m;
+//     s32 p;
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         *(s32 *) ((char *) arg0 + 0x206C) = *(s32 *) ((char *) arg0 + 0x3BC0) == 3 ? 0x11 : 0x20;
+//     } else {
+//         *(s32 *) ((char *) arg0 + 0x206C) = *(s32 *) ((char *) arg0 + 0x3BC0) == 3 ? 9 : 0x11;
+//     }
+//
+//     n = (*(s32 (**)(s32, void *, s32, s32)) ((char *) arg0 + 4))(
+//             *(s32 *) arg0,
+//             (char *) arg0 + *(s32 *) ((char *) arg0 + 0x2068) + 0x2024,
+//             *(s32 *) ((char *) arg0 + 0x206C),
+//             -1);
+//     if (*(s32 *) ((char *) arg0 + 0x206C) != n) {
+//         return 0;
+//     }
+//
+//     *(s32 *) ((char *) arg0 + 0x18) += *(s32 *) ((char *) arg0 + 0x206C);
+//
+//     *(s32 *) ((char *) arg0 + 0x3F8C) = *(s32 *) ((char *) arg0 + 0x3BC0) == 3 ? 1 : 2;
+//
+//     *(s32 *) ((char *) arg0 + 0x3F90) = *(s32 *) ((char *) arg0 + 0x3BA4) != 0 ? 2 : 1;
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         *(s32 *) ((char *) arg0 + 0x3BF4) =
+//             func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 9);
+//         *(s32 *) ((char *) arg0 + 0x3F8C) == 1
+//             ? func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 5)
+//             : func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 3);
+//     } else {
+//         *(s32 *) ((char *) arg0 + 0x3BF4) =
+//             func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 8);
+//         *(s32 *) ((char *) arg0 + 0x3F8C) == 1
+//             ? func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1)
+//             : func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+//     }
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         for (ch = 0; ch < *(s32 *) ((char *) arg0 + 0x3F8C); ch++) {
+//             for (j = 0; j < 4; j++) {
+//                 *(s32 *) ((char *) arg0 + ch * 128 + j * 4 + 0x3BF8) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//             }
+//         }
+//     }
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         sfLen = 4;
+//     } else {
+//         sfLen = 9;
+//     }
+//
+//     for (gr = 0; gr < *(s32 *) ((char *) arg0 + 0x3F90); gr++) {
+//         for (ch = 0; ch < *(s32 *) ((char *) arg0 + 0x3F8C); ch++) {
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C78) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 0xC);
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C80) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 9);
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C88) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 8);
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C90) =
+//                 sfLen ? func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, sfLen) : 0;
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C98) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//
+//             if (*(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C98) != 0) {
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA0) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA8) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//                 for (m = 0; m < 2; m++) {
+//                     *(s32 *) ((char *) arg0 + gr * 12 + ch * 12 + m * 4 + 0x3CB0) =
+//                         func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 5);
+//                 }
+//                 *(s32 *) ((char *) arg0 + gr * 12 + ch * 12 + 0x3CB8) = 0;
+//                 for (p = 0; p < 3; p++) {
+//                     *(s32 *) ((char *) arg0 + gr * 12 + ch * 12 + p * 4 + 0x3CC8) =
+//                         func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 3);
+//                 }
+//             } else {
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA0) = 0;
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA8) = 0;
+//                 for (m = 0; m < 3; m++) {
+//                     *(s32 *) ((char *) arg0 + gr * 12 + ch * 12 + m * 4 + 0x3CB0) =
+//                         func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 5);
+//                 }
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CE0) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 4);
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CE8) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 3);
+//             }
+//
+//             if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//                 *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CF0) =
+//                     func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//             }
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CF8) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3D00) =
+//                 func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+//         }
+//     }
+//
+//     *(s32 *) ((char *) arg0 + 0x3F7C) =
+//         D_800B06BC[*(s32 *) ((char *) arg0 + 0x3BA4)][*(s32 *) ((char *) arg0 + 0x3BB0)];
+//     *(s32 *) ((char *) arg0 + 0x3F80) =
+//         D_800B0734[*(s32 *) ((char *) arg0 + 0x3BA4)][*(s32 *) ((char *) arg0 + 0x3BB4)];
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         *(s32 *) ((char *) arg0 + 0x3F84) =
+//             *(s32 *) ((char *) arg0 + 0x3F7C) * 144 / *(s32 *) ((char *) arg0 + 0x3F80);
+//     } else {
+//         *(s32 *) ((char *) arg0 + 0x3F84) =
+//             *(s32 *) ((char *) arg0 + 0x3F7C) * 72 / *(s32 *) ((char *) arg0 + 0x3F80);
+//     }
+//
+//     *(s32 *) ((char *) arg0 + 0x3F88) =
+//         *(s32 *) ((char *) arg0 + 0x3F84) + *(s32 *) ((char *) arg0 + 0x3BB8) -
+//         (*(s32 *) ((char *) arg0 + 0x206C) + *(s32 *) ((char *) arg0 + 0x2068));
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
 // NON-MATCHING (JUSTREG): 427/427 instructions and structurally an
 // exact match - with register names normalized away only TWO of the 427
