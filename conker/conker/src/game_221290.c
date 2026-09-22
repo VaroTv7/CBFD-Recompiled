@@ -11,6 +11,7 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
 extern s16 D_800AEB7C[];
+extern s32 D_800E0E00;
 
 // Copies 0x240 floats from the unk4664 scratch buffer into unk4F64.
 // When the channel selected by arg1 is active (unk3C98 set) and in
@@ -141,4 +142,76 @@ void *func_151F85C4(s32 arg0, s32 arg1, s32 arg2) {
     return obj;
 }
 
+// NON-MATCHING (JUSTREG): 109/109 instructions, with only 5 of the 109
+// words genuinely differing - the other 9 differences are relocation
+// sites (jal func_151F8088, jal strlen, and the %hi/%lo pairs for
+// D_800E0E04 and D_800E0E00). Advances the unk3BA0 slot cursor mod 6,
+// re-arms the stream via func_151F8088, hands the caller the current
+// slot buffer and unk3F8C, then if unk3BC8 is set reads a NUL-
+// terminated string one byte at a time through the object's own
+// unk4 reader and forwards it to the D_800E0E00 log hook.
+//
+// The 5 real differences are all commutative-operand / register-
+// numbering choices with no source-level lever: one `addu t3,t0,t2`
+// emitted with its operands swapped, and the loop body allocating t0
+// and t2 to obj/i in the opposite order from target (every downstream
+// use follows that one swap). Tried reordering the pointer arithmetic
+// and the call's subexpressions; neither moves it.
+//
+// Everything structural does match, and four separate idioms were
+// needed to get there under this file's `-g` build - all worth reusing
+// on the remaining pragmas here:
+//   - locals declared in descending stack-slot order (obj, ret, buf, i)
+//   - the early exit written as `goto end;` rather than `return ret;`,
+//     so it branches to the shared return stub instead of duplicating
+//     the v0 load
+//   - `while (buf[i++])` not `while (buf[i++] != 0)`; the explicit
+//     comparison materializes a boolean via sltu+move before branching
+//   - `u8 buf[]` not `char buf[]`, since target reads it with `lbu`
+//     (this codebase compiles with -signed, so plain char gives `lb`)
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F86B0.s")
+// s32 func_151F86B0(void *arg0, void *arg1, void *arg2) {
+//     void *obj;
+//     s32 ret;
+//     u8 buf[0x100];
+//     s32 i;
+//
+//     obj = arg0;
+//     *(s32 *) ((char *) obj + 0x3BA0) += 1;
+//     if (*(s32 *) ((char *) obj + 0x3BA0) >= 6) {
+//         *(s32 *) ((char *) obj + 0x3BA0) = 0;
+//     }
+//
+//     if (func_151F8088(obj, *(s32 *) ((char *) obj + 0x8474)) == 0) {
+//         D_800E0E04 = 3;
+//         return 0;
+//     }
+//
+//     *(s32 *) ((char *) obj + 0x8474) = -1;
+//     ret = ((s32 (*)(void *)) *(void **) ((char *) obj + 0x8478))(obj);
+//
+//     if (ret == 0) {
+//         goto end;
+//     }
+//
+//     *(s32 *) arg1 = (s32) ((char *) obj + *(s32 *) ((char *) obj + 0x3BA0) * 1160 + 0x2070);
+//     *(s32 *) arg2 = *(s32 *) ((char *) obj + 0x3F8C);
+//
+//     if (*(s32 *) ((char *) obj + 0x3BC8) != 0) {
+//         i = 0;
+//         do {
+//             if (((s32 (*)(void *, u8 *, s32, s32)) *(void **) ((char *) obj + 4))(
+//                     *(void **) obj, &buf[i], 1, -1) == 0) {
+//                 break;
+//             }
+//         } while (buf[i++]);
+//
+//         if (D_800E0E00 != 0) {
+//             ((void (*)(s32, char *, s32)) D_800E0E00)(0, (char *) buf, strlen((char *) buf) + 1);
+//         }
+//     }
+//
+// end:
+//     return ret;
+// }
+
