@@ -134,6 +134,155 @@ s32 func_151F3DE0(void) {
     return 1;
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F42E8.s")
+// NON-MATCHING (JUSTREG): scalefactor / bit-allocation decode.  The
+// reconstruction below is structurally a 100% match - 533 of 533
+// instructions, every opcode, immediate, stack offset, struct field
+// offset and branch target identical to target; a register-normalised
+// diff of the two disassemblies is empty.  407 words are already
+// byte-identical, 25 more differ only in a relocated immediate (those
+// resolve at link time), and 101 words carry a different register
+// allocation.  That allocation difference is the whole remaining gap
+// and it is not reachable from the source: target parks the two
+// `k < 2 ? 0 : 1` temps in $s0/$s1 and keeps every other temp in
+// $t-registers, while this build reuses $t0/$t8 (and later $t3/$t7,
+// $t8/$t9) in a different order from the same instruction stream.
+//
+// Four source-shape findings were needed to get the structure exact,
+// all of them re-usable:
+//
+//  1. D_800AEB5C is a two-dimensional u8[][16] bit-allocation table,
+//     and D_800AEB6C is simply its row 1 - splat named the row starts
+//     as separate symbols.  Declaring it `u8 D_800AEB5C[][16]` and
+//     writing D_800AEB5C[0][v] / D_800AEB5C[1][v] reproduces target's
+//     `lui %hi; addu idx; lbu %lo` and `%lo+0x10` forms exactly.  The
+//     same applies to D_800AEB54: D_800AEB55 and D_800AEB5A are its
+//     +1 and +6 elements, so `D_800AEB54[k + 1]` disassembles back as
+//     `%lo(D_800AEB55)`.
+//
+//  2. The gated store must be a TERNARY, not an if/else.  Target reads
+//     the table once, branches on it, and moves that same register into
+//     $a2 for the call (`or $a2, $t1, $zero`), also keeping arg0's
+//     loaded value alive across the branch.  Writing it as
+//     `if (tbl[v]) { X = f(..., tbl[v]); } else { X = 0; }` re-emits
+//     the entire address chain in the taken arm (+9 words per site);
+//     assigning to a local instead spills it (`sw`/`lw`).  Only
+//     `X = tbl[v] ? f(..., tbl[v]) : 0;` gives target's shape - IDO
+//     folds the ternary back into two separate stores, each computing
+//     its own destination address, which is exactly what target does.
+//
+//  3. The `k`-indexed row in the third loop nest needs POINTER form,
+//     `*(D_800AEB5C[0] + k * 16 + v)`, not `D_800AEB5C[k][v]`.  The
+//     subscript form folds %lo into the lbu and CSEs the whole read;
+//     the pointer form materialises the base with `lui`+`addiu %lo`,
+//     adds it last, and re-emits only `addu`/`addu`/`lbu` after the
+//     branch - which is target's exact instruction sequence.
+//
+//  4. The loop bounds are an ASSIGNMENT INSIDE THE COMPARISON:
+//     `if (tbl[k + 6] > (i = tbl[k + 5]))`.  Splitting it into two
+//     statements makes IDO spill i and reload it before the `slt`,
+//     which target does not do.  Transposing the comparison (putting
+//     the assignment on the right of `>` rather than the left of `<`)
+//     is what cut the register drift from 251 differing words to 126:
+//     worth trying on any near-miss that is already structurally exact.
+//
+// Semantics: for slot (arg1, arg2) of arg0, when unk3C98 is set and
+// unk3CA0 == 2, it pulls per-band bit counts out of the stream with
+// func_151F8960 and writes them to the unk3D08 / unk3D64 tables - in
+// stereo (unk3CA8 != 0) as a flat run of 8 plus two 3x subband nests,
+// otherwise band-by-band over the two ranges named by D_800AEB54[5..7]
+// - then clears the unk3D94 column.  When the slot is inactive it
+// instead walks the four ranges D_800AEB54[0..4], either copying
+// unk3D08 forward to unk3E00 (when unk3BF8 is set and arg1 != 0) or
+// re-reading the bit counts, and finally clears unk3D60.
+// s32 func_151F4F38(void *arg0, s32 arg1, s32 arg2) {
+//     s32 k;
+//     s32 i;
+//     s32 j;
+//
+//     if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98) != 0 &&
+//         *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2) {
+//         if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) != 0) {
+//             i = 0;
+//             do {
+//                 *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + i * 4 + 0x3D08) =
+//                     D_800AEB5C[0][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)]
+//                         ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020,
+//                                         D_800AEB5C[0][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)])
+//                         : 0;
+//             } while (++i < 8);
+//
+//             i = 3;
+//             do {
+//                 j = 0;
+//                 do {
+//                     *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + j * 52 + i * 4 + 0x3D64) =
+//                         D_800AEB5C[0][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)]
+//                             ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020,
+//                                             D_800AEB5C[0][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)])
+//                             : 0;
+//                 } while (++j < 3);
+//             } while (++i < 6);
+//
+//             i = 6;
+//             do {
+//                 j = 0;
+//                 do {
+//                     *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + j * 52 + i * 4 + 0x3D64) =
+//                         D_800AEB5C[1][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)]
+//                             ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020,
+//                                             D_800AEB5C[1][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)])
+//                             : 0;
+//                 } while (++j < 3);
+//             } while (++i < 12);
+//         } else {
+//             k = 0;
+//             do {
+//                 if (D_800AEB54[k + 6] > (i = D_800AEB54[k + 5])) {
+//                     do {
+//                         j = 0;
+//                         do {
+//                             *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + j * 52 + i * 4 + 0x3D64) =
+//                                 *(D_800AEB5C[0] + k * 16 + *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90))
+//                                     ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020,
+//                                                     *(D_800AEB5C[0] + k * 16 + *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)))
+//                                     : 0;
+//                         } while (++j < 3);
+//                     } while (++i < D_800AEB54[k + 6]);
+//                 }
+//             } while (++k < 2);
+//         }
+//
+//         j = 0;
+//         do {
+//             *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + j * 52 + 0x3D94) = 0;
+//         } while (++j < 3);
+//     } else {
+//         k = 0;
+//         do {
+//             if (*(s32 *) ((char *) arg0 + arg2 * 128 + k * 4 + 0x3BF8) == 0 || arg1 == 0) {
+//                 if (D_800AEB54[k + 1] > (i = D_800AEB54[k])) {
+//                     do {
+//                         *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + i * 4 + 0x3D08) =
+//                             D_800AEB5C[k < 2 ? 0 : 1][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)]
+//                                 ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020,
+//                                                 D_800AEB5C[k < 2 ? 0 : 1][*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C90)])
+//                                 : 0;
+//                     } while (++i < D_800AEB54[k + 1]);
+//                 }
+//             } else {
+//                 if (D_800AEB54[k + 1] > (i = D_800AEB54[k])) {
+//                     do {
+//                         *(s32 *) ((char *) arg0 + arg2 * 248 + i * 4 + 0x3E00) =
+//                             *(s32 *) ((char *) arg0 + arg2 * 248 + i * 4 + 0x3D08);
+//                     } while (++i < D_800AEB54[k + 1]);
+//                 }
+//             }
+//         } while (++k < 4);
+//
+//         *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + 0x3D60) = 0;
+//     }
+//     return 1;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
 // NON-MATCHING (JUSTREG): 363/363 instructions and structurally an
