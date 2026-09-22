@@ -247,7 +247,59 @@ s32 func_150142AC(struct134 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150144B8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_1501474C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014B60.s")
+// NON-MATCHING: exact 78/78 instruction match. Sibling of
+// func_150151D4 below - sets the same unk16 flag bit, then builds an
+// 0x54-byte spawn descriptor: a flag byte from unk1C's low bit, the
+// two halves of unk18 split into separate words, a random value in
+// [low, low+high] via func_150ADA20() % (high + 1), a block filled by
+// func_150A8050(), and the unk0/unk2/unk4 shorts as floats. Reading
+// unk18 as u32 (not s32) is required - a signed read gives `sra`
+// where target has `srl`, and makes the `%` a signed `div`, which
+// drags in IDO's 6-instruction signed-overflow check that target
+// doesn't have. The flag needs an explicit if/else (both arms
+// assigning) to reproduce target's beqz/nop/b join; the `flag = 0;`
+// + bare `if` form collapses to a `beqzl` likely-branch instead.
+// Remaining diffs are the usual unlinked jal/branch placeholders, a
+// register permutation in the modulo block, and `move a3,zero` where
+// target materializes the same zero as `li a3,0` (tried a null
+// pointer cast, no effect).
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_15014F6C.s")
+// s32 func_15014F6C(void *arg0) {
+//     u8 buf[0x54];
+//     s32 flag;
+//     void *obj;
+//
+//     *(u8 *) ((char *) arg0 + 0x16) |= 4;
+//     *(u8 *) (buf + 0x51) = *(s32 *) ((char *) arg0 + 0x20);
+//
+//     if (*(s32 *) ((char *) arg0 + 0x1C) & 1) {
+//         flag = 1;
+//     } else {
+//         flag = 0;
+//     }
+//     *(u8 *) (buf + 0x50) = flag;
+//
+//     *(s32 *) (buf + 0x0) = (s32) arg0;
+//     *(s32 *) (buf + 0x4) = *(u32 *) ((char *) arg0 + 0x18) & 0xFFFF;
+//     *(s32 *) (buf + 0x8) = (*(u32 *) ((char *) arg0 + 0x18) >> 16) & 0xFFFF;
+//     *(s32 *) (buf + 0xC) =
+//         (func_150ADA20() % (*(u32 *) (buf + 0x8) + 1)) + *(u32 *) (buf + 0x4);
+//
+//     func_150A8050(buf + 0x10, *(s32 *) ((char *) arg0 + 0xC),
+//                   *(s32 *) ((char *) arg0 + 0x10), 0);
+//
+//     *(f32 *) (buf + 0x40) = (f32) *(s16 *) ((char *) arg0 + 0x0);
+//     *(f32 *) (buf + 0x44) = (f32) *(s16 *) ((char *) arg0 + 0x2);
+//     *(f32 *) (buf + 0x48) = (f32) *(s16 *) ((char *) arg0 + 0x4);
+//
+//     obj = func_15149130(300, -1, 0x31, -1, 0, 0x2A, (struct37 *) 0x54, 0xFF, 0);
+//
+//     if (obj != 0) {
+//         memcpy((char *) obj + 0x28, buf, 0x54);
+//     }
+//
+//     return 1;
+// }
 
 s32 func_150150A4(void) {
     struct17 *temp_v0 = func_1515F1B0();
