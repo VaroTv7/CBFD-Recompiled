@@ -11,6 +11,8 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
 extern s16 D_800AEB7C[];
+extern f32 D_800B067C[];
+extern f32 D_800B069C[];
 extern s32 D_800E0E00;
 
 // Copies 0x240 floats from the unk4664 scratch buffer into unk4F64.
@@ -49,7 +51,68 @@ s32 func_151F6970(void *arg0, s32 arg1) {
 
     return 1;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6B28.s")
+// In-place complex rotation over the 0x20 slot buffers: for each slot k
+// it walks 8 conjugate pairs straddling the slot's base pointer and
+// applies the twiddle from the D_800B067C / D_800B069C coefficient
+// tables. Bails out early when the channel is already active in mode 2.
+s32 func_151F6B28(void *arg0, s32 arg1, s32 arg2) {
+    s32 k;
+    f32 *p;
+    f32 a;
+    f32 b;
+
+    if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98) != 0 &&
+        *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2) {
+        return 1;
+    }
+
+    k = 1;
+    do {
+        p = (f32 *) ((char *) arg0 + arg2 * 2304 + k * 72 + 0x4F64);
+
+        a = p[0];
+        b = p[-1];
+        p[-1] = b * D_800B069C[0] - D_800B067C[0] * a;
+        p[0] = a * D_800B069C[0] + D_800B067C[0] * b;
+
+        a = p[1];
+        b = p[-2];
+        p[-2] = b * D_800B069C[1] - D_800B067C[1] * a;
+        p[1] = a * D_800B069C[1] + D_800B067C[1] * b;
+
+        a = p[2];
+        b = p[-3];
+        p[-3] = b * D_800B069C[2] - D_800B067C[2] * a;
+        p[2] = a * D_800B069C[2] + D_800B067C[2] * b;
+
+        a = p[3];
+        b = p[-4];
+        p[-4] = b * D_800B069C[3] - D_800B067C[3] * a;
+        p[3] = a * D_800B069C[3] + D_800B067C[3] * b;
+
+        a = p[4];
+        b = p[-5];
+        p[-5] = b * D_800B069C[4] - D_800B067C[4] * a;
+        p[4] = a * D_800B069C[4] + D_800B067C[4] * b;
+
+        a = p[5];
+        b = p[-6];
+        p[-6] = b * D_800B069C[5] - D_800B067C[5] * a;
+        p[5] = a * D_800B069C[5] + D_800B067C[5] * b;
+
+        a = p[6];
+        b = p[-7];
+        p[-7] = b * D_800B069C[6] - D_800B067C[6] * a;
+        p[6] = a * D_800B069C[6] + D_800B067C[6] * b;
+
+        a = p[7];
+        b = p[-8];
+        p[-8] = b * D_800B069C[7] - D_800B067C[7] * a;
+        p[7] = a * D_800B069C[7] + D_800B067C[7] * b;
+    } while (++k < 0x20);
+
+    return 1;
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F78B4.s")
 // NON-MATCHING (one word): 74/74 instructions, and 73 of the 74 words
