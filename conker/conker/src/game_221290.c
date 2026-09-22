@@ -136,7 +136,134 @@ s32 func_151F3DE0(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F42E8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
+// NON-MATCHING (JUSTREG): 363/363 instructions and structurally an
+// exact match - with register names normalized away, only SIX lines of
+// the 363 differ, and four of those are relocation immediates. Decodes
+// one granule: dispatches to the layer's side-info reader, works out
+// the three scalefactor-band part boundaries from the D_800AE840 /
+// D_800AE948 tables (clamped to the granule's bit budget), runs the
+// three Huffman regions through func_151F8994 (zero-filling any region
+// whose table is empty), then the count1 region through func_151F8B4C,
+// and finally records how many samples were produced and zero-pads the
+// remainder up to 0x240.
+//
+// The two genuine differences:
+//   - register numbering diverges from the `if (limit < part[0])`
+//     compare onward (target t8/t7/t1 where this build picks t7/t1/t8,
+//     and every later use follows). Everything BEFORE that point is
+//     register-for-register identical, and the local set provably
+//     matches target's frame exactly (14 locals spanning 0x28..0x67,
+//     same offsets), so this is allocator state rather than a source
+//     difference.
+//   - one swapped instruction pair in the `part[1] = limit; part[0] =
+//     part[1];` arm, where target hoists the second `addiu &part`
+//     above the first store and this build emits it after.
+//
+// Operand orders were already corrected per the reversal rules (the
+// tbl1 index is written unk3CE0 + unk3CE8 so target loads unk3CE8
+// first); that fix removed one real difference but did not move the
+// register numbering.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
+// s32 func_151F63C4(void *arg0, s32 arg1, s32 arg2) {
+//     s32 savedBitPos;
+//     s32 limit;
+//     s32 part[3];
+//     s16 *tbl1;
+//     u8 *tbl2;
+//     s32 pos;
+//     s16 *outp;
+//     u8 *outq;
+//     s32 j;
+//     s32 v;
+//     s32 w;
+//     s32 end;
+//     s32 count;
+//     s32 bitPos2;
+//
+//     savedBitPos = *(s32 *) ((char *) arg0 + 0x2020);
+//
+//     if (*(s32 *) ((char *) arg0 + 0x3BA4) != 0) {
+//         func_151F4F38(arg0, arg1, arg2);
+//     } else {
+//         func_151F578C(arg0, arg1, arg2);
+//     }
+//
+//     limit = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C80) * 2;
+//     tbl1 = (s16 *) ((char *) D_800AE840 + *(s32 *) ((char *) arg0 + 0x3BA4) * 132 +
+//                     *(s32 *) ((char *) arg0 + 0x3BB4) * 44);
+//     tbl2 = (u8 *) ((char *) D_800AE948 + *(s32 *) ((char *) arg0 + 0x3BA4) * 39 +
+//                    *(s32 *) ((char *) arg0 + 0x3BB4) * 13);
+//
+//     if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98) == 0 &&
+//         *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 0) {
+//         part[0] = tbl1[*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CE0)] + 1;
+//         if (limit < part[0]) {
+//             part[1] = limit;
+//             part[0] = part[1];
+//         } else {
+//             part[1] = tbl1[*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CE0) +
+//                            *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CE8) + 1] + 1;
+//             if (limit < part[1]) {
+//                 part[1] = limit;
+//             }
+//         }
+//     } else {
+//         if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2 &&
+//             *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) == 0) {
+//             part[0] = tbl2[2] * 3 + 3;
+//         } else {
+//             part[0] = tbl1[7] + 1;
+//         }
+//         if (limit < part[0]) {
+//             part[0] = limit;
+//         }
+//         part[1] = limit;
+//     }
+//
+//     part[2] = limit;
+//     pos = 0;
+//     outp = (s16 *) ((char *) arg0 + arg2 * 1156 + 0x3F94);
+//     outq = (u8 *) ((char *) arg0 + arg2 * 578 + 0x4418);
+//
+//     j = 0;
+//     do {
+//         v = *(s32 *) ((char *) arg0 + arg1 * 12 + arg2 * 12 + j * 4 + 0x3CB0);
+//         w = D_800AE7B8[v];
+//         end = part[j];
+//         if (D_800E0E20[v] == 0) {
+//             count = end - pos;
+//             bzero(outp, count * 2);
+//             outp += count;
+//             outq += count;
+//             pos = end;
+//         } else {
+//             pos = func_151F8994((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, v, pos,
+//                                 w, end, &outp, &outq);
+//         }
+//     } while (++j < 3);
+//
+//     v = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3D00) + 0x20;
+//     bitPos2 = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C78) + savedBitPos;
+//     pos = func_151F8B4C((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, v, pos,
+//                         bitPos2, &outp, &outq);
+//     *(s32 *) ((char *) arg0 + 0x2020) = bitPos2;
+//
+//     if (pos >= 0x241) {
+//         *(s32 *) ((char *) arg0 + arg2 * 4 + 0x465C) = 0x240;
+//     } else {
+//         *(s32 *) ((char *) arg0 + arg2 * 4 + 0x465C) = pos;
+//     }
+//
+//     if (pos < 0x240) {
+//         *(s32 *) ((char *) arg0 + arg2 * 4 + 0x4660) = 0x240 - pos;
+//         bzero(outp, *(s32 *) ((char *) arg0 + arg2 * 4 + 0x4660) * 2);
+//     } else {
+//         *(s32 *) ((char *) arg0 + arg2 * 4 + 0x4660) = 0;
+//     }
+//
+//     return 1;
+// }
+
 extern s32 *D_800E0E20;
 extern f32 *D_800E1078;
 
