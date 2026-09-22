@@ -88,7 +88,60 @@ void func_1513477C(struct102 *arg0) {
     D_80089AD4[idx]();
 }
 
+// NON-MATCHING: exact 73/73 instruction match, byte-identical at the
+// real linked address except the 3 jal target placeholders (resolves
+// once project-wide drift reaches zero) - an isolated single-file
+// compile shows a handful of pure register-renaming diffs on top of
+// that, but those vanish once actually linked into the project, so
+// treat the isolated-harness numbers as pessimistic here. A 5-way
+// dispatch on
+// arg2's low byte - branch-chain compiled by target (not a jump
+// table; writing this as a C switch DOES provoke a jump table here,
+// so it must stay an if/else-if chain). Cases 0 and 3 share a body:
+// compares arg0's unk1C (raw s32 cast - structs.h currently declares
+// this s16, conflicting with the full-word read/write this function
+// does; other real code in this file only ever reads it as s16, so
+// the field is left un-renamed and accessed via a raw offset cast
+// here rather than widening the shared struct) against arg1->unk0,
+// OR'd with a byte compare between arg0->unk18 and arg1->unk4's byte
+// view (struct223's union), calling the same func_1516972C(arg0)
+// notify seen in the analogous near-miss func_151D2E5C just above in
+// this file (same struct16/struct223 pair, same pattern, different
+// field offsets - 0x1C/0x18 here vs 0x10/0x14 there). Case 0x11
+// additionally gates on arg0->unk3D == 5 first. Case 0x16 compares
+// arg1 itself (the pointer) against arg0's unk1C. Case 0x2D splices
+// arg1 into arg0's unk1C/unk18 pair depending on which side matches.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_151347CC.s")
+// void func_151347CC(struct102 *arg0, struct223 *arg1, u8 arg2) {
+//     s32 temp_v0;
+//
+//     if (arg2 == 0 || arg2 == 3) {
+//         temp_v0 = *(s32 *) ((char *) arg0 + 0x1C);
+//         if ((temp_v0 == arg1->unk0) || (arg1->unk4.ub == arg0->unk18)) {
+//             func_1516972C(arg0);
+//         }
+//     } else if (arg2 == 0x11) {
+//         if (arg0->unk3D == 5) {
+//             temp_v0 = *(s32 *) ((char *) arg0 + 0x1C);
+//             if ((temp_v0 == arg1->unk0) || (arg1->unk4.ub == arg0->unk18)) {
+//                 func_1516972C(arg0);
+//             }
+//         }
+//     } else if (arg2 == 0x16) {
+//         if ((s32) arg1 == *(s32 *) ((char *) arg0 + 0x1C)) {
+//             func_1516972C(arg0);
+//         }
+//     } else if (arg2 == 0x2D) {
+//         temp_v0 = arg1->unk0;
+//         if (temp_v0 == *(s32 *) ((char *) arg0 + 0x1C)) {
+//             *(s32 *) ((char *) arg0 + 0x1C) = arg1->unk4.w;
+//             arg0->unk18 = arg1->unk9;
+//         } else if (arg1->unk4.w == *(s32 *) ((char *) arg0 + 0x1C)) {
+//             *(s32 *) ((char *) arg0 + 0x1C) = temp_v0;
+//             arg0->unk18 = arg1->unk8;
+//         }
+//     }
+// }
 
 void func_151348F0(f32 arg0, f32 arg1, s32 arg2, s32 arg3) {
 }
