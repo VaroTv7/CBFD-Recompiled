@@ -11,6 +11,10 @@ extern f32 D_800B0C3C;
 extern f32 D_800B0C40;
 extern f32 D_800B0C44;
 extern f32 D_800B0C48;
+s32 func_151F8960();
+s32 func_151F78B4();
+s32 func_151F6FD0();
+
 extern s32 *D_800E0E20;
 extern f32 *D_800E1078;
 extern f32 D_800E0E38[];
@@ -292,7 +296,124 @@ s32 func_151F6B28(void *arg0, s32 arg1, s32 arg2) {
 //     return *(s32 *) ((char *) arg0 + 0x201C) - *(s32 *) ((char *) arg0 + 0x3F88);
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F7F60.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F8088.s")
+// Frame sync + header parse. Scans the input stream a byte at a time for
+// the 0xFF / 0xF0 sync pattern (resetting on any mismatch), reads the
+// two header bytes, then pulls the twelve header bitfields into
+// unk3BA4..unk3BD0. Re-syncs recursively on a reserved bitrate/sample
+// rate, or when the header disagrees with the first one seen. Finally
+// installs the per-layer decode hooks and runs the layer's own init.
+s32 func_151F8088(void *arg0, s32 arg1) {
+    s32 sync;
+    s32 n;
+    s32 r;
+    u8 mask;
+
+    if (arg1 != -1) {
+        *(s32 *) ((char *) arg0 + 0x18) = arg1;
+    }
+
+    sync = arg1;
+    n = 0;
+    mask = 0xFF;
+
+    for (;;) {
+        r = ((s32 (*)(void *, void *, s32, s32)) *(void **) ((char *) arg0 + 4))(
+                *(void **) arg0, (char *) arg0 + n + 0x2024, 1, sync);
+        if (r <= 0) {
+            return 0;
+        }
+        sync = -1;
+        *(s32 *) ((char *) arg0 + 0x18) += 1;
+
+        if (*(u8 *) ((char *) arg0 + n + 0x2024) != 0xFF &&
+            *(u8 *) ((char *) arg0 + n + 0x2024) != 0xF3) {
+            return 0;
+        }
+
+        if ((*(u8 *) ((char *) arg0 + n + 0x2024) & mask) != mask) {
+            mask = 0xFF;
+            n = 0;
+            continue;
+        }
+        n++;
+        if (mask == 0xF0) {
+            break;
+        }
+        mask = 0xF0;
+    }
+
+    r = ((s32 (*)(void *, void *, s32, s32)) *(void **) ((char *) arg0 + 4))(
+            *(void **) arg0, (char *) arg0 + 0x2026, 2, -1);
+    if (r <= 0) {
+        return 0;
+    }
+    *(s32 *) ((char *) arg0 + 0x18) += 2;
+    *(s32 *) ((char *) arg0 + 0x2064) = 0xC;
+
+    *(s32 *) ((char *) arg0 + 0x3BA4) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BA8) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+    *(s32 *) ((char *) arg0 + 0x3BAC) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BB0) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 4);
+    *(s32 *) ((char *) arg0 + 0x3BB4) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+    *(s32 *) ((char *) arg0 + 0x3BB8) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BBC) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BC0) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+    *(s32 *) ((char *) arg0 + 0x3BC4) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+    *(s32 *) ((char *) arg0 + 0x3BC8) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BCC) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 1);
+    *(s32 *) ((char *) arg0 + 0x3BD0) = func_151F8960((char *) arg0 + 0x2024, (char *) arg0 + 0x2064, 2);
+
+    if (*(s32 *) ((char *) arg0 + 0x3BB0) == 0xF ||
+        *(s32 *) ((char *) arg0 + 0x3BB4) == 3) {
+        return func_151F8088(arg0, -1);
+    }
+
+    if (*(s32 *) ((char *) arg0 + 0x3BD4) == 0) {
+        *(s32 *) ((char *) arg0 + 0x3BD4) = 1;
+        *(s32 *) ((char *) arg0 + 0x3BD8) = *(s32 *) ((char *) arg0 + 0x3BA4);
+        *(s32 *) ((char *) arg0 + 0x3BDC) = *(s32 *) ((char *) arg0 + 0x3BA8);
+        *(s32 *) ((char *) arg0 + 0x3BE0) = *(s32 *) ((char *) arg0 + 0x3BAC);
+        *(s32 *) ((char *) arg0 + 0x3BE4) = *(s32 *) ((char *) arg0 + 0x3BB4);
+        *(s32 *) ((char *) arg0 + 0x3BE8) = *(s32 *) ((char *) arg0 + 0x3BC0);
+        *(s32 *) ((char *) arg0 + 0x3BEC) = *(s32 *) ((char *) arg0 + 0x3BC8);
+        *(s32 *) ((char *) arg0 + 0x3BF0) = *(s32 *) ((char *) arg0 + 0x3BCC);
+    } else if (*(s32 *) ((char *) arg0 + 0x3BD8) != *(s32 *) ((char *) arg0 + 0x3BA4) ||
+               *(s32 *) ((char *) arg0 + 0x3BDC) != *(s32 *) ((char *) arg0 + 0x3BA8) ||
+               *(s32 *) ((char *) arg0 + 0x3BE0) != *(s32 *) ((char *) arg0 + 0x3BAC) ||
+               *(s32 *) ((char *) arg0 + 0x3BE4) != *(s32 *) ((char *) arg0 + 0x3BB4) ||
+               *(s32 *) ((char *) arg0 + 0x3BE8) != *(s32 *) ((char *) arg0 + 0x3BC0) ||
+               *(s32 *) ((char *) arg0 + 0x3BF0) != *(s32 *) ((char *) arg0 + 0x3BCC)) {
+        return func_151F8088(arg0, -1);
+    }
+
+    *(s32 *) ((char *) arg0 + 0x2068) = 4;
+
+    if (*(s32 *) ((char *) arg0 + 0x3BAC) == 0) {
+        r = ((s32 (*)(void *, void *, s32, s32)) *(void **) ((char *) arg0 + 4))(
+                *(void **) arg0, (char *) arg0 + 0x2028, 2, -1);
+        if (r <= 0) {
+            return 0;
+        }
+        *(s32 *) ((char *) arg0 + 0x18) += 2;
+        *(s32 *) ((char *) arg0 + 0x2064) += 0x10;
+        *(s32 *) ((char *) arg0 + 0x2068) = 6;
+    }
+
+    if (*(s32 *) ((char *) arg0 + 0x3BA8) == 1) {
+        *(s32 *) ((char *) arg0 + 0x8478) = (s32) func_151F78B4;
+        *(s32 *) ((char *) arg0 + 0x847C) = (s32) func_151F6FD0;
+    } else if (*(s32 *) ((char *) arg0 + 0x3BA8) == 2) {
+        return 0;
+    } else if (*(s32 *) ((char *) arg0 + 0x3BA8) == 3) {
+        return 0;
+    }
+
+    if (((s32 (*)(void *)) *(void **) ((char *) arg0 + 0x847C))(arg0) == 0) {
+        return 0;
+    }
+
+    return 1;
+}
 // Init for the fixed-address global buffer D_800E1880: sets
 // unkC/unk10/unk14 to -1, copies the 3 args into unk0/unk4/unk8, zeroes
 // unk201C/unk2020/unk3BA0, bails if func_151F8088(ptr, 0) fails, then
