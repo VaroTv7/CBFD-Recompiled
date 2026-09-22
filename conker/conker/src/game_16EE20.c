@@ -138,7 +138,46 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     return arg4;
 }
 
+// NON-MATCHING: exact 49/49 instruction count match, but a real branch-
+// type difference remains - target compiles the D_800C3E90 test as a
+// plain `beqz` because its delay slot holds the shared address
+// computation `v0 = arg0 + (arg1<<6)`, useful on BOTH paths, so it
+// never needs annulment. This reconstruction's compile instead settles
+// on `beqzl` (branch-likely) with the else-branch's first field read
+// in the delay slot, then still separately recomputes `v0` inside the
+// if-taken path anyway - tried computing `v0` freshly inside each
+// branch instead of once up front (matching target's "single shared
+// computation" shape more literally in the source) and IDO produced
+// byte-identical output either way, so this looks like a stable
+// scheduling choice rather than something reachable from source
+// phrasing. Every offset, arithmetic operation, and instruction TYPE
+// otherwise matches target exactly, just reordered/reshuffled by the
+// different branch form. Indexes a 0x40-byte-stride array by arg1;
+// each element holds an integer/fractional Q16.16-style split pair at
+// offsets 0x18/0x38, 0x1A/0x3A, 0x1C/0x3C (reconstructed as
+// hi*65536+lo, scaled by 2^-16) when D_800C3E90 is set, or a plain
+// vec3 f32 at 0x30/0x34/0x38 otherwise - note offset 0x38 is shared
+// between the two representations (the low half of the third
+// fixed-point pair and the third float's bytes overlap), so this is
+// genuinely a union at that offset, not a struct layout error.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15142314.s")
+// void func_15142314(void *arg0, s32 arg1, f32 *arg2) {
+//     void *v0;
+//
+//     v0 = (char *) arg0 + (arg1 << 6);
+//     if (D_800C3E90 != 0) {
+//         arg2[0] = ((f32) ((s32) (*(s16 *) ((char *) v0 + 0x18)) << 16) +
+//                    (f32) (*(s16 *) ((char *) v0 + 0x38))) * (1.0f / 65536.0f);
+//         arg2[1] = ((f32) ((s32) (*(s16 *) ((char *) v0 + 0x1A)) << 16) +
+//                    (f32) (*(s16 *) ((char *) v0 + 0x3A))) * (1.0f / 65536.0f);
+//         arg2[2] = ((f32) ((s32) (*(s16 *) ((char *) v0 + 0x1C)) << 16) +
+//                    (f32) (*(s16 *) ((char *) v0 + 0x3C))) * (1.0f / 65536.0f);
+//     } else {
+//         arg2[0] = *(f32 *) ((char *) v0 + 0x30);
+//         arg2[1] = *(f32 *) ((char *) v0 + 0x34);
+//         arg2[2] = *(f32 *) ((char *) v0 + 0x38);
+//     }
+// }
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Wraps arg0 into a
 // quarter-circle index [0,0x40) with mirroring, then looks up D_8009A220
 // with a sign flip depending on which quadrant (top 2 bits of arg0) it
