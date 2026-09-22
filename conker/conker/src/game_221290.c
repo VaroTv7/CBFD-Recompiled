@@ -3,17 +3,138 @@
 #include "functions.h"
 #include "variables.h"
 
-
-
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F3DE0.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F42E8.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
+extern f32 D_800B0C2C;
+extern f32 D_800B0C30;
+extern f32 D_800B0C34;
+extern f32 D_800B0C38;
+extern f32 D_800B0C3C;
+extern f32 D_800B0C40;
+extern f32 D_800B0C44;
+extern f32 D_800B0C48;
+extern s32 *D_800E0E20;
+extern f32 *D_800E1078;
+extern f32 D_800E0E38[];
+extern f32 D_800E0EC8[];
+extern f32 D_800E0FE8[];
+extern s32 D_800E0E28;
+extern s32 D_800E0E30;
+extern f32 D_800E1080[];
+extern f32 D_800E1480[];
 extern s16 D_800AEB7C[];
 extern f32 D_800B067C[];
 extern f32 D_800B069C[];
 extern s32 D_800E0E00;
+extern u8 D_800E1880[];
+
+
+// Builds the analysis/synthesis window tables and the cube-root lookup
+// used by the codec: three sine-windowed ramps into D_800E0E38 /
+// D_800E0EC8 / D_800E0FE8, a bias pass over D_800E0E20, then a
+// Newton-Raphson solve of x^3 = i^4 for each of 0x2000 entries, and
+// finally two geometric scale tables.
+s32 func_151F3DE0(void) {
+    s32 i;
+    f32 x;
+    f32 xx;
+    f32 delta;
+    f32 t;
+    f32 eps;
+    f32 c;
+    f32 d;
+
+    i = 0;
+    do {
+        D_800E0E38[i] = sinf(((f32) i + 0.5f) * D_800B0C2C);
+    } while (++i < 0x24);
+
+    i = 0;
+    do {
+        D_800E0EC8[i] = sinf(((f32) i + 0.5f) * D_800B0C30);
+    } while (++i < 0x12);
+
+    i = 0x12;
+    do {
+        D_800E0EC8[i] = 1.0f;
+    } while (++i < 0x18);
+
+    i = 0x18;
+    do {
+        D_800E0EC8[i] = sinf((((f32) i + 0.5f) - 18.0f) * D_800B0C34);
+    } while (++i < 0x1E);
+
+    i = 0x1E;
+    do {
+        D_800E0EC8[i] = 0.0f;
+    } while (++i < 0x24);
+
+    i = 0;
+    do {
+        D_800E0FE8[i] = 0.0f;
+    } while (++i < 6);
+
+    i = 6;
+    do {
+        D_800E0FE8[i] = sinf((((f32) i + 0.5f) - 6.0f) * D_800B0C38);
+    } while (++i < 0xC);
+
+    i = 0xC;
+    do {
+        D_800E0FE8[i] = 1.0f;
+    } while (++i < 0x12);
+
+    i = 0x12;
+    do {
+        D_800E0FE8[i] = sinf(((f32) i + 0.5f) * D_800B0C3C);
+    } while (++i < 0x24);
+
+    i = 1;
+    do {
+        D_800E0E20[i] += D_800E0E28;
+    } while (++i < 0x22);
+
+    D_800E1078 = (f32 *) D_800E0E30;
+    if (D_800E1078 == 0) {
+        return 0;
+    }
+
+    x = 1.0f;
+    D_800E1078[0] = 0.0f;
+
+    i = 1;
+    do {
+        t = (f32) i;
+        t = t * t;
+        eps = t * D_800B0C40;
+        t = t * t;
+        do {
+            xx = x * x;
+            delta = (xx * x - t) / (2.0f * xx);
+            x = x - delta;
+        } while (delta > eps || delta < -eps);
+        D_800E1078[i] = x;
+    } while (++i < 0x2000);
+
+    c = D_800B0C44;
+    d = 0.25f;
+    D_800E1080[0] = 1.0f;
+    D_800E1480[0] = 1.0f;
+
+    i = 1;
+    do {
+        D_800E1080[i] = c;
+        D_800E1480[i] = d;
+        d = d * 0.25f;
+        c = c * D_800B0C48;
+    } while (++i < 0x100);
+
+    return 1;
+}
+#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F42E8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F63C4.s")
+extern s32 *D_800E0E20;
+extern f32 *D_800E1078;
 
 // Copies 0x240 floats from the unk4664 scratch buffer into unk4F64.
 // When the channel selected by arg1 is active (unk3C98 set) and in
@@ -176,7 +297,6 @@ s32 func_151F6B28(void *arg0, s32 arg1, s32 arg2) {
 // unkC/unk10/unk14 to -1, copies the 3 args into unk0/unk4/unk8, zeroes
 // unk201C/unk2020/unk3BA0, bails if func_151F8088(ptr, 0) fails, then
 // zeroes unk8474 and bzero's a 0x900-byte region at +0x6A64.
-extern u8 D_800E1880[];
 
 void *func_151F85C4(s32 arg0, s32 arg1, s32 arg2) {
     void *obj = D_800E1880;
