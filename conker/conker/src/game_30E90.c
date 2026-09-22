@@ -79,7 +79,82 @@ void func_15004A4C(void) {
     }
 }
 
+// NON-MATCHING: 82 vs target's 81 instructions. Scans an array of
+// count(arg0->unk16) 16-byte records at arg0->unk28, each holding 3
+// halfwords (offsets 4/0/2) scaled by arg0->unk34/0x2C/0x30
+// respectively, tracking the largest squared "distance"
+// (a^2+b^2+c^2). If nothing exceeded 0, returns immediately (no
+// history fields touched). Otherwise takes the sqrt and either seeds
+// both arg0->unk50/unk52 on first use (unk50==0), bumps D_800BE2A0 if
+// the new distance beats either existing threshold, or bumps
+// D_800BE2A4 otherwise. arg1 is spilled to its stack home and never
+// read again, matching target's own dead store exactly. The gap is a
+// stable bnez-vs-bnezl branch-type difference on the scan loop's own
+// exit test (with a correspondingly rescheduled pointer increment) -
+// tried do-while vs for, != vs < loop bounds (the latter blew up to
+// 246 instructions and was reverted), and increment statement order,
+// none changed it, consistent with this session's other likely-branch
+// near-misses.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_30E90/func_15004AAC.s")
+// extern u16 D_800BE2A0;
+// extern u16 D_800BE2A2;
+// extern u16 D_800BE2A4;
+//
+// void func_15004AAC(void *arg0, s32 arg1) {
+//     s16 count;
+//     s32 maxDistSq;
+//     s32 offset;
+//     char *rec;
+//     f32 scaleY, scaleZ, scaleX;
+//     s32 dist;
+//     u16 prev1;
+//
+//     count = *(s16 *) ((char *) arg0 + 0x16);
+//     maxDistSq = 0;
+//
+//     if (count > 0) {
+//         rec = *(char **) ((char *) arg0 + 0x28);
+//         scaleX = *(f32 *) ((char *) arg0 + 0x34);
+//         scaleY = *(f32 *) ((char *) arg0 + 0x2C);
+//         scaleZ = *(f32 *) ((char *) arg0 + 0x30);
+//
+//         offset = 0;
+//         do {
+//             f32 a = (f32) *(s16 *) (rec + 4) * scaleX;
+//             f32 b = (f32) *(s16 *) (rec + 0) * scaleY;
+//             f32 c = (f32) *(s16 *) (rec + 2) * scaleZ;
+//             s32 v = (s32) (a * a + (b * b + c * c));
+//
+//             if (maxDistSq < v) {
+//                 maxDistSq = v;
+//             }
+//             rec += 0x10;
+//             offset += 0x10;
+//         } while (offset < (count << 4));
+//     }
+//
+//     if (maxDistSq == 0) {
+//         return;
+//     }
+//
+//     dist = (s32) sqrtf((f32) maxDistSq);
+//     prev1 = *(u16 *) ((char *) arg0 + 0x50);
+//
+//     if (prev1 == 0) {
+//         *(u16 *) ((char *) arg0 + 0x50) = (u16) dist;
+//         *(u16 *) ((char *) arg0 + 0x52) = (u16) dist;
+//         D_800BE2A2++;
+//         return;
+//     }
+//
+//     if (prev1 < dist || *(u16 *) ((char *) arg0 + 0x52) < dist) {
+//         D_800BE2A0++;
+//         return;
+//     }
+//
+//     D_800BE2A4++;
+//     return;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_30E90/func_15004BF0.s")
 // NON-MATCHING: register-choice gap only, logic and every instruction
 // opcode/operand-value verified identical to target. Walks an array of
