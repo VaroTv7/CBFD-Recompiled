@@ -115,7 +115,43 @@ void func_1507DE4C(struct127 *arg0) {
 }
 
 
+// NON-MATCHING: exact 53/53 instruction match, byte-identical except the
+// jtbl_8009B884 lui/lw placeholder (resolves once linked). A 6-value
+// dispatch on arg1 (4..9, two values sharing each of the last three
+// case bodies) compiled by target as a genuine jump table, matching a
+// plain C switch here - unlike func_151347CC's dispatch in this same
+// segment, where a switch provoked a jump table target DIDN'T have.
+// struct127 and its unk94/unk9C/unk2E4 fields already established by
+// the neighboring func_1507DE4C.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507DF10.s")
+// void func_1507DF10(struct127 *arg0, s32 arg1) {
+//     switch (arg1) {
+//         case 9:
+//             arg0->unk94 |= 0x20;
+//             arg0->unk9C |= 0x78;
+//             arg0->unk2E4 = 1;
+//             break;
+//         case 8:
+//             arg0->unk94 |= 0x40;
+//             arg0->unk94 &= ~0x200;
+//             arg0->unk9C |= 0xF00;
+//             arg0->unk2E4 = 2;
+//             break;
+//         case 6:
+//         case 7:
+//             arg0->unk94 |= 0xE;
+//             arg0->unk94 &= ~0x410;
+//             arg0->unk9C |= 0xEE0000;
+//             arg0->unk2E4 = 4;
+//             break;
+//         case 4:
+//         case 5:
+//             arg0->unk94 |= 0x80;
+//             arg0->unk94 &= ~0x500;
+//             arg0->unk2E4 = 8;
+//             break;
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507DFE4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A9D90/func_1507E114.s")
 // NON-MATCHING: full semantics recovered and verified via isolated
