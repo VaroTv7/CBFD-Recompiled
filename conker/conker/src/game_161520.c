@@ -578,7 +578,46 @@ s32 func_151380B4(void *arg0, s32 arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A24C.s")
 
+// NON-MATCHING: builds the same kind of fixed-layout 0x3C-byte
+// effect-params blob as func_1513A5E0 below (position copied from
+// arg0, several hardcoded shorts and floats, plus
+// D_800A4954/4958/495C/4950) and relays it into the same confirmed
+// 8-arg func_15152190, this time alongside D_800A4260/D_800A4264.
+// 64 vs target's 66 instructions - the identical 2-instruction gap
+// func_1513A5E0 also lands at, with the same shape (target loads one
+// of the float globals very early, right after the frame is
+// allocated and before $ra is even saved; this reconstruction
+// schedules it later) - looks like the same systematic near-miss
+// inherent to this stack-blob-then-K&R-call pattern rather than
+// anything fixable per-function.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_161520/func_1513A48C.s")
+// void * func_15152190(); /* extern */
+//
+// void func_1513A48C(void *arg0, u8 arg1, s32 arg2) {
+//     u8 buf[0x3C];
+//     char *p = buf;
+//
+//     *(s32 *) (p + 0x0) = 8;
+//     *(s32 *) (p + 0x4) = 4;
+//     *(s32 *) (p + 0x8) = *(s32 *) arg0;
+//     *(s32 *) (p + 0xC) = *(s32 *) ((char *) arg0 + 4);
+//     *(s32 *) (p + 0x10) = *(s32 *) ((char *) arg0 + 8);
+//     *(s16 *) (p + 0x14) = 0;
+//     *(s16 *) (p + 0x16) = 0xFF;
+//     *(s16 *) (p + 0x18) = -0x37;
+//     *(s16 *) (p + 0x1A) = 0x20;
+//     *(f32 *) (p + 0x1C) = 10.0f;
+//     *(f32 *) (p + 0x20) = 9.0f;
+//     *(f32 *) (p + 0x24) = D_800A4954;
+//     *(f32 *) (p + 0x28) = D_800A4958;
+//     *(s16 *) (p + 0x2C) = 0x28;
+//     *(s16 *) (p + 0x2E) = 0x14;
+//     *(f32 *) (p + 0x30) = D_800A4950;
+//     *(f32 *) (p + 0x34) = D_800A4950;
+//     *(f32 *) (p + 0x38) = D_800A495C;
+//
+//     func_15152190(buf, &D_800A4260, &D_800A4264, 1, 0, 1, arg1, arg2);
+// }
 
 // NON-MATCHING: mips_to_c reconstruction, hand-typed. Two unresolved gaps:
 // (1) target re-masks arg3 to u8 a second time at the func_1513A5E0 call
