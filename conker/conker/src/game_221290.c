@@ -366,7 +366,154 @@ s32 func_151F6B28(void *arg0, s32 arg1, s32 arg2) {
     return 1;
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
+// NON-MATCHING (JUSTREG): 427/427 instructions and structurally an
+// exact match - with register names normalized away only TWO of the 427
+// lines differ, and both are the D_800E0E38 relocation immediate.
+//
+// Layer-3 frame decode: reads the frame via func_151F7F60, sets the bit
+// cursor from the main_data offset, runs side-info + scalefactor decode
+// per channel, applies stereo processing, then per channel does the
+// alias reduction / IMDCT (func_151F9BF0 for short blocks, func_151F8CF0
+// otherwise, the latter taking a window from D_800E0E38), carries the
+// overlap halves forward, and emits the PCM block.
+//
+// The entire remaining difference is register numbering, all of it
+// cascading from ONE instruction: target computes the initial `outp`
+// address as `addu t9,t6,t8` (arg0 first) where this build emits
+// `addu t9,t8,t6` (the scaled offset first). Writing the pointer
+// arithmetic the other way round (`offset + (char *) arg0`) does not
+// move it - that matches func_151F7F60 and func_151F86B0 in this same
+// file, where the identical swapped-`addu` was also immune to every
+// phrasing tried. Once that one register pairing differs, every later
+// allocation follows it, which is why the raw word diff looks large
+// while the normalized diff is two lines.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F78B4.s")
+// s32 func_151F78B4(void *arg0) {
+//     s32 n;
+//     s32 gr;
+//     s32 ch;
+//     s32 nbands;
+//     s32 tmp;
+//     s32 mode;
+//     s32 i;
+//     s32 k;
+//     s16 *outp;
+//     f32 buf[0x240];
+//     f32 scale;
+//     f32 inv;
+//     f32 one;
+//     s32 s;
+//     s32 v;
+//
+//     gr = 0;
+//     outp = (s16 *) ((char *) arg0 + *(s32 *) ((char *) arg0 + 0x3BA0) * 1160 + 0x2070);
+//
+//     n = func_151F7F60(arg0);
+//     if (n == 0) {
+//         return 0;
+//     }
+//
+//     *(s32 *) ((char *) arg0 + 0x2020) = (n - *(s32 *) ((char *) arg0 + 0x3BF4)) * 8;
+//     if (*(s32 *) ((char *) arg0 + 0x2020) < 0) {
+//         return 1;
+//     }
+//
+//     for (ch = 0; ch < *(s32 *) ((char *) arg0 + 0x3F8C); ch++) {
+//         func_151F63C4(arg0, gr, ch);
+//         func_151F42E8(arg0, gr, ch);
+//     }
+//
+//     func_151F6970(arg0, gr);
+//
+//     if (*(s32 *) ((char *) arg0 + gr * 4 + 0x3C98) != 0 &&
+//         *(s32 *) ((char *) arg0 + gr * 4 + 0x3CA0) == 2) {
+//         nbands = 0x20;
+//     } else {
+//         tmp = (*(s32 *) ((char *) arg0 + 0x465C) - 1) / 0x12 + 1;
+//         nbands = tmp;
+//     }
+//
+//     for (ch = 0; ch < *(s32 *) ((char *) arg0 + 0x3F8C); ch++) {
+//         func_151F6B28(arg0, gr, ch);
+//
+//         if (*(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C98) != 0 &&
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA0) == 2 &&
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA8) != 0) {
+//             mode = 0;
+//         } else if (*(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C98) == 0) {
+//             mode = 0;
+//         } else {
+//             mode = *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA0);
+//         }
+//
+//         if (mode == 2) {
+//             for (i = 0; i < 2; i++) {
+//                 func_151F9BF0((char *) arg0 + ch * 2304 + i * 72 + 0x4F64, i,
+//                               (char *) buf + i * 72,
+//                               (char *) arg0 + ch * 2304 + i * 72 + 0x6A64);
+//             }
+//         } else {
+//             for (i = 0; i < 2; i++) {
+//                 func_151F8CF0((char *) arg0 + ch * 2304 + i * 72 + 0x4F64, i,
+//                               (char *) buf + i * 72,
+//                               (char *) arg0 + ch * 2304 + i * 72 + 0x6A64,
+//                               (char *) D_800E0E38 + mode * 144);
+//             }
+//         }
+//
+//         if (*(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3C98) != 0 &&
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA0) == 2 &&
+//             *(s32 *) ((char *) arg0 + gr * 4 + ch * 4 + 0x3CA8) != 0) {
+//             mode = 2;
+//         }
+//
+//         if (mode == 2) {
+//             for (i = 2; i < nbands; i++) {
+//                 func_151F9BF0((char *) arg0 + ch * 2304 + i * 72 + 0x4F64, i,
+//                               (char *) buf + i * 72,
+//                               (char *) arg0 + ch * 2304 + i * 72 + 0x6A64);
+//             }
+//         } else {
+//             for (i = 2; i < nbands; i++) {
+//                 func_151F8CF0((char *) arg0 + ch * 2304 + i * 72 + 0x4F64, i,
+//                               (char *) buf + i * 72,
+//                               (char *) arg0 + ch * 2304 + i * 72 + 0x6A64,
+//                               (char *) D_800E0E38 + mode * 144);
+//             }
+//         }
+//
+//         while (i < 0x20) {
+//             bcopy((char *) arg0 + ch * 2304 + i * 72 + 0x6A64, (char *) buf + i * 72, 0x48);
+//             bzero((char *) arg0 + ch * 2304 + i * 72 + 0x6A64, 0x48);
+//             i++;
+//         }
+//
+//         scale = 65536.0f;
+//         one = 1.0f;
+//         v = (s32) (scale * one * 16.0f);
+//         *outp = v >> 16;
+//         outp++;
+//         *outp = v & 0xFFFF;
+//         outp++;
+//         v = -v;
+//         *outp = v >> 16;
+//         outp++;
+//         *outp = v & 0xFFFF;
+//         outp++;
+//         inv = 2048.0f / one;
+//
+//         for (k = 0; k < 0x12; k++) {
+//             for (i = 0; i < 0x20; i++) {
+//                 s = (s32) (*(f32 *) ((char *) buf + i * 72 + k * 4) * inv);
+//                 *outp = s;
+//                 outp++;
+//             }
+//         }
+//     }
+//
+//     return 1;
+// }
+
 // NON-MATCHING (one word): 74/74 instructions, and 73 of the 74 words
 // are byte-identical to target. Operates on the same streaming buffer
 // struct as func_151F85C4 below (fields unk18/unk1C/unk201C/unk2020/
