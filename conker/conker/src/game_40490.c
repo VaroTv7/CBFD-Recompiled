@@ -292,7 +292,58 @@ s32 func_15015104(struct134 *arg0) {
     }
     return 1;
 }
+// NON-MATCHING: exact 75/75 instruction match. Sets two flag fields on
+// arg0, builds a spawn-effect descriptor blob from arg0's position
+// fields (converted short->float) plus a global float constant, calls
+// two simple K&R helpers, allocates via the established func_15149130,
+// and memcpy's the blob into the new object before returning 1. Every
+// field/offset and statement order verified against target instruction
+// for instruction; the only differences are within-frame layout (this
+// reconstruction's scratch buffer lands 4 bytes earlier in the 128-byte
+// frame than target's, an unexplained but harmless compiler layout
+// choice) and one store IDO pushed inside the `if (v0 != 0)` branch
+// where target keeps it unconditional right after the allocator call -
+// tried marking the buffer volatile to force the unconditional store,
+// no effect, consistent with other near-misses this session where a
+// similar single-store reordering wasn't reachable from source.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_40490/func_150151D4.s")
+// extern f32 D_800966B4;
+//
+// s32 func_150151D4(void *arg0) {
+//     void *a2 = arg0;
+//     u8 buf[0x48];
+//     void *v0;
+//
+//     *(u8 *) ((char *) a2 + 0x16) |= 4;
+//     *(u8 *) ((char *) a2 + 0x14) = 1;
+//
+//     *(s32 *) (buf + 0x0) = (s32) a2;
+//     *(f32 *) (buf + 0x4) = 0.0f;
+//     *(s16 *) (buf + 0x8) = -1;
+//     *(f32 *) (buf + 0xC) = (f32) *(s16 *) ((char *) a2 + 0x0);
+//     *(f32 *) (buf + 0x10) = (f32) *(s16 *) ((char *) a2 + 0x2);
+//     *(f32 *) (buf + 0x14) = (f32) *(s16 *) ((char *) a2 + 0x4);
+//     *(f32 *) (buf + 0x18) = (f32) *(s16 *) ((char *) a2 + 0x6);
+//     *(s32 *) (buf + 0x40) = 0;
+//     *(u8 *) (buf + 0x3D) = 0;
+//     *(f32 *) (buf + 0x1C) = (f32) *(s16 *) ((char *) a2 + 0x8);
+//     *(u8 *) (buf + 0x3C) = 0;
+//     *(s32 *) (buf + 0x38) = 0;
+//     *(f32 *) (buf + 0x20) = D_800966B4;
+//
+//     func_1510F800(0);
+//
+//     func_1510FD20(*(s16 *) ((char *) a2 + 0x0), *(s16 *) ((char *) a2 + 0x4));
+//
+//     v0 = func_15149130(300, -1, 60, -1, 0, 45, (struct37 *) 72, 0xFF, 0);
+//     *(s32 *) (buf + 0x44) = (s32) v0;
+//
+//     if (v0 != 0) {
+//         memcpy((char *) v0 + 0x28, buf, 0x48);
+//     }
+//
+//     return 1;
+// }
 
 s32 func_15015300(struct134 *arg0) {
     void (*func)(void);
