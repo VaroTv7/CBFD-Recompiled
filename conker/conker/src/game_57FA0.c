@@ -13,7 +13,34 @@ void func_1502AAF8(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502AB04.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502AC88.s")
+// NON-MATCHING: 70 vs target's 71 instructions. Target keeps the loop's
+// base pointer in a callee-saved $s2 (extra save/restore pair) and caches
+// arg2<<3 back to its own stack slot after the func_10004514 call, where
+// this reconstruction keeps the base pointer in a temp register and never
+// needs to re-derive arg2<<3; also a stable beqz-vs-blez branch-type
+// difference on the initial zero-trip-count guard for the loop IDO
+// generates from the single `for` loop below (both correct, no reachable
+// source phrasing changed it). Semantics confirmed identical.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502AF04.s")
+// void *func_1502AF04(void *arg0, void *arg1, s32 arg2, s32 arg3) {
+//     void *base;
+//     void *p;
+//     s32 i;
+//
+//     base = (void *) (((s32) arg0 + (arg2 << 3)) & ~0xF);
+//     p = (void *) ((((s32) arg1 + 8) & ~0xF) + (((s32) arg0 + (arg2 << 3)) & 0xF));
+//
+//     func_10004514(base,
+//                   (void *) (((s32) arg1 + 8) & ~0xF),
+//                   ((((s32) arg0 + (arg2 << 3)) & 0xE) + (arg3 << 3) + 0xF) & ~0xF,
+//                   1);
+//
+//     for (i = 0; i < arg3; i++) {
+//         *(s32 *) ((char *) p + i * 8) += (s32) arg0;
+//     }
+//
+//     return p;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B020.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B110.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B224.s")
