@@ -14,98 +14,94 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6B28.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F6FD0.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F78B4.s")
-// NON-MATCHING: 72 vs target's 74 instructions, on the same streaming
-// buffer struct as func_151F85C4 above (fields unk18/unk1C/unk201C/
-// unk2020/unk3F88, unk0/unk4 a callback userdata+fnptr pair). Compacts
-// the window by discarding the first 0x1000 consumed bytes when
+// NON-MATCHING (one word): 74/74 instructions, and 73 of the 74 words
+// are byte-identical to target. Operates on the same streaming buffer
+// struct as func_151F85C4 below (fields unk18/unk1C/unk201C/unk2020/
+// unk3F88, unk0/unk4 a callback userdata+fnptr pair). Compacts the
+// window by discarding the first 0x1000 consumed bytes when
 // unk201C+unk3F88 gets close to full, refills via the object's own
 // fill callback, zero-pads any short read, then advances the position
-// and byte-count fields and returns the old position. `obj` needed the
-// same `volatile` trick as func_151F85C4 to avoid being kept in a
-// register across the whole function; unlike that sibling, target here
-// reuses one reload of `obj` for every field access within a single
-// C statement/block (not per access), which this reconstruction's
-// literal per-field volatile reads don't reproduce - narrower attempts
-// to force target's exact one-reload-per-block boundary (caching a
-// plain local pointer freshly read from `obj` at the top of each
-// statement) landed at 62 instructions (too few reloads), while making
-// even `shiftAmt` volatile overshot to 78 (too many). This is the
-// closest of several variants tried.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F7F60.s")
+// and byte-count fields and returns the old position.
+//
+// UPDATED 2026-09-22: the previous writeup here had this at 72 vs 74
+// with `obj` marked `volatile` to force target's reload-heavy shape,
+// and recorded several failed attempts to tune the reload density.
+// None of that was the real issue - this file was simply being
+// compiled with the wrong OPT_FLAGS. game_221290.c is the .game
+// overlay's audio driver and was built UNOPTIMIZED (`-g`) in the
+// original ROM, which is why target reloads everything from the stack;
+// there is nothing to force with `volatile`. The Makefile now carries
+// a `-g` override for this file, and the plain non-volatile source
+// below matches. Two further operand-order fixes were needed once the
+// flags were right: IDO emits a commutative `addu`/operand pair in the
+// REVERSE of source order, so the `if` condition reads unk3F88 before
+// unk201C to make target load unk201C first.
+//
+// The single remaining differing word is idx 35, `addu a1,t2,t4` where
+// this build emits `addu a1,t4,t2` - the same commutative add with its
+// two source registers swapped. Tried writing the address expression
+// as `ptr + off`, `off + ptr`, and `&((char *) arg0)[off]`; all three
+// produce the identical (reversed) operand order, so this is the
+// established unfixable operand-order class rather than a phrasing
+// problem. Everything else, including both jal sites, matches.
 // s32 func_151F7F60(void *arg0) {
-//     void *volatile obj = arg0;
 //     s32 shiftAmt = 0x1000;
 //     s32 bytesRead;
 //
-//     if (*(s32 *) ((char *) obj + 0x201C) + *(s32 *) ((char *) obj + 0x3F88) >= 0x1FFC) {
-//         bcopy((char *) obj + shiftAmt + 0x1C, (char *) obj + 0x1C, shiftAmt);
-//         *(s32 *) ((char *) obj + 0x201C) -= shiftAmt;
-//         *(s32 *) ((char *) obj + 0x2020) -= shiftAmt << 3;
+//     if (*(s32 *) ((char *) arg0 + 0x3F88) + *(s32 *) ((char *) arg0 + 0x201C) >= 0x1FFC) {
+//         bcopy((char *) arg0 + shiftAmt + 0x1C, (char *) arg0 + 0x1C, shiftAmt);
+//         *(s32 *) ((char *) arg0 + 0x201C) -= shiftAmt;
+//         *(s32 *) ((char *) arg0 + 0x2020) -= shiftAmt << 3;
 //     }
 //
-//     bytesRead = ((s32 (*)(void *, void *, s32, s32)) (*(void **) ((char *) obj + 4)))(
-//         *(void **) obj,
-//         (char *) obj + *(s32 *) ((char *) obj + 0x201C) + 0x1C,
-//         *(s32 *) ((char *) obj + 0x3F88),
+//     bytesRead = ((s32 (*)(void *, void *, s32, s32)) (*(void **) ((char *) arg0 + 4)))(
+//         *(void **) arg0,
+//         (char *) arg0 + *(s32 *) ((char *) arg0 + 0x201C) + 0x1C,
+//         *(s32 *) ((char *) arg0 + 0x3F88),
 //         -1);
 //
-//     if (bytesRead < *(s32 *) ((char *) obj + 0x3F88)) {
-//         bzero((char *) obj + bytesRead + 0x1C, *(s32 *) ((char *) obj + 0x3F88) - bytesRead);
+//     if (bytesRead < *(s32 *) ((char *) arg0 + 0x3F88)) {
+//         bzero((char *) arg0 + bytesRead + 0x1C, *(s32 *) ((char *) arg0 + 0x3F88) - bytesRead);
 //     }
 //
-//     *(s32 *) ((char *) obj + 0x18) += *(s32 *) ((char *) obj + 0x3F88);
-//     *(s32 *) ((char *) obj + 0x201C) += *(s32 *) ((char *) obj + 0x3F88);
+//     *(s32 *) ((char *) arg0 + 0x18) += *(s32 *) ((char *) arg0 + 0x3F88);
+//     *(s32 *) ((char *) arg0 + 0x201C) += *(s32 *) ((char *) arg0 + 0x3F88);
 //
-//     return *(s32 *) ((char *) obj + 0x201C) - *(s32 *) ((char *) obj + 0x3F88);
+//     return *(s32 *) ((char *) arg0 + 0x201C) - *(s32 *) ((char *) arg0 + 0x3F88);
 // }
+#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F7F60.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F8088.s")
-// NON-MATCHING: init function for the fixed-address global buffer
-// D_800E1880 (not yet declared anywhere - see extern below). Sets
-// unkC/unk10/unk14 to -1, copies the 3 args into unk0/unk4/unk8,
-// zeroes unk201C/unk2020/unk3BA0, bails if func_151F8088(ptr, 0)
-// fails, then zeroes unk8474 and bzero's a 0x900-byte region at
-// +0x6A64.
-// extern u8 D_800E1880[];
-//
-// void *func_151F85C4(s32 arg0, s32 arg1, s32 arg2) {
-//     void *volatile obj = D_800E1880;
-//
-//     if (obj == 0) {
-//         return 0;
-//     }
-//
-//     *(s32 *) ((char *) obj + 0xC) = -1;
-//     *(s32 *) ((char *) obj + 0x10) = -1;
-//     *(s32 *) ((char *) obj + 0x14) = -1;
-//     *(s32 *) ((char *) obj + 0x0) = arg0;
-//     *(s32 *) ((char *) obj + 0x4) = arg1;
-//     *(s32 *) ((char *) obj + 0x8) = arg2;
-//     *(s32 *) ((char *) obj + 0x201C) = 0;
-//     *(s32 *) ((char *) obj + 0x2020) = 0;
-//     *(s32 *) ((char *) obj + 0x3BA0) = 0;
-//
-//     if (func_151F8088(obj, 0) == 0) {
-//         return 0;
-//     }
-//
-//     *(s32 *) ((char *) obj + 0x8474) = 0;
-//     bzero((char *) obj + 0x6A64, 0x900);
-//
-//     return obj;
-// }
-// 51 vs target's 59 instructions. Target reloads the D_800E1880
-// pointer from its stack home slot before EVERY single field write
-// (not just around the two calls), the signature of a genuinely
-// volatile-like local in the original source - marking `obj` itself
-// `volatile` was necessary just to get target's basic shape (a plain
-// pointer left the null check, and everything else, optimized away
-// entirely to ~45 instructions, since IDO can prove the address is a
-// compile-time-constant non-null value). Even fully volatile falls 8
-// short of target's reload density; a narrower fix forcing the reload
-// only for the null check (via a volatile-qualified access, or via
-// `&obj` used through a second pointer variable) came out worse (48
-// instructions) since it left most later field writes register-
-// resident instead of matching target's per-write reload pattern.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F85C4.s")
+// Init for the fixed-address global buffer D_800E1880: sets
+// unkC/unk10/unk14 to -1, copies the 3 args into unk0/unk4/unk8, zeroes
+// unk201C/unk2020/unk3BA0, bails if func_151F8088(ptr, 0) fails, then
+// zeroes unk8474 and bzero's a 0x900-byte region at +0x6A64.
+extern u8 D_800E1880[];
+
+void *func_151F85C4(s32 arg0, s32 arg1, s32 arg2) {
+    void *obj = D_800E1880;
+
+    if (obj == 0) {
+        return 0;
+    }
+
+    *(s32 *) ((char *) obj + 0xC) = -1;
+    *(s32 *) ((char *) obj + 0x10) = -1;
+    *(s32 *) ((char *) obj + 0x14) = -1;
+    *(s32 *) ((char *) obj + 0x0) = arg0;
+    *(s32 *) ((char *) obj + 0x4) = arg1;
+    *(s32 *) ((char *) obj + 0x8) = arg2;
+    *(s32 *) ((char *) obj + 0x201C) = 0;
+    *(s32 *) ((char *) obj + 0x2020) = 0;
+    *(s32 *) ((char *) obj + 0x3BA0) = 0;
+
+    if (func_151F8088(obj, 0) == 0) {
+        return 0;
+    }
+
+    *(s32 *) ((char *) obj + 0x8474) = 0;
+    bzero((char *) obj + 0x6A64, 0x900);
+
+    return obj;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F86B0.s")

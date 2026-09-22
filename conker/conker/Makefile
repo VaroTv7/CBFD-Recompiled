@@ -114,6 +114,14 @@ LDFLAGS = -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(TARGET).map -T undefined_syms.$(VE
 
 $(BUILD_DIR)/$(SRC_DIR)/libultra/audio/%.o: OPT_FLAGS := -g
 
+# game_221290.c is the .game overlay's audio driver and was built
+# unoptimized in the original ROM, same as libultra/audio above.
+# Established 2026-09-22 by matching func_151F85C4 (59/59 words, only
+# relocation sites differing) and func_151F7F60 (73 of 74 words) under
+# -g, both of which had been stuck as near-misses under -O2 -g3 with
+# the reload-heavy shape unsuccessfully faked via `volatile`.
+$(BUILD_DIR)/$(SRC_DIR)/game_221290.c.o: OPT_FLAGS := -g
+
 # TODO: blindly move all of this into libultra/audio
 $(BUILD_DIR)/$(SRC_DIR)/init_17F10.c.o: OPT_FLAGS := -g
 $(BUILD_DIR)/$(SRC_DIR)/init_17F80.c.o: OPT_FLAGS := -g
