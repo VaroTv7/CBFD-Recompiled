@@ -68,7 +68,7 @@ void func_15122170(void *arg0) {
         return;
     }
     sp2C = temp_f16;
-    temp_f0_2 = func_15048C30(-temp_f2 / temp_f18, 0);
+    temp_f0_2 = func_15048C30(-temp_f2 / temp_f18);
     if (temp_f16 > 0.0f) {
         var_f2 = 270.0f - (temp_f0_2 * D_800A3474);
     } else {

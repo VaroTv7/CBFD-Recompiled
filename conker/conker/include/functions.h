@@ -1059,7 +1059,7 @@ s32  func_15043BB8();
 f32  func_15047C00();
 f32  func_15047D60();
 f32  func_150488C8();
-f32  func_15048C30();
+f32  func_15048C30(f32 arg0);
 f32  func_15048FC8();
 void func_15049688(f32 *arg0, f32 arg1, f32 *arg2, f32 arg3, f32 arg4, f32 arg5);
 void func_1505841C();
