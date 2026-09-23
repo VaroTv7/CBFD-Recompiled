@@ -5,7 +5,7 @@
 
 #include "structs.h"
 
-extern f32 fabsf();
+extern f32 fabsf(f32);
 #pragma intrinsic (fabsf)
 
 /* matching */
