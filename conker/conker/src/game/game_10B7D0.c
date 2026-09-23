@@ -257,7 +257,7 @@ void func_150DE7C0(void *arg0) {
         sp8C = 1.0f;
         sp90 = 1.0f;
         sp94 = 1.0f;
-        temp_v0 = func_1513D2F0(D_800A0D5C, &sp58, &D_800A4AA0, 0x28, 0, 0, 0x26, 0, 3, 0xFF, 0x28, (s32) (*(s32 *)((char *)(arg0) + 0xC)), (s32) (*(s32 *)((char *)(arg0) + 0x1)));
+        temp_v0 = func_1513D2F0(&sp58, &D_800A4AA0, 0x28, 0, 0, 0x26, 0, 3, 0xFF, 0x28, *(u8 *)((char *)(arg0) + 0xC), *(u8 *)((char *)(arg0) + 0x1));
         if (temp_v0 != 0) {
             memcpy(temp_v0 + 0x110, &spB0, 0x28);
         }

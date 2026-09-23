@@ -303,7 +303,7 @@ block_27:
     sp18A = 0;
     sp18B = 0;
     sp190 = arg22;
-    temp_v0 = func_1513D2F0(arg9, spF4, &sp144, &D_800A4AA0, 0x16, 0, 0, 0x14, 0, 0, 0, arg24 + 0xB0, (s32) arg25, arg26);
+    temp_v0 = func_1513D2F0(&sp144, &D_800A4AA0, 0x16, 0, 0, 0x14, 0, 0, 0, arg24 + 0xB0, (s32) arg25, arg26);
     sp19C = temp_v0;
     if (temp_v0 != NULL) {
         temp_a0 = (char *)(temp_v0) + 0x110;
@@ -1391,7 +1391,7 @@ void func_151C3B0C(void *arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, u8 arg5, 
         sp178 = 8;
         sp17A = 0x1F;
         sp170 = arg7;
-        func_1513D2F0((f32)(s32)&sp124, (f32)(s32)&D_800A4AA0, (s8 *)0x22, NULL, 0, 0x1C, 2, 0, 0, 0, (s32) (*(f32 *)((char *)(arg0) + 0xC)), (s32) (*(f32 *)((char *)(arg0) + 0x1)));
+        func_1513D2F0(&sp124, &D_800A4AA0, 0x22, 0, 0, 0x1C, 2, 0, 0, 0, *(u8 *)((char *)(arg0) + 0xC), *(u8 *)((char *)(arg0) + 0x1));
     }
     if (random_float() < arg3) {
         (*(s32 *)((char *)&(sp8C) + 0x0)) = (s32) (*(s32 *)((char *)&(D_800AAA00) + 0x0));
