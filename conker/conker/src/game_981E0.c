@@ -2050,15 +2050,15 @@ void func_15073DA4(void) {
     } else {
         tmp = 2;
     }
-    func_1506C460(gCurrentObject->unk40, 150.0f, 0, 0, 100, tmp, 60.0f, 0.5f, 0, 0, 1);
+    func_1506C460(gCurrentObject->unk40, 150.0f, 0.0f, 0.0f, 100, tmp, 60.0f, 0.5f, 0, 0, 1);
 }
 
 void func_15073E2C(void) {
-    func_1506C460(gCurrentObject->unk40, 80.0f, 0, 0, 100, 11, 40.0f, 0.5f, 0, 14, 1);
+    func_1506C460(gCurrentObject->unk40, 80.0f, 0.0f, 0.0f, 100, 11, 40.0f, 0.5f, 0, 14, 1);
 }
 
 void func_15073EA4(void) {
-    func_1506C460(gCurrentObject->unk40, 60.0f, 0, 0, 100, 12, 40.0f, 0.5f, 0, 14, 1);
+    func_1506C460(gCurrentObject->unk40, 60.0f, 0.0f, 0.0f, 100, 12, 40.0f, 0.5f, 0, 14, 1);
 }
 
 void func_15073F1C(void) {

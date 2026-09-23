@@ -1075,7 +1075,7 @@ void func_15060F28();
 void func_1506160C();
 void func_15062B1C(struct127 *arg0, f32 arg1);
 void func_15062B50(struct127 *arg0, f32 arg1);
-s32 func_1506C460(f32 arg0, f32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, f32 arg6, f32 arg7, s32 arg8, s32 arg9, s32 arg10);
+s32 func_1506C460(f32 arg0, f32 arg1, f32 arg2, f32 arg3, s32 arg4, s32 arg5, f32 arg6, f32 arg7, s32 arg8, s32 arg9, s32 arg10);
 struct127 *func_15072208();
 void func_1507BAD0();
 s32  func_15081574(void *arg0, f32 arg1, f32 arg2, void * **arg3, s32 arg4, s32 arg5);
