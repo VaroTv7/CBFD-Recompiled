@@ -612,6 +612,36 @@ void func_15143874(s16 arg0, f32 arg1, f32 *arg2, f32 *arg3) {
 // (target genuinely uses an XOR swap, confirmed from the raw asm - tried
 // matching it exactly, still didn't converge). Register allocation and
 // a missing dead prologue spill differ from target throughout.
+// NON-MATCHING (20 of 20 words): clamps *arg0 into the range spanned by
+// arg1 and arg2, returning 1 if it was raised to the low bound, 2 if it
+// was lowered to the high bound, and 0 if it was already inside.  The
+// semantics are certain but the codegen is a long way off: target homes
+// arg0 to 0x0($sp) with no frame and reloads it twice, and swaps arg1
+// and arg2 with the three-XOR trick rather than through a temporary.
+// This build keeps arg0 in $a0 throughout and swaps via $v0, which is
+// what the obvious source produces.  -O1 and -g are both much worse
+// (23 of 24), so the file's -O2 -g3 is right and this is an allocator
+// difference, not a flag one.
+// s32 func_15143DA8(s32 *arg0, s32 arg1, s32 arg2) {
+//     s32 v0;
+//     s32 t;
+//
+//     if (arg2 < arg1) {
+//         t = arg1;
+//         arg1 = arg2;
+//         arg2 = t;
+//     }
+//     v0 = *arg0;
+//     if (v0 < arg1) {
+//         *arg0 = arg1;
+//         return 1;
+//     }
+//     if (arg2 < v0) {
+//         *arg0 = arg2;
+//         return 2;
+//     }
+//     return 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143DA8.s")
 // s32 func_15143DA8(s32 *arg0, s32 arg1, s32 arg2) {
 //     s32 v0;
@@ -645,7 +675,15 @@ s32 func_15143E08(struct127 *arg0) {
 // (nullified-when-taken) delay slot, funneling both paths through a
 // shared >>8 epilogue; this reconstruction's if/else produced different
 // register allocation and instruction count throughout.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15143E24.s")
+s16 func_15143E24(void *arg0) {
+    void *v1;
+
+    v1 = *(void **) ((char *) arg0 + 0x31C);
+    if (v1 != 0) {
+        return (*(u16 *) ((char *) arg0 + 0x7A) - *(s16 *) ((char *) v1 + 0x12)) >> 8;
+    }
+    return *(u16 *) ((char *) arg0 + 0x7A) >> 8;
+}
 // s16 func_15143E24(struct127 *arg0) {
 //     s32 v0;
 //
@@ -669,7 +707,23 @@ f32 func_15143E64(vertex *arg0) {
 // or-add once unconditionally, then loop) but compiles to noticeably
 // more instructions than target throughout both loops - didn't find the
 // exact source form this round.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151444DC.s")
+s32 func_151444DC(s32 arg0, s32 arg1, s32 arg2) {
+    s32 range;
+
+    if (arg1 < arg0) {
+        range = arg1 - arg2 + 1;
+        do {
+            arg0 -= range;
+        } while (arg1 < arg0);
+    }
+    if (arg0 < arg2) {
+        range = arg1 - arg2 + 1;
+        do {
+            arg0 += range;
+        } while (arg0 < arg2);
+    }
+    return arg0;
+}
 // s32 func_151444DC(s32 arg0, s32 arg1, s32 arg2) {
 //     s32 v0;
 //
@@ -791,6 +845,29 @@ struct17 *func_15144B34(s32 arg0) {
 // reordering. Widely referenced (real prototype already in
 // functions.h) - many other functions depend on its correct
 // *behavior*, which this reconstruction now has exactly.
+// NON-MATCHING (2 real words): wraps a float into [0, D_800A56A4) by
+// repeated subtraction then repeated addition.  24 of 24 instructions,
+// and only the first two differ - target emits `c.lt.s $f0, $f12`
+// before `mov.s $f2, $f12`, this build emits them the other way round.
+// Both orders are equivalent (the copy exists only because $f12 is then
+// reused for the 0.0 constant), and dropping the local to work on arg0
+// directly is much worse (15 of 24), so the schedule is IDO's.
+// f32 func_15144B68(f32 arg0) {
+//     f32 x;
+//
+//     x = arg0;
+//     if (D_800A56A4 < x) {
+//         do {
+//             x -= D_800A56A4;
+//         } while (D_800A56A4 < x);
+//     }
+//     if (x < 0.0f) {
+//         do {
+//             x += D_800A56A4;
+//         } while (x < 0.0f);
+//     }
+//     return x;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_15144B68.s")
 // f32 func_15144B68(f32 arg0) {
 //     f32 v = arg0;
@@ -1207,6 +1284,33 @@ u8 func_15145C90(s32 arg0) {
 // referencing arg0 directly and through a local copy (matching target's
 // early `or a2,a0,zero`) - the copy fixed the missing initial instruction
 // but the final field-access register allocation still differs.
+// NON-MATCHING (4 real words): builds a mask of the low
+// D_80082FA0 + 1 bits and returns whether arg0's unk2 field has none of
+// them set.  20 of 20 instructions; the remaining gap is the return
+// tail, where target does `sltiu $t1, $a0, 1; andi $v0, $t1, 0xFF` and
+// this build routes it through $v0 and back with an extra `move`.
+// Neither an explicit `(u8)` cast nor a named u8 result variable
+// changes that.
+//
+// Two shapes did land and are worth keeping.  The AND result must go
+// into its own local (`x = ... & mask; return x == 0;`): folding it
+// into the return expression costs 12 words, because target keeps arg0
+// alive in $a2 and uses $a0 as the scratch for the AND, which only
+// happens when the result is a named value.  And the loop counter must
+// be initialised BEFORE the mask - `for (i = 0, mask = 0; ...)` rather
+// than `mask = 0;` ahead of the loop - which fixes the order of the two
+// `or $reg, $zero, $zero` instructions.
+// u8 func_151464B8(void *arg0) {
+//     s32 i;
+//     s16 mask;
+//     s32 x;
+//
+//     for (i = 0, mask = 0; i <= D_80082FA0; i++) {
+//         mask = mask | (1 << i);
+//     }
+//     x = *(s16 *) ((char *) arg0 + 2) & mask;
+//     return x == 0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_16EE20/func_151464B8.s")
 // s32 func_151464B8(void *arg0) {
 //     s32 v0 = 0;
