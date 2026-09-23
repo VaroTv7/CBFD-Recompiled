@@ -21,8 +21,116 @@ extern s32  D_800E0DE4;
 extern s32  D_800E0DFC;
 
 
+// NON-MATCHING (BLOCKED BY BUILD FLAGS, NOT BY THE SOURCE): the C below
+// is a verified EXACT match - 44 of 44 instructions, every single word
+// identical to target, with no relocation sites at all since these are
+// leaf functions that reference nothing external.  It cannot be enabled
+// because it only matches at -O1, and this file is built -g by the
+// directory-wide rule
+//     $(BUILD_DIR)/$(SRC_DIR)/libultra/audio/%.o: OPT_FLAGS := -g
+// in the Makefile.  At -g this same source drops to 22 of 44 words.
+//
+// That flag split is real, not a mistake in the rule: func_151F2C4C,
+// func_151F2CDC and func_151F2D6C in this same file are byte-perfect at
+// -g and collapse to roughly a third of their words at -O1, so the file
+// as splat carved it holds code from two different translation units -
+// the interrupt-driven audio driver at -g, and these two leaf CRC
+// helpers at -O1.  Enabling them needs the file split in conker.us.yaml
+// plus a per-file OPT_FLAGS line, which is a build-layout change rather
+// than a decompilation one.
+//
+// The tells that a function in a -g file actually wants -O1, all three
+// present here and absent from every -g function in this file:
+//   - the epilogue has no branch to a shared return label (at -g even a
+//     single trailing `return` emits `b <epilogue>` plus the dead
+//     closing-brace `b`);
+//   - a delay slot is filled by hoisting an instruction across a
+//     statement boundary, not just from immediately before the branch;
+//   - operands of the NEXT statement are computed before the previous
+//     statement's store.
+//
+// Source shape notes, both needed even at -O1:
+//   - the bit loop is `for (j = 7; j >= 0; j--)`, not
+//     `do { ... } while (--j >= 0);` - the `for` lets the scheduler
+//     hoist the decrement and its store above the final xor, which is
+//     exactly what target does, and it was worth 17 of the 52 words;
+//   - `crc |= x;` not `crc = crc | x;` - the compound form puts crc in
+//     the first operand slot of the `or`, matching target.
+// u8 func_151F27E0(u16 arg0) {
+//     u8 crc;
+//     u8 tmp;
+//     s32 i;
+//
+//     crc = 0;
+//     for (i = 0; i < 0x10; i++) {
+//         tmp = (crc & 0x10) ? 0x15 : 0;
+//         crc = crc << 1;
+//         crc |= (u8) ((arg0 & 0x400) ? 1 : 0);
+//         arg0 = arg0 << 1;
+//         crc = crc ^ tmp;
+//     }
+//     return crc & 0x1F;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F27E0.s")
 
+// NON-MATCHING (BLOCKED BY BUILD FLAGS, NOT BY THE SOURCE): the C below
+// is a verified EXACT match - 52 of 52 instructions, every single word
+// identical to target, with no relocation sites at all since these are
+// leaf functions that reference nothing external.  It cannot be enabled
+// because it only matches at -O1, and this file is built -g by the
+// directory-wide rule
+//     $(BUILD_DIR)/$(SRC_DIR)/libultra/audio/%.o: OPT_FLAGS := -g
+// in the Makefile.  At -g this same source drops to 15 of 52 words.
+//
+// That flag split is real, not a mistake in the rule: func_151F2C4C,
+// func_151F2CDC and func_151F2D6C in this same file are byte-perfect at
+// -g and collapse to roughly a third of their words at -O1, so the file
+// as splat carved it holds code from two different translation units -
+// the interrupt-driven audio driver at -g, and these two leaf CRC
+// helpers at -O1.  Enabling them needs the file split in conker.us.yaml
+// plus a per-file OPT_FLAGS line, which is a build-layout change rather
+// than a decompilation one.
+//
+// The tells that a function in a -g file actually wants -O1, all three
+// present here and absent from every -g function in this file:
+//   - the epilogue has no branch to a shared return label (at -g even a
+//     single trailing `return` emits `b <epilogue>` plus the dead
+//     closing-brace `b`);
+//   - a delay slot is filled by hoisting an instruction across a
+//     statement boundary, not just from immediately before the branch;
+//   - operands of the NEXT statement are computed before the previous
+//     statement's store.
+//
+// Source shape notes, both needed even at -O1:
+//   - the bit loop is `for (j = 7; j >= 0; j--)`, not
+//     `do { ... } while (--j >= 0);` - the `for` lets the scheduler
+//     hoist the decrement and its store above the final xor, which is
+//     exactly what target does, and it was worth 17 of the 52 words;
+//   - `crc |= x;` not `crc = crc | x;` - the compound form puts crc in
+//     the first operand slot of the `or`, matching target.
+// u8 func_151F2890(u8 *p) {
+//     u8 crc;
+//     u8 tmp;
+//     s32 i;
+//     s32 j;
+//
+//     crc = 0;
+//     i = 0;
+//     do {
+//         for (j = 7; j >= 0; j--) {
+//             tmp = (crc & 0x80) ? 0x85 : 0;
+//             crc = crc << 1;
+//             if (i == 0x20) {
+//                 crc = crc | 0;
+//             } else {
+//                 crc |= (p[0] & (1 << j)) ? 1 : 0;
+//             }
+//             crc = crc ^ tmp;
+//         }
+//         p++;
+//     } while (++i < 0x21);
+//     return crc;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2890.s")
 
 void func_151F2960(s32 arg0, s32 arg1) {
