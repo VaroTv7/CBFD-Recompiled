@@ -19,6 +19,11 @@ extern s32  D_800E0DD8;
 extern s32  D_800E0DE0;
 extern s32  D_800E0DE4;
 extern s32  D_800E0DFC;
+extern s16  D_8002BC10[];
+extern s16  D_8002BD0E[];
+extern u8   D_800428C1;
+extern u8   D_800428C2;
+s16 _getVol();
 
 
 // NON-MATCHING (BLOCKED BY BUILD FLAGS, NOT BY THE SOURCE): the C below
@@ -269,7 +274,53 @@ void func_151F2E4C(s32 arg0, s32 arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2E88.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F39E4.s")
+void func_151F39E4(void *arg0) {
+    if (*(s32 *) ((char *) arg0 + 0x88) != *(s16 *) ((char *) arg0 + 0xE) ||
+        *(s16 *) ((char *) arg0 + 0x94) != *(s16 *) ((char *) arg0 + 0xC)) {
+        if (*(s32 *) ((char *) arg0 + 0x28) >= *(s32 *) ((char *) arg0 + 0x2C)) {
+            *(s16 *) ((char *) arg0 + 0x1C) =
+                (*(s16 *) ((char *) arg0 + 0xE) * D_8002BC10[*(s16 *) ((char *) arg0 + 0xC)]) >> 15;
+            *(s16 *) ((char *) arg0 + 0x22) =
+                (*(s16 *) ((char *) arg0 + 0xE) * D_8002BD0E[-*(s16 *) ((char *) arg0 + 0xC)]) >> 15;
+            *(s32 *) ((char *) arg0 + 0x28) = *(s32 *) ((char *) arg0 + 0x2C);
+            *(s16 *) ((char *) arg0 + 0x10) = *(s16 *) ((char *) arg0 + 0x1C);
+            *(s16 *) ((char *) arg0 + 0x12) = *(s16 *) ((char *) arg0 + 0x22);
+        } else {
+            *(s16 *) ((char *) arg0 + 0x10) =
+                _getVol(*(s16 *) ((char *) arg0 + 0x10), *(s32 *) ((char *) arg0 + 0x28),
+                        *(s16 *) ((char *) arg0 + 0x1A), *(u16 *) ((char *) arg0 + 0x18));
+            *(s16 *) ((char *) arg0 + 0x12) =
+                _getVol(*(s16 *) ((char *) arg0 + 0x12), *(s32 *) ((char *) arg0 + 0x28),
+                        *(s16 *) ((char *) arg0 + 0x20), *(u16 *) ((char *) arg0 + 0x1E));
+        }
+
+        if (*(s16 *) ((char *) arg0 + 0x10) == 0) {
+            *(s16 *) ((char *) arg0 + 0x10) = 1;
+        }
+        if (*(s16 *) ((char *) arg0 + 0x12) == 0) {
+            *(s16 *) ((char *) arg0 + 0x12) = 1;
+        }
+
+        *(s16 *) ((char *) arg0 + 0xE) = *(s32 *) ((char *) arg0 + 0x88);
+        if (*(s16 *) ((char *) arg0 + 0xE) == 0 && *(s32 *) ((char *) arg0 + 0x90) != 0) {
+            func_151F2BA8();
+        }
+
+        if (*(s16 *) ((char *) arg0 + 0x94) != *(s16 *) ((char *) arg0 + 0xC)) {
+            if (D_800428C2 != 0) {
+                *(s16 *) ((char *) arg0 + 0xC) = (*(s16 *) ((char *) arg0 + 0x94) >> 1) + 0x20;
+            } else if (D_800428C1 != 0) {
+                *(s16 *) ((char *) arg0 + 0xC) = 0x40;
+            } else {
+                *(s16 *) ((char *) arg0 + 0xC) = *(s16 *) ((char *) arg0 + 0x94);
+            }
+        }
+
+        *(s32 *) ((char *) arg0 + 0x28) = 0;
+        *(s32 *) ((char *) arg0 + 0x2C) = (*(u32 *) ((char *) arg0 + 0x90) + 0xB7) / 0xB8 * 0xB8;
+        *(s16 *) ((char *) arg0 + 0x24) = 1;
+    }
+}
 
 void func_151F3C1C(s32 arg0) {
     D_800E0E00 = arg0;
@@ -279,7 +330,29 @@ void func_151F3C34(s32 arg0) {
     D_800E0DFC = arg0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F3C4C.s")
+s32 func_151F3C4C(s32 arg0, void *arg1, s32 arg2, s32 arg3) {
+    s32 sp1C;
+    void *fp;
+
+    if (arg3 != -1) {
+        D_800E0DE4 = arg3;
+    }
+    if (D_800E0DE4 + arg2 > D_800E0DE0) {
+        arg2 = D_800E0DE0 - D_800E0DE4;
+    }
+
+    fp = (*(void *(**)(void *)) ((char *) n_syn + 0x24))(&sp1C);
+    sp1C = ((s32 (*)(void *, s32, s32)) fp)((void *) (D_800E0D80 + D_800E0DE4), arg2, 0);
+    if (sp1C == 0) {
+        return 0;
+    }
+
+    sp1C = sp1C + 0x80000000;
+    osInvalDCache((void *) sp1C, arg2);
+    bcopy((void *) sp1C, arg1, arg2);
+    D_800E0DE4 = D_800E0DE4 + arg2;
+    return arg2;
+}
 
 void func_151F3D78(void) {
     s32 sp1C;
