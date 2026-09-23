@@ -893,7 +893,7 @@ f32 func_15144BC8(f32 arg0) {
     return v;
 }
 
-s32 func_15144C2C( s32 arg0) {
+s32 func_15144C2C(s16 arg0) {
     s16 tmp1 = arg0;
 
     while (tmp1 >= 256)

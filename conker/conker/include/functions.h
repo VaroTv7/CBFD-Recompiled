@@ -797,7 +797,7 @@ s32  func_151422DC();
 s32  func_151422F8();
 void * func_15143134();
 s32  func_15143E08();
-s32  func_15144C2C();
+s32  func_15144C2C(s16 arg0);
 f32  func_15144C8C(f32 arg0, f32 arg1);
 void func_151450B4();
 s32  func_151454BC(u8 arg0, f32 arg1, struct17 *arg2);
