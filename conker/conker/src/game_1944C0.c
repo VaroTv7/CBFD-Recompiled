@@ -3,6 +3,8 @@
 #include "functions.h"
 #include "variables.h"
 
+void func_15169040(void *, u8);
+
 
 // NON-MATCHING: corrects a wrong element count from an earlier
 // attempt (the loop bound is genuinely 101 elements, confirmed by
@@ -21,6 +23,26 @@
 // written as `p + 101` (reusing `p`) or `D_8008B4A8 + 101` (a fresh
 // global reference) - both produce identical output, so this is a
 // scheduling/register-pressure artifact immune to the source change.
+// NON-MATCHING (14 of 22 words): same shape as func_1516706C but over
+// the struct115 array D_8008B4A8, calling unk18 on each of the 101
+// entries (0x1484 bytes at 0x34 each).  Semantics are certain; the gap
+// is register allocation - target reserves THREE saved registers (s0,
+// s1, s2) and leaves s1 completely unused, using s0 for the cursor and
+// s2 for the end pointer, which makes its frame 0x28 against 0x20 here
+// and shifts every saved-register offset.  Deriving the end pointer
+// from the cursor rather than from the array base did not reproduce the
+// extra reservation.
+// void func_15167010(void) {
+//     struct115 *p;
+//
+//     p = D_8008B4A8;
+//     do {
+//         if (p->unk18 != NULL) {
+//             ((void (*)(void)) p->unk18)();
+//         }
+//         p++;
+//     } while (p < D_8008B4A8 + 101);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15167010.s")
 // void func_15167010(void) {
 //     struct115 *p;
@@ -50,6 +72,26 @@ extern void (*D_8008CB70)(void);
 // end pointer first (fixed the `addiu` order but swapped the `lui`
 // order instead) and a `for` loop (worse - different register entirely).
 // No source order tried got both right simultaneously.
+// NON-MATCHING (2 real words): calls every non-NULL entry of the
+// function-pointer table running from D_8008CB64 to D_8008CB70.  The
+// loop must be a do/while - a `for` emits an entry test target does not
+// have - and with that the whole function matches except that target
+// materialises the two table addresses as `lui s0; lui s1; addiu s1;
+// addiu s0`, pairing the second `lui` with the first `addiu`.  Both
+// source orderings of the two pointer initialisations were tried and
+// each keeps the `addiu`s in its own order; this is the scheduler
+// interleaving two independent address materialisations.
+// void func_1516706C(void) {
+//     void (**p)(void);
+//
+//     p = D_8008CB64;
+//     do {
+//         if (*p != NULL) {
+//             (*p)();
+//         }
+//         p++;
+//     } while (p != D_8008CB70);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_1516706C.s")
 // void func_1516706C(void) {
 //     void (**p)(void) = D_8008CB64;
@@ -272,6 +314,38 @@ void func_15168B10(s32 arg0, s32 arg1) {
 // unlike the struct-bundling fix documented there (which relies on an
 // intervening external call to force conservatism), there's no call
 // between these two stores to exploit here.
+// NON-MATCHING (24 of 26 words): a countdown on the two 16-bit halves
+// of the word at unk14.  If the low half is non-zero it is decremented
+// and unk38 is set to 0x1E; otherwise the high half is subtracted from
+// the byte at unk3F when it fits, setting unk38 to 0x1E, and unk38 is
+// cleared when it does not.  The blocker is that target writes the
+// unk14 word TWICE - once with the low half cleared, then again with
+// the new value OR'd in - which is the signature of a bitfield
+// assignment.  Written as two explicit statements IDO folds them into a
+// single store at -O2, so reproducing this needs the real struct with
+// `u32 hi : 16; u32 lo : 16;` at unk14 rather than the raw casts used
+// here.
+// s32 func_15168B44(void *arg0) {
+//     s32 v1;
+//     s32 v0;
+//
+//     v1 = *(s32 *) ((char *) arg0 + 0x14);
+//     if ((v1 & 0xFFFF) != 0) {
+//         v0 = (v1 & 0xFFFF) - 1;
+//         *(s32 *) ((char *) arg0 + 0x14) = v1 & 0xFFFF0000;
+//         *(s32 *) ((char *) arg0 + 0x14) = (v1 & 0xFFFF0000) | (v0 & 0xFFFF);
+//         *(s16 *) ((char *) arg0 + 0x38) = 0x1E;
+//         return v0;
+//     }
+//     v0 = v1 >> 16;
+//     if ((v0 & 0xFFFF) < *(u8 *) ((char *) arg0 + 0x3F)) {
+//         *(u8 *) ((char *) arg0 + 0x3F) -= v0 & 0xFFFF;
+//         *(s16 *) ((char *) arg0 + 0x38) = 0x1E;
+//         return v0;
+//     }
+//     *(s16 *) ((char *) arg0 + 0x38) = 0;
+//     return v0;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15168B44.s")
 // void func_15168B44(void *arg0) {
 //     s32 v1 = *(s32 *) ((char *) arg0 + 0x14);
@@ -397,6 +471,17 @@ void func_15168F84(s32 arg0, s32 *arg1, s32 *arg2) {
 // instead spills arg1 to its stack slot at entry and reloads it via lbu
 // right before the call - same content, just 4/12 words in a different
 // order/form.
+// NON-MATCHING (4 of 12 words): semantics recovered - it is a thin
+// wrapper, `func_15169070(0, 0x68, arg0, arg1);` with arg1 a u8.
+// Target homes arg1 to its caller slot and then masks it straight out
+// of the register (`andi $a3, $a1, 0xFF`); every spelling tried here
+// (plain `arg1`, `arg1 & 0xFF`, an explicit `(s32)` cast) homes it and
+// then reloads it with `lbu` from the home slot instead, which also
+// shifts the argument-setup order. The four differing words are that
+// reload plus the resulting reordering.
+// void func_15169040(void *arg0, u8 arg1) {
+//     func_15169070(0, 0x68, arg0, arg1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_15169040.s")
 // void func_15169040(void *arg0, u8 arg1) {
 //     func_15169070(0, 0x68, arg0, arg1);
@@ -416,7 +501,16 @@ void func_15168F84(s32 arg0, s32 *arg1, s32 *arg2) {
 // instead - same content, different instruction order/count. Adding an
 // explicit early-masked local didn't change the ordering, only grew
 // the frame with an unused extra slot.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_1944C0/func_151695F0.s")
+void func_151695F0(void *arg0, u8 arg1) {
+    struct {
+        void *f0;
+        u8 f4;
+    } sp18;
+
+    sp18.f0 = arg0;
+    sp18.f4 = *(u8 *) ((char *) arg0 + 0x3B);
+    func_15169040(&sp18, arg1);
+}
 // void func_151695F0(struct127 *arg0, u8 arg1) {
 //     struct {
 //         struct127 *ptr;
