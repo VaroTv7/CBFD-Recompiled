@@ -58,7 +58,7 @@ s32  func_15163F50();
 struct225 *func_15164208();
 s32  func_1516429C();
 void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2);
-void func_151644F4();
+void func_151644F4(struct242 *arg0, struct17 *arg1, s32 arg2, f32 arg3, f32 arg4);
 
 struct225 *func_151602C0(Header *header, Header2 *header2, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 offset, s32 arg9, s32 argA) {
     struct225 *ret;
