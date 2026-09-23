@@ -50,6 +50,16 @@ typedef struct {
 
 extern SfBand D_800AE998[];
 extern PreTab D_800B0AB4;
+
+// The MPEG-2 LSF scalefactor-length table: [preflag][region][window][4].
+// func_151F578C copies the whole 288-byte table onto its stack (IDO
+// expands the struct assignment into an inline copy loop) and then
+// bcopy()s one 4-entry row out of the copy.
+typedef struct {
+    s32 v[2][3][3][4];
+} SlenTab;
+
+extern SlenTab D_800B0B0C;
 f32 func_1504A400(f32, f32);
 
 
@@ -476,7 +486,190 @@ s32 func_151F42E8(void *arg0, s32 arg1, s32 arg2) {
 //     return 1;
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F4F38.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F578C.s")
+// LSF (MPEG-2 low sample rate) scalefactor decode for one channel.
+// Derives the four scalefactor bit lengths and the four band counts
+// from unk3C90's scalefac_compress code - by a different range split
+// depending on whether this is the second channel of an intensity-
+// stereo pair - then reads the scalefactors themselves out of the
+// bitstream into unk3D08 (long blocks) or unk3D64/unk3D98/unk3DCC
+// (the three short windows), recording the per-band masks at unk3EFC /
+// unk3F14 for the intensity-stereo pass.
+//
+// Byte-perfect: 782 of 782 instructions, 770 words identical and the
+// remaining 12 differing only in a relocated immediate.  Matched on the
+// first attempt, so nothing new had to be learned here - it is a clean
+// application of rules already established on this file:
+//   - the 288-byte inline copy loop at the top is a struct assignment,
+//     `tbl = D_800B0B0C;`, not a memcpy;
+//   - every `X = sl ? func_151F8960(...) : 0;` is a ternary, because
+//     target loads `sl` once and moves it straight into $a2;
+//   - local declaration order runs highest stack address first, which
+//     puts the 288-byte table, then the 4-word slen array, then the
+//     scalars, then the 4-word nr array, then the last three scalars.
+//
+// Two conditions genuinely re-test their first operand in the original
+// source, and reproducing that redundancy is required.  The bitstream
+// dispatch is `winSwitch == 0 || (winSwitch != 0 && blockType != 2)`,
+// not the equivalent `!(winSwitch && blockType == 2)`: target emits
+// THREE branches there, the middle one provably dead (a second `beqz`
+// on a register already known non-zero).  The same shape appears again
+// as the `blockType == 2` re-test at the head of the else arm.  A dead
+// branch on an already-tested register is a reliable tell that the
+// source repeated the operand - do not simplify it away.
+s32 func_151F578C(void *arg0, s32 arg1, s32 arg2) {
+    SlenTab tbl;
+    s32 slen[4];
+    s32 sfc;
+    s32 *pre;
+    s32 mixedFlag;
+    s32 blockType;
+    s32 winSwitch;
+    s32 a;
+    s32 b;
+    s32 i;
+    s32 j;
+    s32 half;
+    s32 nr[4];
+    s32 k;
+    s32 sl;
+    s32 mask;
+
+    tbl = D_800B0B0C;
+    sfc = *(s32 *) ((char *) arg0 + arg2 * 4 + 0x3C90);
+    pre = (s32 *) ((char *) arg0 + arg2 * 4 + 0x3CF0);
+    mixedFlag = *(s32 *) ((char *) arg0 + arg2 * 4 + 0x3CA8);
+    blockType = *(s32 *) ((char *) arg0 + arg2 * 4 + 0x3CA0);
+    winSwitch = *(s32 *) ((char *) arg0 + arg2 * 4 + 0x3C98);
+
+    if ((*(s32 *) ((char *) arg0 + 0x3BC4) != 1 && *(s32 *) ((char *) arg0 + 0x3BC4) != 3) ||
+        arg2 != 1) {
+        a = 0;
+        if (sfc < 0x190) {
+            slen[0] = (sfc >> 4) / 5;
+            slen[1] = (sfc >> 4) % 5;
+            slen[2] = (sfc % 16) >> 2;
+            slen[3] = sfc % 4;
+            *pre = 0;
+            b = 0;
+        } else if (sfc >= 0x190 && sfc < 0x1F4) {
+            slen[0] = ((sfc - 0x190) >> 2) / 5;
+            slen[1] = ((sfc - 0x190) >> 2) % 5;
+            slen[2] = (sfc - 0x190) % 4;
+            slen[3] = 0;
+            *pre = 0;
+            b = 1;
+        } else if (sfc >= 0x1F4 && sfc < 0x200) {
+            slen[0] = (sfc - 0x1F4) / 3;
+            slen[1] = (sfc - 0x1F4) % 3;
+            slen[2] = 0;
+            slen[3] = 0;
+            *pre = 1;
+            b = 2;
+        }
+    }
+
+    if ((*(s32 *) ((char *) arg0 + 0x3BC4) == 1 || *(s32 *) ((char *) arg0 + 0x3BC4) == 3) &&
+        arg2 == 1) {
+        *(s32 *) ((char *) arg0 + 0x3EF8) = sfc % 2;
+        half = sfc >> 1;
+        a = 1;
+        if (half < 0xB4) {
+            slen[0] = half / 0x24;
+            slen[1] = (half % 0x24) / 6;
+            slen[2] = (half % 0x24) % 6;
+            slen[3] = 0;
+            *pre = 0;
+            b = 0;
+        } else if (half >= 0xB4 && half < 0xF4) {
+            slen[0] = ((half - 0xB4) % 0x40) >> 4;
+            slen[1] = ((half - 0xB4) % 16) >> 2;
+            slen[2] = (half - 0xB4) % 4;
+            slen[3] = 0;
+            *pre = 0;
+            b = 1;
+        } else if (half >= 0xF4 && half < 0xFF) {
+            slen[0] = (half - 0xF4) / 3;
+            slen[1] = (half - 0xF4) % 3;
+            slen[2] = 0;
+            slen[3] = 0;
+            *pre = 0;
+            b = 2;
+        }
+    }
+
+    if (winSwitch != 0 && blockType == 2) {
+        bcopy(tbl.v[a][b][mixedFlag + 1], nr, 0x10);
+    } else {
+        bcopy(tbl.v[a][b][0], nr, 0x10);
+    }
+
+    k = 0;
+    if (winSwitch == 0 || (winSwitch != 0 && blockType != 2)) {
+        for (i = 0; i < 4; i++) {
+            sl = slen[i];
+            mask = (1 << sl) - 1;
+            for (j = 0; j < nr[i]; j++) {
+                *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D08) =
+                    sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                if (arg2 != 0) {
+                    *(s32 *) ((char *) arg0 + k * 4 + 0x3EFC) = mask;
+                }
+                k++;
+            }
+        }
+    } else {
+        if (blockType == 2) {
+            if (mixedFlag == 0) {
+                for (i = 0; i < 4; i++) {
+                    sl = slen[i];
+                    mask = (1 << sl) - 1;
+                    for (j = 0; j < nr[i]; j += 3) {
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D64) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D98) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3DCC) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        if (arg2 != 0) {
+                            *(s32 *) ((char *) arg0 + k * 4 + 0x3F14) = mask;
+                        }
+                        k++;
+                    }
+                }
+            } else {
+                sl = slen[0];
+                mask = (1 << sl) - 1;
+                for (j = 0; j < 6; j++) {
+                    *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D08) =
+                        sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                    if (arg2 != 0) {
+                        *(s32 *) ((char *) arg0 + k * 4 + 0x3EFC) = mask;
+                    }
+                    k++;
+                }
+                nr[0] -= 6;
+                k = 3;
+                for (i = 0; i < 4; i++) {
+                    sl = slen[i];
+                    mask = (1 << sl) - 1;
+                    for (j = 0; j < nr[i]; j += 3) {
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D64) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3D98) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        *(s32 *) ((char *) arg0 + arg2 * 248 + k * 4 + 0x3DCC) =
+                            sl ? func_151F8960((char *) arg0 + 0x1C, (char *) arg0 + 0x2020, sl) : 0;
+                        if (arg2 != 0) {
+                            *(s32 *) ((char *) arg0 + k * 4 + 0x3F14) = mask;
+                        }
+                        k++;
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
 // NON-MATCHING (JUSTREG): 363/363 instructions and structurally an
 // exact match - with register names normalized away, only SIX lines of
 // the 363 differ, and four of those are relocation immediates. Decodes
