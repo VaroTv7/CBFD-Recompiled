@@ -914,7 +914,16 @@ void func_1506EE38(void) {
 // recomputes it a second time right before that call regardless of
 // whether it's written as a shared local or inlined at each use site -
 // IDO isn't reusing the delay-slot value across to the call here.
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506EE60.s")
+void func_1506EE60(void) {
+    s32 v0;
+
+    v0 = D_800D1580;
+    if (v0 != 0) {
+        func_15188810(gCurrentObject, v0 & 0xFFFF, v0 >> 16);
+    } else {
+        func_15188A9C(gCurrentObject);
+    }
+}
 // void func_1506EE60(void) {
 //     s32 temp_v0 = D_800D1580;
 //
@@ -951,6 +960,29 @@ void func_1506EEF4(void) {
 // color's high byte doubled. Register allocation substantially different
 // from target throughout, particularly the repeated gCurrentObject
 // pointer reloads.
+// NON-MATCHING (JUSTREG): semantics fully recovered and the
+// instruction stream is exact - 22 of 22 words, same opcodes, same
+// offsets, same constants.  Every difference is a register name.
+// Target parks the materialised &gCurrentObject in $a2 and the
+// D_800D1580 value in $t1 (with the lui landing in $v1); this build
+// uses $a0 and reuses $v0 for both the lui and the load.  Reading
+// D_800D1580 inline at each use instead of into a local, and giving the
+// function one or two unused parameters to push allocation off $a0,
+// both made it worse (22 of 22 rather than 20).
+//
+// One real fix did land and is worth keeping: the 0x282 store is to a
+// u16, not an s16.  With s16 IDO narrows the constant and emits
+// `li $t6, -1`; with u16 it emits `ori $t, $zero, 0xFFFF` exactly as
+// target does.
+// void func_1506EF5C(void) {
+//     s32 v;
+//
+//     v = D_800D1580;
+//     *(u16 *) ((char *) gCurrentObject + 0x282) = 0xFFFF;
+//     *(u8 *) ((char *) gCurrentObject + 0x276) = 5;
+//     *(u8 *) ((char *) gCurrentObject + ((v >> 16) & 0xFF) * 2 + 0x284) = v >> 8;
+//     *(u8 *) ((char *) gCurrentObject + ((v >> 16) & 0xFF) * 2 + 0x285) = v;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506EF5C.s")
 // void func_1506EF5C(void) {
 //     s32 idx;
@@ -1421,6 +1453,36 @@ void func_15071764(s32 arg0) {
 // just recomputes the cheap `addiu` a second time instead - couldn't
 // find a source form that forces the more expensive save/reload IDO
 // apparently used for the real target binary.
+// NON-MATCHING (12 of 19 words): semantics recovered.  It asks
+// func_15083E90 for object type 0x12 and, if it gets one, builds a
+// two-field record on the stack (the object pointer plus its unk3B
+// byte) and hands it to func_15131D4C and then func_151494E0, both
+// with 0x43.  arg0 is homed and never used.
+//
+// The gap is one spilled pointer.  Target computes `&sp20` once, spills
+// it to 0x18(sp) and reloads it after the first call; this build
+// rematerialises `addiu $a0, $sp, 0x20` after the call instead, which
+// is cheaper and drops the store, and every following word shifts by
+// one.  Routing both calls through an explicit local (as below) is
+// already the form that should force the spill, so this is the
+// allocator preferring rematerialisation, not a source shape.
+// void func_150717E0(s32 arg0) {
+//     struct {
+//         void *f0;
+//         u8 f4;
+//     } sp20;
+//     void *p;
+//     void *v0;
+//
+//     v0 = func_15083E90(0x12);
+//     if (v0 != 0) {
+//         sp20.f0 = v0;
+//         sp20.f4 = *(u8 *) ((char *) v0 + 0x3B);
+//         p = &sp20;
+//         func_15131D4C(p, 0x43);
+//         func_151494E0(p, 0x43);
+//     }
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150717E0.s")
 // void func_150717E0(s32 arg0) {
 //     struct {

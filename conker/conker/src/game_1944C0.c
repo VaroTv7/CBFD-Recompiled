@@ -322,9 +322,17 @@ void func_15168B10(s32 arg0, s32 arg1) {
 // unk14 word TWICE - once with the low half cleared, then again with
 // the new value OR'd in - which is the signature of a bitfield
 // assignment.  Written as two explicit statements IDO folds them into a
-// single store at -O2, so reproducing this needs the real struct with
-// `u32 hi : 16; u32 lo : 16;` at unk14 rather than the raw casts used
-// here.
+// single store at -O2.
+//
+// UPDATED: the bitfield theory is RULED OUT.  Declaring unk14 as
+// `u32 hi : 16; u32 lo : 16;` makes IDO narrow both accesses to
+// `lhu`/`sh` on the half-word, which is FURTHER from target than the
+// raw word casts - 21 of 21 words differing rather than 24 of 26.
+// Writing the second statement as `|=` so that it READS the field,
+// which should keep the first store live, does not help either: IDO
+// still folds the pair into one `sw`.  Whatever produces two stores to
+// the same word here is neither a plain bitfield nor a
+// read-modify-write.
 // s32 func_15168B44(void *arg0) {
 //     s32 v1;
 //     s32 v0;
