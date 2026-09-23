@@ -506,6 +506,6 @@ void func_15178DA4(void *arg0) {
     func_15169824(arg0, var_a1);
 }
 
-void func_15178E14(s32 arg0) {
+void func_15178E14(u8 arg0) {
     func_15178DA4(func_15178B98(arg0 & 0xFF));
 }
