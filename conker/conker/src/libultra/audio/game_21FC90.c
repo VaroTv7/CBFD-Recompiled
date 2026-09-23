@@ -2,6 +2,7 @@
 
 extern s32  D_800E0E00;
 extern s32  D_800E0E04;
+extern s32  D_800E0E08;
 extern s32  D_800E0E10;
 extern s16  D_800E0E14;
 extern s16  D_800E0E16;
@@ -91,11 +92,50 @@ void func_151F2BE8(void) {
     osSetIntMask(mask);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2C4C.s")
+void func_151F2C4C(void) {
+    u32 mask = osSetIntMask(1);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2CDC.s")
+    if (D_800E0E04 == 2) {
+        D_800E0E18 = 5;
+        D_800E0E04 = 7;
+    } else if (D_800E0E04 == 6) {
+        D_800E0E18 = 5;
+        D_800E0E04 = 5;
+    }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/game_21FC90/func_151F2D6C.s")
+    osSetIntMask(mask);
+}
+
+s32 func_151F2CDC(void) {
+    s32 ret;
+    u32 mask;
+
+    ret = 0;
+    mask = osSetIntMask(1);
+
+    if (D_800E0E04 == 1 || D_800E0E04 == 5 || D_800E0E04 == 6 || D_800E0E04 == 7 ||
+        D_800E0E04 == 2) {
+        ret = D_800E0E04;
+    }
+
+    osSetIntMask(mask);
+    return ret;
+}
+
+void func_151F2D6C(s32 arg0, s32 arg1) {
+    u32 mask = osSetIntMask(1);
+
+    if (arg0 < 0) {
+        D_800E0E08 = 0;
+    } else if (arg0 >= 0x8000) {
+        D_800E0E08 = 0x7FFF;
+    } else {
+        D_800E0E08 = arg0;
+    }
+
+    D_800E0E10 = arg1;
+    osSetIntMask(mask);
+}
 
 void func_151F2DFC(s32 arg0, s32 arg1) {
     if (arg0 >= 0x80) {
