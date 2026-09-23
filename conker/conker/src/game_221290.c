@@ -30,6 +30,28 @@ extern f32 D_800B069C[];
 extern s32 D_800E0E00;
 extern u8 D_800E1880[];
 
+// Scalefactor band boundary table: 23 long-block edges followed by 14
+// short-block edges, one row per (sample rate, MPEG version) pair.
+// splat named several interior elements as their own symbols -
+// D_800AE99A is .l[1], D_800AE9A8 is .l[8], D_800AE9C6 is .s[0],
+// D_800AE9C8 is .s[1] and D_800AE9CE is .s[4] - so those all
+// disassemble back out of this one declaration.
+typedef struct {
+    s16 l[23];
+    s16 s[14];
+} SfBand;
+
+// The 22-entry pre-emphasis table, copied wholesale onto the stack by
+// func_151F42E8 (IDO expands the struct assignment into an inline
+// 12-bytes-per-iteration copy loop).
+typedef struct {
+    s32 v[22];
+} PreTab;
+
+extern SfBand D_800AE998[];
+extern PreTab D_800B0AB4;
+f32 func_1504A400(f32, f32);
+
 
 // Builds the analysis/synthesis window tables and the cube-root lookup
 // used by the codec: three sine-windowed ramps into D_800E0E38 /
@@ -133,7 +155,177 @@ s32 func_151F3DE0(void) {
 
     return 1;
 }
-#pragma GLOBAL_ASM("asm/nonmatchings/game_221290/func_151F42E8.s")
+// Requantisation and reordering of one granule/channel: turns the
+// decoded integer spectrum at unk3F94 into the float spectrum at
+// unk4664, applying the global gain, the scalefactors and the sign
+// bits, and switching between the long-block and short-block band
+// layouts as it crosses unk3C98/unk3CA0/unk3CA8's window boundaries.
+// Byte-perfect: 788 of 788 instructions, every non-relocation word
+// identical to target (the remaining 52 differences are all %hi/%lo
+// and jal sites, which resolve at link time).
+//
+// Five operand-order transpositions were needed, every one of them
+// invisible to a register-normalised diff - the structure was already
+// exact before any of them, and each was found by walking the
+// field-wise encoding comparison to its FIRST differing word and
+// fixing only that:
+//   idx      -> unk3BA4 * 3 + unk3BB4, not unk3BB4 + unk3BA4 * 3
+//   scalefac -> unk3CF0 * pretab[sb], not pretab[sb] * unk3CF0
+//   sval     -> (gain * D_800E1480[sfs]) * D_800E1080[sfi]
+//   the width clamp -> `next > cnt`, not `cnt < next`
+//   the requantised sample -> D_800E1078[*isp++] * lval[sb]
+// The last one alone moved 180 words: it was the innermost expression
+// and its operand order set the temp-register numbering for the whole
+// remaining two thirds of the function.  Work first-difference-first
+// on a long function; a single early transposition masks everything
+// after it.
+//
+// Three shapes also mattered:
+//   - `sb * 4` is shared between pretab[sb] and the unk3D08 element,
+//     so both must be spelled as SUBSCRIPTS for IDO to common them;
+//     writing one as `+ sb * 4` inside a cast emits a second `sll`.
+//   - `if (*sgn++)`, not `if (*sgn++ != 0)` - the explicit `!= 0`
+//     makes IDO materialise a 0/1 boolean with `sltu`/`or` first.
+//   - `*out++ = ... *isp++ ...` as one statement; separate `isp++;
+//     out++;` statements emit load/add/store three times in sequence
+//     instead of target's interleaved load, load, add, add, store,
+//     store.
+s32 func_151F42E8(void *arg0, s32 arg1, s32 arg2) {
+    s32 idx;
+    s32 next;
+    s32 bandStart;
+    s32 bandWidth;
+    PreTab tbl;
+    f32 lval[22];
+    f32 sval[3][13];
+    f32 gain;
+    s32 sb;
+    s32 win;
+    s32 pre;
+    s32 sfs;
+    s32 sfi;
+    s32 i;
+    s32 cnt;
+    f32 *out;
+    s16 *isp;
+    u8 *sgn;
+    s32 flagA;
+    s32 flagB;
+    s32 mixed;
+    s32 nextEdge;
+    f32 *srow;
+
+    tbl = D_800B0AB4;
+    idx = *(s32 *) ((char *) arg0 + 0x3BA4) * 3 + *(s32 *) ((char *) arg0 + 0x3BB4);
+
+    if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98) != 0 &&
+        *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2) {
+        if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) != 0) {
+            next = D_800AE998[idx].l[1];
+        } else {
+            next = D_800AE998[idx].s[1] * 3;
+            bandWidth = D_800AE998[idx].s[1];
+            bandStart = 0;
+        }
+    } else {
+        next = D_800AE998[idx].l[1];
+    }
+
+    gain = func_1504A400(2.0f,
+        ((f32) *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C88) - 210.0f) * 0.25f);
+    pre = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CF8);
+
+    for (sb = 0; sb < 0x16; sb++) {
+        sfi = (((s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + 0x3D08))[sb]
+               + *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CF0) * tbl.v[sb])
+              * (pre + 1);
+        lval[sb] = D_800E1080[sfi] * gain;
+    }
+
+    for (win = 0; win < 3; win++) {
+        for (sb = 0; sb < 0xD; sb++) {
+            sfs = *(s32 *) ((char *) arg0 + arg1 * 12 + arg2 * 12 + win * 4 + 0x3CC8);
+            sfi = *(s32 *) ((char *) arg0 + arg1 * 248 + arg2 * 248 + win * 52 + sb * 4 + 0x3D64)
+                  * (pre + 1);
+            sval[win][sb] = (gain * D_800E1480[sfs]) * D_800E1080[sfi];
+        }
+    }
+
+    sb = 0;
+    i = 0;
+    cnt = *(s32 *) ((char *) arg0 + arg2 * 4 + 0x465C);
+    out = (f32 *) ((char *) arg0 + arg2 * 2304 + 0x4664);
+    isp = (s16 *) ((char *) arg0 + arg2 * 1156 + 0x3F94);
+    sgn = (u8 *) ((char *) arg0 + arg2 * 578 + 0x4418);
+
+    flagA = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2 &&
+            *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) == 0;
+    flagB = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2 &&
+            *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) != 0;
+    mixed = *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98);
+
+    while (i < cnt) {
+        if (next > cnt) {
+            next = cnt;
+        }
+        if (mixed != 0 && (flagA != 0 || (flagB != 0 && i >= 0x24))) {
+            win = (i - bandStart) / bandWidth;
+            nextEdge = bandStart + bandWidth;
+        }
+        while (i < next) {
+            if (mixed != 0 && (flagA != 0 || (flagB != 0 && i >= 0x24))) {
+                if (i >= nextEdge) {
+                    nextEdge += bandWidth;
+                    win++;
+                }
+                srow = sval[win];
+                if (*sgn++) {
+                    *out++ = -(D_800E1078[*isp++] * srow[sb]);
+                } else {
+                    *out++ = D_800E1078[*isp++] * srow[sb];
+                }
+            } else {
+                if (*sgn++) {
+                    *out++ = -(D_800E1078[*isp++] * lval[sb]);
+                } else {
+                    *out++ = D_800E1078[*isp++] * lval[sb];
+                }
+            }
+            i++;
+        }
+        if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3C98) != 0 &&
+            *(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA0) == 2) {
+            if (*(s32 *) ((char *) arg0 + arg1 * 4 + arg2 * 4 + 0x3CA8) != 0) {
+                if (D_800AE998[idx].l[8] == i) {
+                    next = D_800AE998[idx].s[4] * 3;
+                    sb = 3;
+                    bandWidth = D_800AE998[idx].s[sb + 1] - D_800AE998[idx].s[sb];
+                    bandStart = D_800AE998[idx].s[sb] * 3;
+                } else {
+                    if (i < D_800AE998[idx].l[8]) {
+                        next = D_800AE998[idx].l[++sb + 1];
+                    } else {
+                        next = D_800AE998[idx].s[++sb + 1] * 3;
+                        bandWidth = D_800AE998[idx].s[sb + 1] - D_800AE998[idx].s[sb];
+                        bandStart = D_800AE998[idx].s[sb] * 3;
+                    }
+                }
+            } else {
+                next = D_800AE998[idx].s[++sb + 1] * 3;
+                bandWidth = D_800AE998[idx].s[sb + 1] - D_800AE998[idx].s[sb];
+                bandStart = D_800AE998[idx].s[sb] * 3;
+            }
+        } else {
+            next = D_800AE998[idx].l[++sb + 1];
+        }
+    }
+
+    if (i < 0x240) {
+        bzero(out, *(s32 *) ((char *) arg0 + arg2 * 4 + 0x4660) * 4);
+        return 1;
+    }
+    return 1;
+}
 // NON-MATCHING (JUSTREG): scalefactor / bit-allocation decode.  The
 // reconstruction below is structurally a 100% match - 533 of 533
 // instructions, every opcode, immediate, stack offset, struct field
