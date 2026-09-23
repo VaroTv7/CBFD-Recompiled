@@ -4,9 +4,9 @@
 #include "variables.h"
 
 
-void func_15058F24();
+void func_15058F24(struct127 *arg0, f32 arg1, f32 arg2);
 u8   func_150599C8();
-void func_1505A250();
+void func_1505A250(f32 arg0, f32 arg1, f32 arg2, f32 *arg3, f32 *arg4);
 f32  func_1505A3A8();
 
 u8  func_1505B9C4();
@@ -565,7 +565,7 @@ void func_15059140(struct127 *arg0) {
     }
     if (arg0->unkB0 != 0) {
         f32 temp_f8 = arg0->unkB0 * D_800994A8;
-        func_15058F24(arg0, *(s32 *) &temp_f8, 0x3F800000);
+        func_15058F24(arg0, temp_f8, 1.0f);
     }
     if (arg0->unkF8 & 0x20000) {
         func_15056258(arg0);
@@ -586,7 +586,7 @@ void func_15059140(struct127 *arg0) {
     if (arg0->unkF8 & 0x80000) {
         sp2C = D_800994B4;
     }
-    func_1505A250(0, 0, sp2C, &arg0->unk164, &arg0->unk168);
+    func_1505A250(0.0f, 0.0f, sp2C, &arg0->unk164, &arg0->unk168);
     if (arg0->unkD0 != 0) {
         func_1505C7D8(arg0, gCurrentObjectIndex);
     }
