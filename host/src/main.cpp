@@ -1,8 +1,12 @@
 // Host application for Conker's Bad Fur Day (US), recompiled with N64Recomp.
 //
-// Currently headless: a null renderer, no audio output and no controller input.
-// Usage: ConkerRecomp --rom <baserom.us.z64> [--seconds N]
-//   --seconds N  quit after N seconds (default: run until killed)
+// With RT64 (CONKER_RT64) it opens a window and reads the keyboard and game
+// controllers (see window_input.cpp); otherwise, or with --headless, it runs with a
+// null renderer and no input. No audio output yet.
+// Usage: ConkerRecomp --rom <baserom.us.z64> [--seconds N] [--headless]
+//   --rom PATH   the US ROM; only needed once, it is then kept in conker_data/
+//   --seconds N  quit after N seconds (default: run until the window is closed)
+//   --headless   null renderer, no window or input
 
 #include <atomic>
 #include <chrono>
@@ -44,6 +48,43 @@ static void install_crash_handler() {
     sa.sa_flags = SA_SIGINFO;
     sigaction(SIGSEGV, &sa, nullptr);
     sigaction(SIGBUS, &sa, nullptr);
+}
+#elif defined(_WIN32)
+#include <Windows.h>
+#include <DbgHelp.h>
+
+// Debugging aid: report the faulting function (the recompiled functions are
+// named after their vram) and a short stack, using the PDB next to the exe.
+static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
+    DWORD code = info->ExceptionRecord->ExceptionCode;
+    if (code != EXCEPTION_ACCESS_VIOLATION && code != EXCEPTION_ILLEGAL_INSTRUCTION &&
+        code != EXCEPTION_STACK_OVERFLOW && code != EXCEPTION_INT_DIVIDE_BY_ZERO) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    HANDLE process = GetCurrentProcess();
+    SymInitialize(process, nullptr, TRUE);
+    std::fprintf(stderr, "[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
+    void* frames[32];
+    USHORT count = CaptureStackBackTrace(0, 32, frames, nullptr);
+    alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + 256];
+    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    symbol->MaxNameLen = 255;
+    for (USHORT i = 0; i < count; i++) {
+        DWORD64 offset = 0;
+        if (SymFromAddr(process, (DWORD64)frames[i], &offset, symbol)) {
+            std::fprintf(stderr, "  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
+        }
+        else {
+            std::fprintf(stderr, "  %p\n", frames[i]);
+        }
+    }
+    std::fflush(stderr);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+static void install_crash_handler() {
+    AddVectoredExceptionHandler(1, crash_handler);
 }
 #else
 static void install_crash_handler() {}
@@ -105,6 +146,8 @@ namespace {
     size_t get_frames_remaining() { return 0; }
     void set_frequency(uint32_t) {}
 
+    bool headless = true;
+
     void poll_input() {}
     bool get_input(int, uint16_t*, float*, float*) { return false; }
     void set_rumble(int, bool) {}
@@ -121,6 +164,11 @@ namespace {
 }
 
 ultramodern::input::connected_device_info_t conker::get_connected_device_info(int controller_num) {
+#if defined(CONKER_RT64)
+    if (!headless) {
+        return conker::window::get_connected_device_info(controller_num);
+    }
+#endif
     if (controller_num == 0) {
         return { ultramodern::input::Device::Controller, ultramodern::input::Pak::None };
     }
@@ -128,15 +176,23 @@ ultramodern::input::connected_device_info_t conker::get_connected_device_info(in
 }
 
 int main(int argc, char** argv) {
+    // Unbuffered, so diagnostics (e.g. RT64's microcode hashes) survive a crash.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     install_crash_handler();
     std::filesystem::path rom_path;
     int seconds = 0;
+#if defined(CONKER_RT64)
+    headless = false;
+#endif
     for (int i = 1; i < argc; i++) {
         if (std::strcmp(argv[i], "--rom") == 0 && i + 1 < argc) {
             rom_path = argv[++i];
         }
         else if (std::strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             seconds = std::atoi(argv[++i]);
+        }
+        else if (std::strcmp(argv[i], "--headless") == 0) {
+            headless = true;
         }
     }
 
@@ -176,10 +232,18 @@ int main(int argc, char** argv) {
     cfg.argv = runtime_argv.data();
     cfg.project_version = recomp::Version{ 0, 1, 0 };
     cfg.rsp_callbacks.get_rsp_microcode = get_rsp_microcode;
-    cfg.renderer_callbacks.create_render_context = conker::create_null_renderer;
     cfg.audio_callbacks = { queue_samples, get_frames_remaining, set_frequency };
+    cfg.renderer_callbacks.create_render_context = conker::create_null_renderer;
     cfg.input_callbacks = { poll_input, get_input, set_rumble, conker::get_connected_device_info };
     cfg.gfx_callbacks = { nullptr, create_window, nullptr };
+#if defined(CONKER_RT64)
+    if (!headless) {
+        cfg.renderer_callbacks.create_render_context = conker::create_rt64_renderer;
+        cfg.input_callbacks = { conker::window::poll_input, conker::window::get_input, conker::window::set_rumble,
+                                conker::get_connected_device_info };
+        cfg.gfx_callbacks = { conker::window::create_gfx, conker::window::create_window, conker::window::update_gfx };
+    }
+#endif
     cfg.events_callbacks = { vi_callback, nullptr };
     cfg.error_handling_callbacks = { message_box };
 

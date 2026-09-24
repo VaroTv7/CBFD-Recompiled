@@ -4,10 +4,11 @@ Turns the decomp's US ELF into C with [N64Recomp](../tools/N64Recomp) and runs
 it on [N64ModernRuntime](../tools/N64ModernRuntime) through the host
 application in [`host/`](../host).
 
-**Status:** the game boots and runs headless. With a null renderer, no audio
-microcode and no input, it submits display lists at about 30 per second (Conker's
-frame rate) and has run for minutes without crashing. Nothing is drawn yet:
-next is RT64.
+**Status:** the game runs on Windows in a window, rendered by
+[RT64](../tools/rt64), and can be played with a game controller or the
+keyboard. The boot screens, the 3D intro, the attract-mode cutscenes and the
+menus render correctly. There is no sound yet (audio tasks are dropped). On
+Linux/WSL the host still builds headless only (null renderer, no input).
 
 ## Building and running
 
@@ -25,7 +26,47 @@ cd host/build && ./ConkerRecomp --rom ../../baserom.us.z64 --seconds 30
 ```
 
 `tools/N64Recomp` (ffb39cd) and `tools/N64ModernRuntime` (cdf5abb) are
-untracked checkouts, so their changes live in the two patch files here.
+untracked checkouts, so their changes live in the patch files here.
+
+### Windows, with RT64
+
+`RecompiledFuncs/` comes from the WSL step above. Then, from the repo root, with
+Visual Studio 2022 or later (Build Tools is enough, with the C++ workload), CMake and Ninja:
+
+```bat
+git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
+git -C tools/rt64 apply ../../recomp/rt64.patch
+host\build_windows.cmd
+cd host\build-win
+ConkerRecomp.exe --rom ..\..\baserom.us.z64
+```
+
+`tools/rt64` is an untracked checkout of rt64/rt64 at 4337374, with its
+submodules. `build_windows.cmd` finds Visual Studio, sets up the x64 compiler
+environment and builds `host/build-win` (RelWithDebInfo, so the crash handler
+can name functions). Extra arguments go to `cmake --build`, e.g.
+`hostuild_windows.cmd -- -j 8 -k 0`. SDL2 and DXC come from RT64's
+bundled dependencies and are copied next to the exe. The ROM is only needed on
+the first run; it is kept in `conker_data/`. `--headless` runs without a window.
+
+Controls: a game controller (XInput or anything SDL recognises) or the keyboard.
+
+| N64 | controller | keyboard |
+|-----|------------|----------|
+| stick | left stick | WASD |
+| A / B | A / B (or X) | Space / Left Shift |
+| Z | left trigger | Q |
+| R / L | right shoulder or trigger / left shoulder | E / Tab |
+| Start | Start | Enter |
+| C buttons | right stick | arrow keys |
+| D-pad | D-pad | I J K L |
+
+F11 toggles fullscreen. A controller with rumble is reported to the game as having
+a Rumble Pak.
+
+`host/capture_run.ps1` runs the game for a while, saves screenshots of the window
+at given times and can press keys, for checking a build without watching it:
+`powershell -File host\capture_run.ps1 -Seconds 60 -Shots "20,40" -Keys "30:Enter"`.
 
 ## Debugging tools
 
@@ -113,6 +154,25 @@ N64ModernRuntime (`n64modernruntime.patch`):
 - `ultramodern::set_running_thread_variable` keeps the game's
   `__osRunningThread` pointing at the running thread (Conker reads it
   directly).
+- GCC-only warning flags are skipped under MSVC.
+
+RT64 (`rt64.patch`): Conker's graphics microcode, F3DEX2 with Rare's changes,
+as in GLideN64's `F3DEX2CBFD`. RT64 identifies a microcode by a hash of its
+text and data. Conker's two builds ("F3DEXBG.NoN fifo 2.08" and "F3DEX.NoN fifo
+2.08") are added to the database and mapped to a new `GBI_F3DEX2CBFD`
+(`src/gbi/rt64_gbi_f3dex2cbfd.cpp`). It handles:
+- a four-triangle command at opcodes 0x10-0x1F;
+- light counts in bytes (`w1/48`);
+- up to 12 lights, with point lights and a separate per-vertex normal array
+  (`G_MV_NORMALES`);
+- a coordinate modifier (`G_MW_COORD_MOD`);
+- `G_LOAD_UCODE` reused to switch on the "advanced" lighting.
+
+RT64's shaders can't see those normals, so lighting is computed on the CPU into
+the vertex colours (`RSP::lightVerticesCBFD`), and `G_LIGHTING` is hidden from
+the shaders. Texture generation (`G_TEXTURE_GEN`), which needs the same normals,
+is disabled for now, so environment-mapped surfaces render without their
+reflection texture.
 
 ## Host (`host/`)
 
@@ -122,10 +182,15 @@ mode, `osCicId` = 6105 (the idle thread won't start the game otherwise) and
 the code pages. `ultra_extras.cpp` provides `osPiRawReadIo`/`osPiReadIo` (Rare's
 anti-piracy checks read real ROM words), `osPfsInit` (Rare's rumble detection),
 the KSEG1 read helper and `recomp_syscall_handler` (Conker halts with
-`syscall` on fatal errors). `null_renderer.cpp` stands in for RT64.
+`syscall` on fatal errors). `rt64_renderer.cpp` drives RT64 from the runtime's
+graphics thread, and `window_input.cpp` owns the SDL window, the keyboard and
+the controller. `null_renderer.cpp` is used with `--headless` and on Linux.
+The console gets a backtrace on a crash: SIGSEGV on Linux, and a vectored
+exception handler with DbgHelp on Windows.
 
 ## Next steps
 
-1. RT64 for rendering, with a window and input.
-2. Recompile the audio microcode with RSPRecomp and hook up audio output.
-3. Check the save path (EEPROM) and rumble.
+1. Recompile the audio microcode with RSPRecomp and hook up audio output.
+2. Texture generation for CBFD (pass the CPU-computed normals through to RT64).
+3. Play further into the game: saves (EEPROM), rumble, the other microcode build.
+4. An RT64 window on Linux.

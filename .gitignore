@@ -5,3 +5,6 @@
 /recomp/n64recomp.err
 /host/build/
 /conker_data/
+/host/build-win/
+/host/build-win-log.txt
+__pycache__/
