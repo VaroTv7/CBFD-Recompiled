@@ -911,7 +911,7 @@ void func_1000709C();
 //func_10008B60
 //func_10008BC0
 //func_10008C04
-void func_10008C6C();
+void func_10008C6C(u8 idx, u8 arg1);
 //func_10008CE8
 //func_10008F90
 void func_10009400();
