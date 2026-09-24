@@ -48,9 +48,9 @@ void func_1000886C(u8 idx, s32 mask, u8 arg2);
 void func_100088F0(u8 idx, s32 mask, s32 enable);
 void func_10008988(u8 idx, s32 mask, s32 enable);
 u8   func_10008A4C(u8 idx, u8 chan);
-void func_10008A94(u8 idx, s32 mask, u8 arg2);
+void func_10008A94(u8 idx, s32 mask, s32 arg2);
 void func_10008B2C(u8 idx);
-void func_10008B60(u8 idx, u8 arg1, u8 arg2, u8 arg3, u8 arg4);
+void func_10008B60(u8 idx, u8 arg1, u8 arg2, u8 arg3, s32 arg4);
 void func_10008BC0(u8 idx, f32 arg1, f32 arg2);
 void func_10008EE0(u8 idx, s16 arg1);
 void func_10008F24(u8 idx);
@@ -140,8 +140,8 @@ void func_10017BB8();
 
 void func_10017D80(void *, u8 chan, u8 prog);
 void func_10017DF0(void *, f32 arg1, f32 arg2);
-void func_10017E4C();
-void func_10017F10();
+void func_10017E4C(void *, u8 chan, u8 arg2);
+void func_10017F10(void *, u8 arg1, u8 arg2, u8 arg3, s32 arg4);
 
 void n_alInit();
 void n_alClose();
