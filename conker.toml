@@ -30,9 +30,8 @@ uses_mips3_float_mode = true
 # Low-level system code with TLB/cop0/cache instructions. None of it can run
 # under the runtime, which provides its own threads, exceptions and memory.
 stubs = [
-    # Virtual-memory paging for .game (init_5AB0.s): wired TLB setup, the
-    # TLB-miss handler and its page-in/eviction helpers.
-    "func_10005B04",
+    # Virtual-memory paging for .game (init_5AB0.s): the TLB-miss handler, its
+    # page-in/eviction helpers, and TLB invalidation (func_100061F8).
     "func_10005C2C",
     "func_10005D20",
     "func_100060F0",
@@ -40,6 +39,7 @@ stubs = [
     "func_100061F8",
     # Exception handling and thread dispatch (init_5AB0.s).
     "func_100071D0",
+    "func_100071E0",
     "func_1000777C",
     "func_10007A38",
     "func_10007C74",
@@ -92,6 +92,19 @@ func = "func_10005AB0"
 vram = 0x10005AE4
 value = 0x00000000  # nop (was tlbwi)
 
+# func_10005B04 sets up the .game paging system: it clears Context, sets Wired,
+# and allocates the page pool and its bitmap. Keep the allocations (other code
+# uses that memory layout) and drop the cop0 writes.
+[[patches.instruction]]
+func = "func_10005B04"
+vram = 0x10005B10
+value = 0x00000000  # nop (was mtc0 $zero, Context)
+
+[[patches.instruction]]
+func = "func_10005B04"
+vram = 0x10005B18
+value = 0x00000000  # nop (was mtc0 $t0, Wired)
+
 # func_10001050 (boot init) reads and writes the Status register to set CU1/FR;
 # the runtime owns that state.
 [[patches.instruction]]
@@ -111,3 +124,109 @@ value = 0x00000000  # nop (was jal __osSetSR)
 func = "func_100052A0"
 vram = 0x10005328
 value = 0x00000000  # nop (was jal __osViInit)
+
+# ---------------------------------------------------------------------------
+# Direct hardware and uncached (KSEG1) accesses. The runtime maps only KSEG0
+# RDRAM, so these loads would fault. Each load becomes a nop plus a hook that
+# does the read on the host (host/src/ultra_extras.cpp).
+# ---------------------------------------------------------------------------
+
+# func_100095A0 (audio thread) reads AI_LEN_REG directly: an inlined osAiGetLength.
+# $v0 is overwritten by the next instruction, so the hook may use it.
+[[patches.instruction]]
+func = "func_100095A0"
+vram = 0x100095D0
+value = 0x00000000  # nop (was lw $v1, 4($t6): AI_LEN_REG)
+
+[[patches.hook]]
+func = "func_100095A0"
+before_vram = 0x100095D0
+text = "{ extern void osAiGetLength_recomp(uint8_t*, recomp_context*); osAiGetLength_recomp(rdram, ctx); ctx->r3 = ctx->r2; }"
+
+# func_1000480C: Rare's PIO copy from cartridge ROM (used by the ROM loader
+# func_10004514). It polls PI_STATUS, then reads the cartridge word by word
+# through (osRomBase | addr | 0xA0000000).
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x1000486C
+value = 0x00001025  # move $v0, $zero (was lw $v0, 0($v1): PI_STATUS, never busy)
+
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x100048B4
+value = 0x00000000  # nop (was lw $t8, 0($t7))
+
+[[patches.hook]]
+func = "func_1000480C"
+before_vram = 0x100048B4
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r24 = conker_kseg1_read32(rdram, (uint32_t)ctx->r15); }"
+
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x100048E4
+value = 0x00000000  # nop (was lw $t4, 0($t3))
+
+[[patches.hook]]
+func = "func_1000480C"
+before_vram = 0x100048E4
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r12 = conker_kseg1_read32(rdram, (uint32_t)ctx->r11); }"
+
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x10004924
+value = 0x00000000  # nop (was lw $t5, 0($t4))
+
+[[patches.hook]]
+func = "func_1000480C"
+before_vram = 0x10004924
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r13 = conker_kseg1_read32(rdram, (uint32_t)ctx->r12); }"
+
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x10004958
+value = 0x00000000  # nop (was lw $t2, 0($t9))
+
+[[patches.hook]]
+func = "func_1000480C"
+before_vram = 0x10004958
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r10 = conker_kseg1_read32(rdram, (uint32_t)ctx->r25); }"
+
+[[patches.instruction]]
+func = "func_1000480C"
+vram = 0x10004984
+value = 0x00000000  # nop (was lw $t7, 0($t5))
+
+[[patches.hook]]
+func = "func_1000480C"
+before_vram = 0x10004984
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r15 = conker_kseg1_read32(rdram, (uint32_t)ctx->r13); }"
+
+# func_15001A08: an anti-piracy check. It reads ROM word 0xD24 through KSEG1 and,
+# if that isn't 0x98CCE31A, doubles an allocation. Same PI_STATUS poll first.
+[[patches.instruction]]
+func = "func_15001A08"
+vram = 0x15001A38
+value = 0x00001025  # move $v0, $zero (was lw $v0, 0($v1): PI_STATUS)
+
+[[patches.instruction]]
+func = "func_15001A08"
+vram = 0x15001A78
+value = 0x00000000  # nop (was lw $t3, 0($t2))
+
+[[patches.hook]]
+func = "func_15001A08"
+before_vram = 0x15001A78
+text = "{ extern int32_t conker_kseg1_read32(uint8_t*, uint32_t); ctx->r11 = conker_kseg1_read32(rdram, (uint32_t)ctx->r10); }"
+
+# 0x150A6B90 builds an uncached RDRAM pointer (0xA0000000 | addr) and stores
+# through it with sd. Use the KSEG0 alias of the same memory instead. The
+# instruction is in two overlapping functions.
+[[patches.instruction]]
+func = "func_150A6860"
+vram = 0x150A6B90
+value = 0x3C098000  # lui $t1, 0x8000 (was 0xA000)
+
+[[patches.instruction]]
+func = "func_150A6A5C"
+vram = 0x150A6B90
+value = 0x3C098000  # lui $t1, 0x8000 (was 0xA000)

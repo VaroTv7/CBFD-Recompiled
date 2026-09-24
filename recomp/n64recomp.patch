@@ -117,3 +117,22 @@ index 669c4a1..adbcb9f 100644
      if (failed_strict_mode) {
          if (config.single_file_output || config.functions_per_output_file > 1) {
              current_output_file.close();
+diff --git a/src/recompilation.cpp b/src/recompilation.cpp
+index c228433..57fbab7 100644
+--- a/src/recompilation.cpp
++++ b/src/recompilation.cpp
+@@ -791,7 +791,13 @@ bool recompile_function_impl(GeneratorType& generator, const N64Recomp::Context&
+ 
+             // If this is a branch or a direct jump, add it to the local label list
+             if (instr.isBranch() || instr.getUniqueId() == rabbitizer::InstrId::UniqueId::cpu_j) {
+-                branch_labels.insert((uint32_t)instr.getBranchVramGeneric());
++                // Only targets inside this function become labels. Targets outside it are tail calls;
++                // recording them here would shift the labels that follow (one label is emitted per
++                // instruction), e.g. when hand-written asm branches back to code before the function.
++                uint32_t target = (uint32_t)instr.getBranchVramGeneric();
++                if (target >= func.vram && target < func.vram + func.words.size() * sizeof(func.words[0])) {
++                    branch_labels.insert(target);
++                }
+             }
+ 
+             // Advance the vram address by the size of one instruction

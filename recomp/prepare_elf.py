@@ -14,11 +14,13 @@ known function start. The decomp ELF needs some help to fit that model:
     Overlapping functions are fine for N64Recomp.
   * The linker script's undefined_funcs_auto.txt (`func_X = 0x...;`) turns
     some asm glabels into SHN_ABS symbols. Those inside a code section are
-    moved back into it.
+    moved back into it. ABS `D_` labels inside code are continuations that
+    hand-written asm jumps to through a register; they become `func_<addr>`.
   * Hand-written asm (the inflate code in .init, the math blob in .game)
     branches and jumps into the middle of other routines. Every such target is
     given a synthetic `func_<addr>` symbol so the branch becomes a tail call.
-    This repeats until no new targets appear.
+    This repeats until no new targets appear. Code addresses the game takes as
+    values (in data, or built with lui/addiu) get one too, so callbacks resolve.
   * Data embedded in asm text without a symbol (EMBEDDED_DATA) ends the code
     before it.
   * .game's duplicate libultra functions (`osPfsInit2`, ...) get libultra's
@@ -27,10 +29,24 @@ known function start. The decomp ELF needs some help to fit that model:
     NOTYPE; `D_` symbols in code (data embedded in asm) become OBJECT and act
     only as boundaries.
 
-Section contents are never changed. Symbols are rewritten in place, and the
-synthetic ones are appended by moving .symtab/.strtab to the end of the file.
+  * Code that loads $ra with a code address: a hand-made call (`$ra = ret;
+    j F`) becomes a jal, and a loop head kept in $ra moves to $k1, with the
+    `jr $ra` gotos to it rewritten to `jr $k1` (see ra_as_code_pointer).
+  * `jr rX` where rX holds the return address is rewritten to `jr $ra`, because
+    recompiled calls never set $ra: either rX is a copy of $ra (hand-written asm
+    saves it in a temporary), or every caller passes its return point in rX
+    (`lui/addiu $t0, ret; jal F`, F returns with `jr $t0`).
 
-Usage: prepare_elf.py <in.elf> <out.elf> [N64Recomp/src/symbol_lists.cpp]
+Apart from the optional --original overlay, that return rewrite is the only
+change to section contents. Symbols are
+rewritten in place, and the synthetic ones are appended by moving
+.symtab/.strtab to the end of the file.
+
+  * With --original, the code sections are first overlaid with the original
+    game's bytes, so functions whose decomp C doesn't match yet are recompiled
+    from what actually shipped.
+
+Usage: prepare_elf.py <in.elf> <out.elf> [symbol_lists.cpp] [--original .game=game.us.bin ...]
 """
 
 import re
@@ -41,9 +57,11 @@ STT_NOTYPE, STT_OBJECT, STT_FUNC = 0, 1, 2
 STB_GLOBAL = 1
 SHN_LORESERVE, SHN_ABS = 0xFF00, 0xFFF1
 CODE_SECTIONS = {".init", ".game", ".debugger"}
+DATA_SECTIONS = (".init_data", ".game_data")
 
 # Data embedded in hand-written asm text with no D_ symbol of its own.
 EMBEDDED_DATA = {
+    0x150A9C3C: "padding and float table (D_150A9C40) in the math code (D7980.s)",
     0x150AA98C: "debug printf format string before func_150AA9A0 (math blob in D7980.s)",
 }
 SYM_ENT = 16
@@ -101,6 +119,10 @@ class Elf:
         sh = self.shdrs[shndx]
         return struct.unpack_from(">I", self.data, sh[4] + addr - sh[3])[0]
 
+    def set_word(self, shndx, addr, value):
+        sh = self.shdrs[shndx]
+        struct.pack_into(">I", self.data, sh[4] + addr - sh[3], value)
+
 
 def is_unconditional(w):
     op = w >> 26
@@ -108,6 +130,221 @@ def is_unconditional(w):
             or (op == 0 and (w & 0x3F) == 8)               # jr
             or (op == 4 and (w >> 16) & 0x3FF == 0)        # b (beq $zero, $zero)
             or w == 0x42000018)                            # eret
+
+
+RA = 31
+JR_RA = 0x03E00008
+
+
+def move_source(w, dest):
+    """If w copies a register into `dest` (or/addu dest, rs, $zero), return rs, else None."""
+    if w >> 26 != 0 or (w & 0x3F) not in (0x21, 0x25) or (w >> 11) & 0x1F != dest:
+        return None
+    rs, rt = (w >> 21) & 0x1F, (w >> 16) & 0x1F
+    if rt == 0:
+        return rs
+    if rs == 0:
+        return rt
+    return None
+
+
+def writes_gpr(w):
+    """Destination GPR of common instructions (enough to invalidate tracked copies)."""
+    op = w >> 26
+    if op == 0:
+        return (w >> 11) & 0x1F
+    if op in (3,):                                         # jal writes $ra
+        return RA
+    if op in (8, 9, 10, 11, 12, 13, 14, 15, 32, 33, 34, 35, 36, 37, 38, 39, 55):  # imm ALU, lui, loads, ld
+        return (w >> 16) & 0x1F
+    if op == 17 and ((w >> 21) & 0x1F) in (0, 1, 2):      # mfc1, dmfc1, cfc1
+        return (w >> 16) & 0x1F
+    return None
+
+
+def normalise_returns(elf, sec, start, end):
+    """Rewrite `jr rX` to `jr $ra` where rX holds the function's return address.
+
+    Hand-written asm keeps $ra in a temporary (`move $t7, $ra` on entry) and returns
+    with `jr $t7`, sometimes through a shared epilogue that first restores
+    `move $ra, $t7`. N64Recomp treats a non-$ra jr as an indirect jump through the
+    register's value, but recompiled calls never set $ra, so those must be returns.
+    """
+    rewritten = 0
+    copies = set()
+    for pc in range(start, end, 4):
+        w = elf.word(sec, pc)
+        if w >> 26 == 0 and (w & 0x3F) == 8:                # jr
+            rs = (w >> 21) & 0x1F
+            restored = any(move_source(elf.word(sec, q), RA) == rs
+                           for q in (pc - 4, pc + 4) if start <= q < end)
+            if rs != RA and (rs in copies or restored):
+                elf.set_word(sec, pc, JR_RA)
+                rewritten += 1
+            continue
+        src = move_source(w, (w >> 11) & 0x1F)
+        dest = writes_gpr(w)
+        if dest is None or dest == 0:
+            continue
+        if src == RA and dest != RA:
+            copies.add(dest)
+        else:
+            copies.discard(dest)
+    return rewritten
+
+
+def manual_link_returns(elf, funcs):
+    """Rewrite `jr rX` to `jr $ra` where callers pass their return address in rX.
+
+    Hand-written asm sometimes loads a register with the call's return point
+    before a jal (`lui/addiu $t0, ret; jal F`) and F returns with `jr $t0`,
+    possibly from code F tail-jumps to. Recompiled, that jr would call the
+    continuation and then return into the caller, running the code after the
+    call twice. Only done when every jal to F passes the same register.
+    """
+    by_start = {s["value"]: s for s in funcs}
+    starts = sorted(by_start)
+
+    def containing(addr):
+        return [s for s in funcs if s["value"] <= addr < s["value"] + s["size"]]
+
+    # 1. jal sites: which register (if any) holds the return point.
+    links = {}                                     # callee -> set of link regs (None = plain call)
+    for s in funcs:
+        sec, start, end = s["shndx"], s["value"], s["value"] + s["size"]
+        regs = {}                                  # reg -> value built by lui/addiu or lui/ori
+        for pc in range(start, end, 4):
+            w = elf.word(sec, pc)
+            op, rs, rt = w >> 26, (w >> 21) & 0x1F, (w >> 16) & 0x1F
+            if op == 15:
+                regs[rt] = (w & 0xFFFF) << 16
+            elif op in (9, 13) and rs == rt and rt in regs:
+                regs[rt] = (regs[rt] + (((w & 0xFFFF) ^ 0x8000) - 0x8000 if op == 9 else (w & 0xFFFF))) & 0xFFFFFFFF
+            elif op == 3:
+                callee = ((pc + 4) & 0xF0000000) | ((w & 0x03FFFFFF) << 2)
+                link = next((r for r, v in regs.items() if v == pc + 8), None)
+                links.setdefault(callee, set()).add(link)
+                regs.clear()
+            else:
+                d = writes_gpr(w)
+                if d:
+                    regs.pop(d, None)
+
+    # 2. For callees always called with the same manual link register, rewrite
+    #    `jr reg` in the callee and in everything it reaches by j/b (tail jumps).
+    rewritten = 0
+    for callee, regset in links.items():
+        if len(regset) != 1 or None in regset or callee not in by_start:
+            continue
+        reg = next(iter(regset))
+        seen, work = set(), [callee]
+        while work:
+            f = by_start.get(work.pop())
+            if f is None or f["value"] in seen:
+                continue
+            seen.add(f["value"])
+            sec, start, end = f["shndx"], f["value"], f["value"] + f["size"]
+            for pc in range(start, end, 4):
+                w = elf.word(sec, pc)
+                if w >> 26 == 0 and (w & 0x3F) == 8 and (w >> 21) & 0x1F == reg:
+                    elf.set_word(sec, pc, JR_RA)
+                    rewritten += 1
+                t = branch_target(w, pc)
+                if t is not None and w >> 26 != 3 and not (start <= t < end) and t in by_start:
+                    work.append(t)
+    return rewritten
+
+
+K1 = 27
+
+
+def ra_as_code_pointer(elf, sec_of, text_ranges):
+    """Handle hand-written asm that loads $ra with a code address.
+
+    Two shapes occur in Conker's math code:
+      * `lui/addiu $ra, X` then `j F` where X is the j's return point: a call
+        written by hand. The j becomes a jal (which sets $ra = X itself) and the
+        lui/addiu become nops.
+      * `lui/addiu $ra, HEAD` with the real return address parked in an FPR:
+        every `jr $ra` reached while $ra still holds HEAD loops back to HEAD. The
+        constant goes into $k1 instead (never used by game code), and those jr
+        become `jr $k1`, which N64Recomp emits as an indirect jump to HEAD. The
+        real `jr $ra` returns (after `mfc1 $ra, $fN`) are left alone.
+    Returns (calls, loops, gotos, conflicts).
+    """
+    def word(pc):
+        return elf.word(sec_of(pc), pc)
+
+    def jr_reg(w):
+        return (w >> 21) & 0x1F if w >> 26 == 0 and (w & 0x3F) == 8 else None
+
+    calls = loops = gotos = 0
+    conflicts = []
+    goto_sites, return_sites = set(), set()
+    loads = []
+    for lo_, hi_ in text_ranges:
+        for pc in range(lo_, hi_ - 4, 4):
+            w1, w2 = word(pc), word(pc + 4)
+            if w1 >> 16 == 0x3C1F and w2 >> 26 in (9, 13) and (w2 >> 16) & 0x3FF == (RA << 5) | RA:
+                imm = ((w2 & 0xFFFF) ^ 0x8000) - 0x8000 if w2 >> 26 == 9 else (w2 & 0xFFFF)
+                value = (((w1 & 0xFFFF) << 16) + imm) & 0xFFFFFFFF
+                if any(a <= value < b for a, b in text_ranges):
+                    loads.append((pc, value))
+
+    for pc, value in loads:
+        nxt = word(pc + 8)
+        if nxt >> 26 == 2 and value == pc + 16:            # lui; addiu; j F; <delay>  -> jal F
+            elf.set_word(sec_of(pc + 8), pc + 8, (3 << 26) | (nxt & 0x03FFFFFF))
+            elf.set_word(sec_of(pc), pc, 0)
+            elf.set_word(sec_of(pc + 4), pc + 4, 0)
+            calls += 1
+            continue
+        # Walk every path on which $ra still holds `value`.
+        seen, work, found = set(), [pc + 8], []
+        while work:
+            p = work.pop()
+            while p not in seen and any(a <= p < b for a, b in text_ranges):
+                seen.add(p)
+                w = word(p)
+                if jr_reg(w) == RA:
+                    found.append(p)
+                    break
+                t = branch_target(w, p)
+                op = w >> 26
+                if op == 3 or (op == 0 and (w & 0x3F) == 9):  # jal/jalr: $ra is overwritten
+                    break
+                if writes_gpr(w) == RA or (op == 17 and (w >> 21) & 0x1F == 0 and (w >> 16) & 0x1F == RA):
+                    break
+                if jr_reg(w) is not None:                    # jump table / indirect: stop
+                    break
+                if t is not None:
+                    work.append(t)
+                    if op == 2 or (op == 4 and (w >> 16) & 0x3FF == 0):   # j, b: no fall-through
+                        seen.add(p + 4)
+                        # the delay slot still executes, but can't change $ra here in practice
+                        break
+                p += 4
+        if not found:
+            continue
+        loops += 1
+        elf.set_word(sec_of(pc), pc, (elf.word(sec_of(pc), pc) & ~(0x1F << 16)) | (K1 << 16))
+        w2 = elf.word(sec_of(pc + 4), pc + 4)
+        elf.set_word(sec_of(pc + 4), pc + 4, (w2 & ~(0x3FF << 16)) | (K1 << 21) | (K1 << 16))
+        for p in found:
+            goto_sites.add(p)
+
+    # A jr $ra reached as a goto must not also be a genuine return: those are the
+    # jr $ra right after the $ra restore (mfc1 $ra) or an epilogue (lw $ra).
+    for p in sorted(goto_sites):
+        prev = word(p - 4), word(p - 8)
+        restores = any(writes_gpr(x) == RA or (x >> 26 == 17 and (x >> 21) & 0x1F == 0 and (x >> 16) & 0x1F == RA)
+                       for x in prev)
+        if restores:
+            conflicts.append(p)
+            continue
+        elf.set_word(sec_of(p), p, (K1 << 21) | 8)
+        gotos += 1
+    return calls, loops, gotos, conflicts
 
 
 def branch_target(w, pc):
@@ -136,9 +373,33 @@ def load_n64recomp_names(path):
     return names
 
 
-def main(src, dst, symbol_lists=None):
+def overlay_original_code(elf, originals):
+    """Replace code section contents with the original game's bytes.
+
+    `originals` maps a section name to a dump of that segment starting at the
+    section's vram. The decomp has drift 0, so every function in the ELF sits at
+    its original address; recompiling the original bytes with the decomp's
+    symbols avoids inheriting any C function that doesn't match yet.
+    """
+    replaced = {}
+    for name, path in originals.items():
+        idx = elf.names.index(name)
+        sh = elf.shdrs[idx]
+        blob = open(path, "rb").read()
+        if len(blob) < sh[5]:
+            sys.exit(f"{path} is shorter than {name} (0x{len(blob):X} < 0x{sh[5]:X})")
+        old = bytes(elf.data[sh[4]:sh[4] + sh[5]])
+        elf.data[sh[4]:sh[4] + sh[5]] = blob[:sh[5]]
+        replaced[name] = sum(1 for k in range(0, sh[5], 4) if old[k:k + 4] != blob[k:k + 4])
+    return replaced
+
+
+def main(src, dst, symbol_lists=None, originals=None):
     elf = Elf(open(src, "rb").read())
     syms = elf.symbols()
+    if originals:
+        for name, words in overlay_original_code(elf, originals).items():
+            print(f"{name}: original code overlaid ({words} words differed from the decomp build)")
 
     # The decomp names .game's second copy of libultra's controller/Controller Pak
     # code `<name>2`. Give those libultra's names so N64Recomp treats them like the
@@ -165,8 +426,9 @@ def main(src, dst, symbol_lists=None):
     def owner(addr):
         return next((i for i in code if lo[i] <= addr < text_end[i]), None)
 
-    stats = dict(adopted=0, labels=0, data=0, interior=0, synthetic=0, extended=0)
+    stats = dict(adopted=0, labels=0, data=0, interior=0, synthetic=0, extended=0, pointers=0)
     kinds = {i: {} for i in code}          # start addr -> "func" | "data"
+    all_names = {s["name"] for s in syms}
     c_funcs = {i: [] for i in code}        # (start, end) of sized (compiled C) functions
     asm_funcs = []                         # symbols whose size we compute
 
@@ -176,8 +438,16 @@ def main(src, dst, symbol_lists=None):
             continue
         if s["shndx"] == SHN_ABS:
             sec = owner(s["value"])
-            if sec is None or s["name"].startswith((".L", "D_")):
+            if sec is None or s["name"].startswith(".L") or s["value"] in EMBEDDED_DATA:
                 continue
+            if s["name"].startswith("D_"):
+                # Hand-written asm loads code addresses as continuations
+                # (`lui/addiu $t1, D_...` then `jr $t1`), so splat named them D_.
+                code_name = f"func_{s['value']:08X}"
+                if code_name in all_names:
+                    continue
+                s["name"], s["new"] = code_name, True
+                all_names.add(code_name)
             s["shndx"] = sec
             stats["adopted"] += 1
         sec = s["shndx"]
@@ -221,6 +491,62 @@ def main(src, dst, symbol_lists=None):
         return any(q >= a and is_unconditional(elf.word(sec, q)) for q in (p, p - 4))
 
     taken = {s["name"] for s in syms}
+    jtbl_labels = {s["value"] for s in syms if s["name"].startswith(".L")}
+
+    def add_start(sec, t):
+        name = f"func_{t:08X}"
+        if name in taken:
+            name += "_label"
+        taken.add(name)
+        s = {"name": name, "new": True, "value": t, "size": 0, "info": (STB_GLOBAL << 4) | STT_FUNC,
+             "other": 0, "shndx": sec}
+        syms.append(s)
+        asm_funcs.append(s)
+        kinds[sec][t] = "func"
+
+    # Code addresses taken as values (callbacks, function-pointer tables): from
+    # words in the data sections and from lui/addiu (or lui/ori) pairs in code.
+    # Anything not already a start or a jump-table label becomes one, even inside
+    # a compiled C function (e.g. a bare `jr $ra` used as an empty callback).
+    # Data words inside a compiled C function are nearly always jump-table cases
+    # the decomp hasn't labelled, so those are only taken from lui pairs, and only
+    # when the code from there to the function's end doesn't branch back out.
+    def c_function_containing(sec, t):
+        return next(((a, b) for a, b in c_funcs[sec] if a < t < b), None)
+
+    def self_contained(sec, t, end):
+        for pc in range(t, end, 4):
+            tgt = branch_target(elf.word(sec, pc), pc)
+            if tgt is not None and not (t <= tgt < end) and owner(tgt) is not None and tgt not in kinds[owner(tgt)]:
+                return False
+        return True
+
+    data_pointers, code_pointers = set(), set()
+    for name in DATA_SECTIONS:
+        if name in elf.names:
+            sh = elf.shdrs[elf.names.index(name)]
+            for k in range(0, sh[5] - 3, 4):
+                data_pointers.add(struct.unpack_from(">I", elf.data, sh[4] + k)[0])
+    for i in code:
+        regs = {}
+        for pc in range(lo[i], text_end[i], 4):
+            w = elf.word(i, pc)
+            op, rs, rt = w >> 26, (w >> 21) & 0x1F, (w >> 16) & 0x1F
+            if op == 15:
+                regs[rt] = (w & 0xFFFF) << 16
+            elif op in (9, 13) and rs in regs:
+                imm = ((w & 0xFFFF) ^ 0x8000) - 0x8000 if op == 9 else (w & 0xFFFF)
+                code_pointers.add((regs[rs] + imm) & 0xFFFFFFFF)
+    for t in sorted(data_pointers | code_pointers):
+        sec = owner(t)
+        if sec is None or t & 3 or t in kinds[sec] or t in jtbl_labels:
+            continue
+        in_c = c_function_containing(sec, t)
+        if in_c and (t not in code_pointers or not self_contained(sec, t, in_c[1])):
+            continue
+        add_start(sec, t)
+        stats["pointers"] += 1
+
     while True:
         ordered = {i: sorted(set(k) | {text_end[i]}) for i, k in kinds.items()}
         for s in asm_funcs:
@@ -245,18 +571,17 @@ def main(src, dst, symbol_lists=None):
         if not new_targets:
             break
         for sec, t in sorted(new_targets):
-            name = f"func_{t:08X}"
-            if name in taken:
-                name += "_label"
-            taken.add(name)
-            s = {"name": name, "new": True, "value": t, "size": 0, "info": (STB_GLOBAL << 4) | STT_FUNC,
-                 "other": 0, "shndx": sec}
-            syms.append(s)
-            asm_funcs.append(s)
-            kinds[sec][t] = "func"
+            add_start(sec, t)
             stats["synthetic"] += 1
 
     starts = {i: sorted(k) for i, k in kinds.items()}
+    stats["returns"] = sum(normalise_returns(elf, s["shndx"], s["value"], s["value"] + s["size"]) for s in asm_funcs)
+    stats["returns"] += manual_link_returns(elf, asm_funcs)
+    ranges = [(lo[i], text_end[i]) for i in code]
+    calls, loops, gotos, conflicts = ra_as_code_pointer(elf, owner, ranges)
+    stats["ra_calls"], stats["ra_loops"], stats["ra_gotos"] = calls, loops, gotos
+    for p in conflicts:
+        print(f"  warning: jr $ra at {p:08X} is both a loop goto and a return; left as a return")
     for s in asm_funcs:
         nxt = next(a for a in starts[s["shndx"]] + [text_end[s["shndx"]]] if a > s["value"])
         if s["value"] + s["size"] > nxt:
@@ -265,11 +590,19 @@ def main(src, dst, symbol_lists=None):
     elf.write(dst, syms)
     print("{n} asm functions sized ({extended} extended over a fall-through), {synthetic} synthetic branch "
           "targets, {adopted} ABS labels adopted ({interior} interior), {labels} jump-table labels, "
-          "{data} data symbols, {aliased} libultra duplicates aliased -> {dst}".format(
+          "{data} data symbols, {pointers} code-pointer targets, {ra_calls} hand-made calls and {ra_loops} "
+          "$ra loop heads ({ra_gotos} gotos), {aliased} libultra duplicates aliased, {returns} jr-through-$ra-copy returns -> {dst}".format(
               n=len(asm_funcs), dst=dst, aliased=aliased, **stats))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (3, 4):
-        sys.exit(__doc__)
-    main(*sys.argv[1:])
+    import argparse
+    ap = argparse.ArgumentParser(description="Prepare the decomp ELF for N64Recomp.")
+    ap.add_argument("src")
+    ap.add_argument("dst")
+    ap.add_argument("symbol_lists", nargs="?", help="N64Recomp/src/symbol_lists.cpp")
+    ap.add_argument("--original", action="append", default=[], metavar="SECTION=FILE",
+                    help="overlay a code section with the original segment dump (repeatable)")
+    args = ap.parse_args()
+    originals = dict(o.split("=", 1) for o in args.original)
+    main(args.src, args.dst, args.symbol_lists, originals)

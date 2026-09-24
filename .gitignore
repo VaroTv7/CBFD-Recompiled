@@ -3,3 +3,5 @@
 /recomp/conker.us.recomp.elf
 /recomp/n64recomp.out
 /recomp/n64recomp.err
+/host/build/
+/conker_data/

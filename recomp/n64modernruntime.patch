@@ -1,0 +1,97 @@
+diff --git a/librecomp/src/pi.cpp b/librecomp/src/pi.cpp
+index 43509ba..8d2e612 100644
+--- a/librecomp/src/pi.cpp
++++ b/librecomp/src/pi.cpp
+@@ -266,7 +266,9 @@ void ultramodern::join_saving_thread() {
+     }
+ }
+ 
+-void do_dma(RDRAM_ARG PTR(OSMesgQueue) mq, gpr rdram_address, uint32_t physical_addr, uint32_t size, uint32_t direction) {
++// `mesg` is what the transfer's completion posts to `mq`: libultra's PI manager
++// sends the request's OSIoMesg pointer, and some games (Conker) read it.
++void do_dma(RDRAM_ARG PTR(OSMesgQueue) mq, OSMesg mesg, gpr rdram_address, uint32_t physical_addr, uint32_t size, uint32_t direction) {
+     // TODO asynchronous transfer
+     // TODO implement unaligned DMA correctly
+     if (direction == 0) {
+@@ -275,7 +277,7 @@ void do_dma(RDRAM_ARG PTR(OSMesgQueue) mq, gpr rdram_address, uint32_t physical_
+             recomp::do_rom_read(rdram, rdram_address, physical_addr, size);
+ 
+             // Send a message to the mq to indicate that the transfer completed
+-            ultramodern::enqueue_external_message_src(mq, 0, false, ultramodern::EventMessageSource::Pi);
++            ultramodern::enqueue_external_message_src(mq, mesg, false, ultramodern::EventMessageSource::Pi);
+         } else if (physical_addr >= recomp::sram_base) {
+             if (!recomp::sram_allowed()) {
+                 ultramodern::error_handling::message_box("Attempted to use SRAM saving with other save type");
+@@ -285,7 +287,7 @@ void do_dma(RDRAM_ARG PTR(OSMesgQueue) mq, gpr rdram_address, uint32_t physical_
+             save_read(rdram, rdram_address, physical_addr - recomp::sram_base, size);
+ 
+             // Send a message to the mq to indicate that the transfer completed
+-            ultramodern::enqueue_external_message_src(mq, 0, false, ultramodern::EventMessageSource::Pi);
++            ultramodern::enqueue_external_message_src(mq, mesg, false, ultramodern::EventMessageSource::Pi);
+         } else {
+             fprintf(stderr, "[WARN] PI DMA read from unknown region, phys address 0x%08X\n", physical_addr);
+         }
+@@ -302,7 +304,7 @@ void do_dma(RDRAM_ARG PTR(OSMesgQueue) mq, gpr rdram_address, uint32_t physical_
+             save_write(rdram, rdram_address, physical_addr - recomp::sram_base, size);
+ 
+             // Send a message to the mq to indicate that the transfer completed
+-            ultramodern::enqueue_external_message_src(mq, 0, false, ultramodern::EventMessageSource::Pi);
++            ultramodern::enqueue_external_message_src(mq, mesg, false, ultramodern::EventMessageSource::Pi);
+         } else {
+             fprintf(stderr, "[WARN] PI DMA write to unknown region, phys address 0x%08X\n", physical_addr);
+         }
+@@ -321,7 +323,7 @@ extern "C" void osPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
+ 
+     debug_printf("[pi] DMA from 0x%08X into 0x%08X of size 0x%08X\n", devAddr, dramAddr, size);
+ 
+-    do_dma(PASS_RDRAM mq, dramAddr, physical_addr, size, direction);
++    do_dma(PASS_RDRAM mq, (OSMesg)mb, dramAddr, physical_addr, size, direction);
+ 
+     ctx->r2 = 0;
+ }
+@@ -338,7 +340,7 @@ extern "C" void osEPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
+ 
+     debug_printf("[pi] DMA from 0x%08X into 0x%08X of size 0x%08X\n", devAddr, dramAddr, size);
+ 
+-    do_dma(PASS_RDRAM mq, dramAddr, physical_addr, size, direction);
++    do_dma(PASS_RDRAM mq, (OSMesg)ctx->r5, dramAddr, physical_addr, size, direction);
+ 
+     ctx->r2 = 0;
+ }
+diff --git a/ultramodern/include/ultramodern/ultramodern.hpp b/ultramodern/include/ultramodern/ultramodern.hpp
+index 46aea61..d04ad78 100644
+--- a/ultramodern/include/ultramodern/ultramodern.hpp
++++ b/ultramodern/include/ultramodern/ultramodern.hpp
+@@ -96,6 +96,9 @@ enum class ThreadPriority {
+ void set_native_thread_name(const std::string& name);
+ void set_native_thread_priority(ThreadPriority pri);
+ PTR(OSThread) this_thread();
++// Some games read libultra's __osRunningThread directly. When set, the address of
++// that variable in game memory is kept pointing at the running game thread.
++void set_running_thread_variable(PTR(PTR(OSThread)) address);
+ void set_entrypoint_thread();
+ bool is_entrypoint_thread();
+ bool is_game_thread();
+diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
+index 6e3ed18..75a76de 100644
+--- a/ultramodern/src/threads.cpp
++++ b/ultramodern/src/threads.cpp
+@@ -150,8 +150,18 @@ void ultramodern::set_native_thread_name(const std::string& name) {
+ void ultramodern::set_native_thread_priority(ThreadPriority pri) {}
+ #endif
+ 
++static PTR(PTR(OSThread)) running_thread_variable = NULLPTR;
++
++void ultramodern::set_running_thread_variable(PTR(PTR(OSThread)) address) {
++    running_thread_variable = address;
++}
++
+ void wait_for_resumed(RDRAM_ARG UltraThreadContext* thread_context) {
+     thread_context->running.wait();
++    // This thread is now the one running: mirror that into the game's __osRunningThread.
++    if (running_thread_variable != NULLPTR) {
++        *TO_PTR(PTR(OSThread), running_thread_variable) = thread_self;
++    }
+     // If this thread's context was replaced by another thread or deleted, destroy it again from its own context.
+     // This will trigger thread cleanup instead.
+     if (TO_PTR(OSThread, ultramodern::this_thread())->context != thread_context) {

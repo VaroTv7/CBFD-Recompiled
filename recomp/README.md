@@ -1,113 +1,131 @@
 # Static recompilation (N64Recomp)
 
-Turns the decomp's US ELF into C with [N64Recomp](../tools/N64Recomp).
-Status: N64Recomp gets through a full pass over `.init`, `.game` and `.debugger`
-and the output compiles (`clang -fsyntax-only`). There is no host application yet.
+Turns the decomp's US ELF into C with [N64Recomp](../tools/N64Recomp) and runs
+it on [N64ModernRuntime](../tools/N64ModernRuntime) through the host
+application in [`host/`](../host).
 
-## Running it
+**Status:** the game boots and runs headless. With a null renderer, no audio
+microcode and no input, it submits display lists at about 30 per second (Conker's
+frame rate) and has run for minutes without crashing. Nothing is drawn yet:
+next is RT64.
 
-From the repo root, after building the decomp (`conker/conker`, `make` in WSL):
+## Building and running
 
-```sh
-wsl sh recomp/run.sh
-```
-
-This runs `prepare_elf.py`, then N64Recomp with [`conker.toml`](../conker.toml),
-writing `RecompiledFuncs/` (gitignored). Set `N64RECOMP_KEEP_GOING=1` to have
-N64Recomp report every failing function instead of stopping at the first one.
-
-N64Recomp needs the local changes in [`n64recomp.patch`](n64recomp.patch)
-(`tools/N64Recomp` is an untracked checkout at ffb39cd):
+In WSL, from the repo root, after building the decomp (`make` in `conker/conker`):
 
 ```sh
 git -C tools/N64Recomp apply ../../recomp/n64recomp.patch
-wsl bash -lc "cd tools/N64Recomp/build && ninja N64Recomp"
+git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
+(cd tools/N64Recomp/build && ninja N64Recomp)
+
+sh recomp/run.sh                 # -> RecompiledFuncs/ (gitignored)
+cmake -S host -B host/build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build host/build
+cd host/build && ./ConkerRecomp --rom ../../baserom.us.z64 --seconds 30
 ```
 
-The patch:
-- looks jump tables up in the section that contains them, not the function's
-  own section. Conker's code is TLB-mapped at 0x15000000 but its rodata is in
-  `.game_data` at 0x8008xxxx.
-- treats stack accesses below `$sp` in hand-written asm as untracked instead
-  of aborting.
-- turns a `jr` through a table of structs, which is not a jump table, into an
-  indirect tail call instead of aborting.
-- adds `N64RECOMP_KEEP_GOING`.
+`tools/N64Recomp` (ffb39cd) and `tools/N64ModernRuntime` (cdf5abb) are
+untracked checkouts, so their changes live in the two patch files here.
+
+## Debugging tools
+
+- `sh host/debug_run.sh [SECONDS]`: runs under gdb and prints the crashing
+  thread's backtrace, or every game thread's after SECONDS. Recompiled
+  functions are named after their vram.
+- `sh host/difftest.sh <func> [hit]`: snapshots RAM and registers at a call in
+  the recompiled game, then runs the **original machine code** for the same
+  call in [`mipsinterp.py`](mipsinterp.py) (a small VR4300 interpreter) and
+  compares `$v0` and every RDRAM word written. This found most of the bugs below.
+- `sh recomp/check_unresolved.sh`: calls that neither the output nor the
+  runtime defines.
+- The host prints a backtrace on SIGSEGV.
 
 ## Memory layout
 
-| section      | vram       | rom      | notes |
-|--------------|------------|----------|-------|
-| `.init`      | 0x10001000 | 0x001000 | TLB entry 0 maps 0x10000000–0x107FFFFF to physical 0–8 MB, the same memory as KSEG0 |
-| `.init_data` | 0x800290D0 | 0x0290D0 | |
-| `.game`      | 0x15000000 | 0x02D4B0 | demand-paged: the TLB-miss handler `func_10005C2C` pages in 0x15000000–0x151FC000 |
-| `.game_data` | 0x80082B20 | 0x2275E0 | all of `.game`'s rodata, data and jump tables |
-| `.debugger`  | 0x16000000 | 0x255880 | |
+| section      | vram       | notes |
+|--------------|------------|-------|
+| `.init`      | 0x10001000 | TLB entry 0 aliases KSEG0: the boot code runs at 0x80001000, then jumps to 0x1000xxxx |
+| `.init_data` | 0x800290D0 | |
+| `.game`      | 0x15000000 | demand-paged: a TLB-miss handler (`func_10005C2C`) pages code in from compressed ROM |
+| `.game_data` | 0x80082B20 | `.game`'s rodata, data and jump tables |
+| `.debugger`  | 0x16000000 | code plus rodata |
 
-Code runs at TLB-mapped addresses, but every data access goes to KSEG0. The
-only 0x10xxxxxx values the code builds are function pointers, and N64Recomp
-resolves those through its function lookup. So recompiled code needs no TLB
-emulation.
+Most data is in KSEG0, but the hand-written math code keeps lookup tables
+inside its own `.game` pages (e.g. 0x150AA318), and the debugger reads its
+rodata at 0x1600xxxx. The runtime reserves 4 GB for game memory and maps only
+RDRAM, so the host maps those ranges and copies the original segments in
+(`emit_tlb_pages.py` -> `RecompiledFuncs/tlb_pages.c`).
 
-Boot: the ROM entrypoint 0x80001000 is `.init`'s first function, which
-N64Recomp renames `recomp_entrypoint`. It clears `.bss`, then jumps to
-0x80005AB0 (`func_10005AB0` through KSEG0). That function writes TLB entry 0
-and jumps to 0x10001050. `conker.toml` redirects the first jump to 0x10005AB0
-and nops out the TLB writes.
+The boot code sets `Status.FR` and the hand-written math uses odd FPRs, so
+`uses_mips3_float_mode = true`, and the host puts every thread context into FR=1
+mode (which also points `ctx->f_odd` at the odd registers).
 
-The boot code sets `Status.FR`, and the hand-written math in `.game` uses odd
-FPRs as independent singles, so `uses_mips3_float_mode = true`.
+## `prepare_elf.py`
 
-## What `prepare_elf.py` fixes
+Runs before N64Recomp.
+- Overlays the code sections with the **original** bytes
+  (`conker/assets/*.us.bin`). Drift is 0, so every function is at its original
+  address, and decomp functions whose C doesn't match yet can't change
+  behaviour (e.g. `func_15125690`, whose C reconstruction adds a load).
+- Sizes the asm `glabel` functions, extends functions that fall through into
+  the next label, and re-homes glabels that `undefined_funcs_auto.txt` turned
+  into ABS symbols.
+- Creates function starts for branch targets in the middle of other routines,
+  for code addresses the game takes as values (callbacks, `D_` continuation
+  labels in hand-written asm, a bare `jr $ra` used as an empty callback), and
+  for `EMBEDDED_DATA` boundaries.
+- Recompiled calls never set `$ra`, so hand-written asm that treats it as a
+  value is rewritten:
+  - `jr rX` where rX is a copy of `$ra`, or a link register every caller loads
+    with its return point, becomes `jr $ra`.
+  - `$ra = ret; j F` becomes `jal F`.
+  - A loop head kept in `$ra` moves to `$k1`, and its `jr $ra` gotos become
+    `jr $k1`.
+- Gives .game's `<name>2` libultra duplicates their libultra names when
+  N64Recomp skips or replaces them.
 
-- asm `glabel` functions have `st_size` 0, which N64Recomp skips. They get sizes.
-- Functions that fall through into the next label are extended over it.
-- `undefined_funcs_auto.txt` turns 151 asm glabels into ABS symbols. They're
-  moved back into their sections.
-- Hand-written asm (the inflate code in `.init`, the math code in `.game`)
-  branches into the middle of other routines. 61 synthetic `func_<addr>`
-  symbols make those branches into tail calls.
-- 2041 jump-table labels become NOTYPE. `D_` symbols in code, plus the string
-  in `EMBEDDED_DATA`, act only as boundaries.
+## `conker.toml`
 
-## Stubbed functions
+- Stubs the TLB paging system, the exception/thread dispatch code and the
+  debugger's TLB dump.
+- Nops the boot code's TLB and Status writes and the pre-NMI thread's
+  `__osViInit`, and keeps `func_10005B04`'s page-pool allocations while
+  dropping its cop0 writes.
+- Replaces direct hardware and KSEG1 loads with hooks into the host: the
+  audio thread's `AI_LEN` read, Rare's PIO ROM copy (`func_1000480C`) and an
+  anti-piracy ROM read (`func_15001A08`), plus an uncached RDRAM pointer
+  retargeted to KSEG0.
 
-These use TLB, cop0 or cache instructions the runtime can't run, and the
-runtime replaces what they do: the `.game` paging system, exception and thread
-dispatch in `init_5AB0.s`, and the debugger's TLB dump. See `conker.toml`.
+## Local changes to the tools
 
-## libultra and the runtime
+N64Recomp (`n64recomp.patch`):
+- finds a jump table in the section that holds it (Conker's are in
+  `.game_data`), and treats a `jr` through a struct table as an indirect jump.
+- tolerates stack accesses below `$sp`.
+- **only turns branch targets inside a function into labels.** Out-of-function
+  targets were shifting every following label, which broke loops in
+  hand-written asm.
+- `N64RECOMP_KEEP_GOING=1` reports every failing function.
 
-The runtime replaces libultra by name, so the decomp's names matter:
-- .game carries a second copy of libultra's controller and Controller Pak
-  code, named `<name>2` in the decomp. `prepare_elf.py` gives the 26 copies
-  whose names N64Recomp skips or replaces their libultra names, so the runtime
-  catches them too.
-- Named in the decomp for this: `osEepromProbe/Read/Write`, `__osEepStatus`,
-  `__osPackEep{Read,Write}Data` (.game), `__osSiRawReadIo/WriteIo`,
-  `osPiReadIo`, `osContInit2`, `osSetTimer2`. The decomp also had
-  `osMotorInit` and `_MakeMotorData` swapped, which would have broken rumble
-  under the runtime.
-- `conker.toml` patches out the Status-register calls in the boot init and
-  `__osViInit` in the pre-NMI thread.
+N64ModernRuntime (`n64modernruntime.patch`):
+- PI DMA completion posts the request's `OSIoMesg` pointer, as libultra does,
+  instead of 0 (Conker's audio code reads it).
+- `ultramodern::set_running_thread_variable` keeps the game's
+  `__osRunningThread` pointing at the running thread (Conker reads it
+  directly).
 
-`wsl sh recomp/check_unresolved.sh` lists calls that neither the output nor
-N64ModernRuntime defines. The host application has to provide these three:
-- `osPiRawReadIo`, `osPiReadIo`: Rare's anti-piracy checks read ROM words
-  (e.g. 0xB0000054, compared against 0x01090C2B after `func_150A1040`), so
-  these must return real ROM contents.
-- `osPfsInit`: Rare's rumble setup (`func_15006234`) calls it before
-  `osMotorInit`.
+## Host (`host/`)
 
-Some of the output calls functions the runtime defines but `funcs.h` doesn't
-declare (`__ll_lshift`, `__osPiGetAccess`, ...). The host build needs
-`-Wno-implicit-function-declaration` or a header declaring them.
+`main.cpp` registers the game (ROM hash, entrypoint, 16Kbit EEPROM), sets FR
+mode, `osCicId` = 6105 (the idle thread won't start the game otherwise) and
+`__osRunningThread`. It also registers the TLB-mapped code sections and maps
+the code pages. `ultra_extras.cpp` provides `osPiRawReadIo`/`osPiReadIo` (Rare's
+anti-piracy checks read real ROM words), `osPfsInit` (Rare's rumble detection),
+the KSEG1 read helper and `recomp_syscall_handler` (Conker halts with
+`syscall` on fatal errors). `null_renderer.cpp` stands in for RT64.
 
 ## Next steps
 
-1. Build a host application (N64ModernRuntime + RT64) that provides the three
-   functions above, then RSP recompilation for the audio microcode.
-2. Direct hardware access that the runtime's memory macros can't reach: the
-   audio thread `func_100095A0` reads AI registers (0xA450xxxx), and a few
-   .game functions (`func_15001A08`, `func_150A5610`, `func_150A6A5C`,
-   `func_150B1DB0`) use uncached 0xA0xxxxxx addresses.
+1. RT64 for rendering, with a window and input.
+2. Recompile the audio microcode with RSPRecomp and hook up audio output.
+3. Check the save path (EEPROM) and rumble.
