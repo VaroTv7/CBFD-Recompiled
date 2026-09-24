@@ -10,7 +10,7 @@ void func_10017C00();
 void func_10017C68(void *seqp, s32 chan, u8 arg2, u8 arg3);
 void func_10017CE0(void *seqp, s32 chan, u8 arg2);
 void func_10017D30(void *seqp, s32 chan, u8 arg2);
-void func_10018D00();
+void func_10018D00(void *seqp, s16 vol);
 void func_10018D50();
 
 // this one is a monster
@@ -203,7 +203,7 @@ void func_10008C04( u8 idx, u8 arg1, s32 arg2) {
 //     return 0;
 // }
 
-void func_10008EE0( u8 idx, s16 arg1) {
+void func_10008EE0( u8 idx, s32 arg1) {
     func_10018D00(D_8003C900[idx], arg1);
 }
 

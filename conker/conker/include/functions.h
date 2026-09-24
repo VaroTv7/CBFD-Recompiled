@@ -52,7 +52,7 @@ void func_10008A94(u8 idx, s32 mask, s32 arg2);
 void func_10008B2C(u8 idx);
 void func_10008B60(u8 idx, u8 arg1, u8 arg2, u8 arg3, s32 arg4);
 void func_10008BC0(u8 idx, f32 arg1, f32 arg2);
-void func_10008EE0(u8 idx, s16 arg1);
+void func_10008EE0(u8 idx, s32 arg1);
 void func_10008F24(u8 idx);
 void func_10008F58(u8 idx);
 void func_100093CC();
