@@ -188,7 +188,7 @@ s32 func_1000BBE8(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     return arg0;
 }
 
-s32 func_1000BC28(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+s32 func_1000BC28(s32 arg0, u8 arg1, s32 arg2, s32 arg3) {
     s32 tmp = func_10008A4C(arg1, 0) + func_10008A4C(arg1, 6) + 1;
     if (tmp >= 256) {
         tmp = 255;

@@ -65,7 +65,7 @@ struct151 *func_1000B1B0();
 s32  func_1000B830();
 s32  func_1000B8B8(s32 arg0, u8 arg1, f32 arg2, f32 arg3, f32 arg4);
 s32  func_1000BBE8();
-s32  func_1000BC28();
+s32  func_1000BC28(s32 arg0, u8 arg1, s32 arg2, s32 arg3);
 void func_1000CBA8();
 s32  func_1000CD40();
 void func_1000E054();
