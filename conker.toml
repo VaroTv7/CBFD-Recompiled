@@ -1,2 +1,90 @@
-elf_path = "conker/build/conker.us.elf"
-name = "Conker"
+# N64Recomp configuration for Conker's Bad Fur Day (US).
+#
+# Regenerate with `wsl sh recomp/run.sh` from the repo root. That runs
+# recomp/prepare_elf.py on the decomp's conker/conker/build/conker.us.elf first
+# (function sizes, fall-through, mid-function branch targets); see recomp/README.md.
+#
+# Memory layout:
+#   .header/.boot  rom 0x000000
+#   .init      vram 0x10001000  rom 0x001000  TLB entry 0 maps 0x10000000-0x107FFFFF
+#                                             onto physical 0-8MB, i.e. KSEG0's alias
+#   .init_data vram 0x800290D0  rom 0x0290D0
+#   .game      vram 0x15000000  rom 0x02D4B0  demand-paged: the TLB-miss handler
+#                                             (func_10005C2C) pages in 0x15000000-0x151FC000
+#   .game_data vram 0x80082B20  rom 0x2275E0  (all .game rodata/data/jump tables)
+#   .debugger  vram 0x16000000  rom 0x255880
+# All data lives in KSEG0; only code runs at TLB-mapped addresses.
+#
+# The ROM header's entrypoint is 0x80001000, the KSEG0 view of .init's first
+# function; N64Recomp renames it recomp_entrypoint.
+
+[input]
+entrypoint = 0x80001000
+elf_path = "recomp/conker.us.recomp.elf"
+output_func_path = "RecompiledFuncs"
+# Boot sets Status.FR (func_10001050: SR |= 0x24000000), and the hand-written
+# math code uses odd FPRs ($f23, $f25, ...) as independent singles.
+uses_mips3_float_mode = true
+
+[patches]
+# Low-level system code with TLB/cop0/cache instructions. None of it can run
+# under the runtime, which provides its own threads, exceptions and memory.
+stubs = [
+    # Virtual-memory paging for .game (init_5AB0.s): wired TLB setup, the
+    # TLB-miss handler and its page-in/eviction helpers.
+    "func_10005B04",
+    "func_10005C2C",
+    "func_10005D20",
+    "func_100060F0",
+    "func_10006138",
+    "func_100061F8",
+    # Exception handling and thread dispatch (init_5AB0.s).
+    "func_100071D0",
+    "func_1000777C",
+    "func_10007A38",
+    "func_10007C74",
+    "func_10007CC4",
+    "func_10007DAC",
+    "func_10007F70",
+    # Debugger: dumps all 32 TLB entries.
+    "func_16003650",
+]
+
+# Boot: recomp_entrypoint clears .bss and jumps to 0x80005AB0, the KSEG0 view
+# of func_10005AB0, which writes TLB entry 0 and jumps to 0x10001050. Point the
+# first jump at the .init address and drop the TLB write so both jumps resolve
+# to recompiled functions.
+[[patches.instruction]]
+func = "recomp_entrypoint"
+vram = 0x80001024
+value = 0x3C0A1000  # lui $t2, 0x1000 (was 0x8000)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005AB8
+value = 0x00000000  # nop (was mtc0 $t0, PageMask)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005AC0
+value = 0x00000000  # nop (was mtc0 $t0, EntryHi)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005AC8
+value = 0x00000000  # nop (was mtc0 $t0, EntryLo0)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005AD4
+value = 0x00000000  # nop (was mtc0 $t0, EntryLo1)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005ADC
+value = 0x00000000  # nop (was mtc0 $t0, Index)
+
+[[patches.instruction]]
+func = "func_10005AB0"
+vram = 0x10005AE4
+value = 0x00000000  # nop (was tlbwi)

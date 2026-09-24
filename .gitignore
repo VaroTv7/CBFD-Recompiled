@@ -1,0 +1,5 @@
+# N64Recomp output and intermediates (regenerate with `wsl sh recomp/run.sh`)
+/RecompiledFuncs/
+/recomp/conker.us.recomp.elf
+/recomp/n64recomp.out
+/recomp/n64recomp.err
