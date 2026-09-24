@@ -13,7 +13,7 @@ void * __osPiGetAccess();                                /* extern */
 void * __osPiRelAccess();                                /* extern */
 s32 osPiRawReadIo();                        /* extern */
 
-s32 func_151EF040(s32 arg0, s32 arg1) {
+s32 osPiReadIo(u32 arg0, u32 *arg1) {
     s32 temp_s0;
 
     __osPiGetAccess();

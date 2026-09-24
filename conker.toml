@@ -48,6 +48,9 @@ stubs = [
     "func_10007F70",
     # Debugger: dumps all 32 TLB entries.
     "func_16003650",
+    # Unreferenced .game copy of a Controller Pak status routine; it calls SI
+    # internals the runtime doesn't provide.
+    "func_151EF504",
 ]
 
 # Boot: recomp_entrypoint clears .bss and jumps to 0x80005AB0, the KSEG0 view
@@ -88,3 +91,23 @@ value = 0x00000000  # nop (was mtc0 $t0, Index)
 func = "func_10005AB0"
 vram = 0x10005AE4
 value = 0x00000000  # nop (was tlbwi)
+
+# func_10001050 (boot init) reads and writes the Status register to set CU1/FR;
+# the runtime owns that state.
+[[patches.instruction]]
+func = "func_10001050"
+vram = 0x10001084
+value = 0x00000000  # nop (was jal __osGetSR)
+
+[[patches.instruction]]
+func = "func_10001050"
+vram = 0x1000109C
+value = 0x00000000  # nop (was jal __osSetSR)
+
+# func_100052A0 is the pre-NMI thread: on reset it stops the game threads,
+# reinitialises VI through libultra internals and stops rumble. The runtime
+# owns VI.
+[[patches.instruction]]
+func = "func_100052A0"
+vram = 0x10005328
+value = 0x00000000  # nop (was jal __osViInit)

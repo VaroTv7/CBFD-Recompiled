@@ -21,6 +21,8 @@ known function start. The decomp ELF needs some help to fit that model:
     This repeats until no new targets appear.
   * Data embedded in asm text without a symbol (EMBEDDED_DATA) ends the code
     before it.
+  * .game's duplicate libultra functions (`osPfsInit2`, ...) get libultra's
+    names when N64Recomp skips or replaces that name (needs symbol_lists.cpp).
   * Jump-table labels (`.L<addr>...`) that splat emitted as FUNC glabels become
     NOTYPE; `D_` symbols in code (data embedded in asm) become OBJECT and act
     only as boundaries.
@@ -28,9 +30,10 @@ known function start. The decomp ELF needs some help to fit that model:
 Section contents are never changed. Symbols are rewritten in place, and the
 synthetic ones are appended by moving .symtab/.strtab to the end of the file.
 
-Usage: prepare_elf.py <in.elf> <out.elf>
+Usage: prepare_elf.py <in.elf> <out.elf> [N64Recomp/src/symbol_lists.cpp]
 """
 
+import re
 import struct
 import sys
 
@@ -122,9 +125,34 @@ def branch_target(w, pc):
     return None
 
 
-def main(src, dst):
+def load_n64recomp_names(path):
+    """Names N64Recomp never emits: its reimplemented and ignored lists in symbol_lists.cpp."""
+    text = open(path).read()
+    names = set()
+    for table in ("reimplemented_funcs", "ignored_funcs"):
+        m = re.search(table + r"\s*\{(.*?)\};", text, re.S)
+        if m:
+            names.update(re.findall(r'"(\w+)"', m.group(1)))
+    return names
+
+
+def main(src, dst, symbol_lists=None):
     elf = Elf(open(src, "rb").read())
     syms = elf.symbols()
+
+    # The decomp names .game's second copy of libultra's controller/Controller Pak
+    # code `<name>2`. Give those libultra's names so N64Recomp treats them like the
+    # .init originals. Only names on N64Recomp's lists are safe: they are never
+    # emitted, so the duplicate name doesn't produce two C definitions.
+    aliased = 0
+    if symbol_lists:
+        known = load_n64recomp_names(symbol_lists)
+        func_names = {s["name"] for s in syms if (s["info"] & 0xF) == STT_FUNC}
+        for s in syms:
+            base = s["name"][:-1]
+            if (s["info"] & 0xF) == STT_FUNC and s["name"].endswith("2") and base in known and base in func_names:
+                s["name"], s["new"] = base, True
+                aliased += 1
     code = {i for i, n in enumerate(elf.names) if n in CODE_SECTIONS}
     lo = {i: elf.shdrs[i][3] for i in code}
     text_end = {i: elf.shdrs[i][3] + elf.shdrs[i][5] for i in code}
@@ -237,10 +265,11 @@ def main(src, dst):
     elf.write(dst, syms)
     print("{n} asm functions sized ({extended} extended over a fall-through), {synthetic} synthetic branch "
           "targets, {adopted} ABS labels adopted ({interior} interior), {labels} jump-table labels, "
-          "{data} data symbols -> {dst}".format(n=len(asm_funcs), dst=dst, **stats))
+          "{data} data symbols, {aliased} libultra duplicates aliased -> {dst}".format(
+              n=len(asm_funcs), dst=dst, aliased=aliased, **stats))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2])
+    main(*sys.argv[1:])

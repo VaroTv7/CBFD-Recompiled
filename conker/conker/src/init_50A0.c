@@ -71,7 +71,7 @@ void func_100052A0(s32 arg0) {
         for (i = 0; i < 4; i++) { // 4 controllers?
             if (D_800BE944[i])
             {
-                _MakeMotorData(&D_800BE900, &D_800BE760[i], i);
+                osMotorInit(&D_800BE900, &D_800BE760[i], i);
                 osMotorStop(&D_800BE760[i]); // macro for __osMotorAccess
                 D_800BE948[i] = 0;
             }

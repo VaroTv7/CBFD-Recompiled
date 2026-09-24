@@ -13,7 +13,7 @@ s32 __osInsertTimer();                        /* extern */
 void * __osSetTimerIntr();                       /* extern */
 extern s32 *D_8002BD70;
 
-s32 func_151EF9C0(void *arg0, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+s32 osSetTimer2(void *arg0, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
     u32 sp1C;
     s32 sp18;
     s32 temp_ret;

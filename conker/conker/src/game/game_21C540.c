@@ -23,7 +23,7 @@ extern s32 __osContPifRam;
 extern s32 __osEepromTimerQ;
 extern u8 __osMaxControllers;
 
-s32 func_151EF090(void * *arg0, s32 arg1, s32 arg2) {
+s32 osContInit2(void * *arg0, s32 arg1, s32 arg2) {
     void * sp7C;
     s32 sp78;
     u32 sp74;

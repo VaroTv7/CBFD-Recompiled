@@ -76,15 +76,38 @@ These use TLB, cop0 or cache instructions the runtime can't run, and the
 runtime replaces what they do: the `.game` paging system, exception and thread
 dispatch in `init_5AB0.s`, and the debugger's TLB dump. See `conker.toml`.
 
+## libultra and the runtime
+
+The runtime replaces libultra by name, so the decomp's names matter:
+- .game carries a second copy of libultra's controller and Controller Pak
+  code, named `<name>2` in the decomp. `prepare_elf.py` gives the 26 copies
+  whose names N64Recomp skips or replaces their libultra names, so the runtime
+  catches them too.
+- Named in the decomp for this: `osEepromProbe/Read/Write`, `__osEepStatus`,
+  `__osPackEep{Read,Write}Data` (.game), `__osSiRawReadIo/WriteIo`,
+  `osPiReadIo`, `osContInit2`, `osSetTimer2`. The decomp also had
+  `osMotorInit` and `_MakeMotorData` swapped, which would have broken rumble
+  under the runtime.
+- `conker.toml` patches out the Status-register calls in the boot init and
+  `__osViInit` in the pre-NMI thread.
+
+`wsl sh recomp/check_unresolved.sh` lists calls that neither the output nor
+N64ModernRuntime defines. The host application has to provide these three:
+- `osPiRawReadIo`, `osPiReadIo`: Rare's anti-piracy checks read ROM words
+  (e.g. 0xB0000054, compared against 0x01090C2B after `func_150A1040`), so
+  these must return real ROM contents.
+- `osPfsInit`: Rare's rumble setup (`func_15006234`) calls it before
+  `osMotorInit`.
+
+Some of the output calls functions the runtime defines but `funcs.h` doesn't
+declare (`__ll_lshift`, `__osPiGetAccess`, ...). The host build needs
+`-Wno-implicit-function-declaration` or a header declaring them.
+
 ## Next steps
 
-1. Name the remaining libultra functions. The runtime replaces libultra by
-   *name*: 53 of N64Recomp's 116 reimplemented functions are named in the ELF.
-   The rest are either unused or still `func_` symbols. Among the missing names
-   are EEPROM (`osEepromProbe/LongRead/LongWrite`), `osEPiStartDma`,
-   `osAiGetLength`, `osYieldThread`, `osGetThreadId` and `osStopTimer`.
-2. The output calls 35 libultra functions that N64Recomp skips (the SI and
-   Controller Pak internals, `__osGetSR/__osSetSR`, `__ll_lshift`, ...). Their
-   callers need to be ignored or given implementations.
-3. Build a host application (N64ModernRuntime + RT64), then RSP recompilation
-   for the audio microcode.
+1. Build a host application (N64ModernRuntime + RT64) that provides the three
+   functions above, then RSP recompilation for the audio microcode.
+2. Direct hardware access that the runtime's memory macros can't reach: the
+   audio thread `func_100095A0` reads AI registers (0xA450xxxx), and a few
+   .game functions (`func_15001A08`, `func_150A5610`, `func_150A6A5C`,
+   `func_150B1DB0`) use uncached 0xA0xxxxxx addresses.

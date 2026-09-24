@@ -426,7 +426,7 @@ void func_15002FB4(s32 arg0) {
             func_150AD770();
         }
     }
-    func_151EF040(func_15002FA0(0x40F0FAAC), &sp2C);
+    osPiReadIo(func_15002FA0(0x40F0FAAC), &sp2C);
     sp2C = func_15002FA0(sp2C);
     if (sp2C != 0xE7B00F09) {
         temp_v0 = D_800B0DF0;

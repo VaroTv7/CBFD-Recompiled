@@ -12,13 +12,13 @@
 void * __osSiGetAccess();                                /* extern */
 void * __osSiRawStartDma();                        /* extern */
 void * __osSiRelAccess();                             /* extern */
-s32 func_151DD710();                      /* extern */
-void func_151DD304();
+s32 __osEepStatus();                      /* extern */
+void __osPackEepWriteData();
 extern s32 D_800E0A30;
 extern s32 D_800E0A31;
 extern s8 __osContLastCmd;
 
-s32 func_151DD140(s32 arg0, s32 arg1, void *arg2) {
+s32 osEepromWrite(OSMesgQueue *arg0, u8 arg1, u8 *arg2) {
     s32 sp4C;
     u16 sp3C;
     void * sp38;
@@ -38,7 +38,7 @@ s32 func_151DD140(s32 arg0, s32 arg1, void *arg2) {
     var_s0 = arg2;
     var_s1 = &D_800E0A30;
     __osSiGetAccess();
-    temp_v0 = func_151DD710(arg0, &sp3C);
+    temp_v0 = __osEepStatus(arg0, &sp3C);
     var_a0 = temp_v0;
     if (temp_v0 == 0) {
         temp_t7 = sp3C & 0xC000;
@@ -58,10 +58,10 @@ s32 func_151DD140(s32 arg0, s32 arg1, void *arg2) {
     } else {
         if (sp3E & 0x80) {
             do {
-                func_151DD710(arg0, &sp3C);
+                __osEepStatus(arg0, &sp3C);
             } while (sp3E & 0x80);
         }
-        func_151DD304(arg1);
+        __osPackEepWriteData(arg1);
         __osSiRawStartDma(1, &D_800E0A30);
         osRecvMesg(arg0, 0, 1);
         __osSiRawStartDma(0, &D_800E0A30);
@@ -94,7 +94,7 @@ s32 func_151DD140(s32 arg0, s32 arg1, void *arg2) {
     return sp4C;
 }
 
-void func_151DD304( s32 arg0) {
+void __osPackEepWriteData( s32 arg0) {
     s8 spB;
     s8 spA;
     s8 sp9;

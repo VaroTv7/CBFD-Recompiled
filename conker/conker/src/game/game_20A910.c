@@ -11,16 +11,16 @@
 
 void * __osSiGetAccess();                                /* extern */
 void * __osSiRelAccess();                                /* extern */
-s32 func_151DD710();                      /* extern */
+s32 __osEepStatus();                      /* extern */
 
-s32 func_151DD460(s32 arg0) {
+s32 osEepromProbe(OSMesgQueue *arg0) {
     s32 sp2C;
     u16 sp24;
     s32 temp_t7;
     s32 var_v1;
 
     __osSiGetAccess();
-    if (func_151DD710(arg0, &sp24) != 0) {
+    if (__osEepStatus(arg0, &sp24) != 0) {
         var_v1 = 0;
     } else {
         temp_t7 = sp24 & 0xC000;

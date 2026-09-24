@@ -11,7 +11,6 @@
 
 u64 __ll_mul();                       /* extern */
 void * __ull_div();                        /* extern */
-s32 func_151DD4E0();                    /* extern */
 s32 func_151DCFD8();                        /* static */
 extern s32 D_80042A58;
 extern s32 D_80042A90;
@@ -50,7 +49,7 @@ s32 func_151DCFD8(s32 arg0) {
             D_800E0A2C = 0;
             goto block_8;
         }
-        if (func_151DD4E0(D_800E0A20, D_800E0A24, D_800E0A28) != 0) {
+        if (osEepromRead(D_800E0A20, D_800E0A24, D_800E0A28) != 0) {
             D_800E0A20 = 0;
             D_800E0A2C = 0;
             goto block_8;

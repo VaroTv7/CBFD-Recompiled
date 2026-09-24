@@ -26,7 +26,7 @@ void func_150064E0(void) {
 // separately declared `s8` - not touching those declarations, since a
 // real caller in this same file assigns `D_800BE3D8 = -1;` directly)
 // looking for one equal to arg0; on a match, calls
-// func_151DD4E0(&D_800BE900, (i<<4)+4, D_800BE358) and again with
+// osEepromRead(&D_800BE900, (i<<4)+4, D_800BE358) and again with
 // +5, both as byte values.
 // 57 vs target's 59 instructions: content, control flow and the
 // exact index-based-vs-pointer-walk choice for BOTH loops match
@@ -59,8 +59,8 @@ void func_150064E0(void) {
 //         for (i = 0; i != 4; i++) {
 //             if (arg0 == *p) {
 //                 v0 = (i << 4) + 4;
-//                 func_151DD4E0(&D_800BE900, (u8) v0, D_800BE358);
-//                 func_151DD4E0(&D_800BE900, (u8) (v0 + 1), D_800BE358);
+//                 osEepromRead(&D_800BE900, (u8) v0, D_800BE358);
+//                 osEepromRead(&D_800BE900, (u8) (v0 + 1), D_800BE358);
 //             }
 //             p++;
 //         }

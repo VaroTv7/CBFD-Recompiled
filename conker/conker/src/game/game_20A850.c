@@ -10,7 +10,6 @@
 
 
 s32 func_151DCFD8();                               /* extern */
-s32 func_151DD140();                   /* extern */
 
 s32 func_151DD3A0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     s32 temp_v0;
@@ -30,7 +29,7 @@ s32 func_151DD3A0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     }
     if (var_s0 > 0) {
 loop_3:
-        temp_v0 = func_151DD140(arg0, var_s1 & 0xFF, var_s2);
+        temp_v0 = osEepromWrite(arg0, var_s1 & 0xFF, var_s2);
         var_s3 = temp_v0;
         if (temp_v0 != 0) {
             return temp_v0;
