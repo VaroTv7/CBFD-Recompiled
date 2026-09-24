@@ -4,7 +4,7 @@
 
 f32 random_float();                                /* extern */
 
-s32 func_151149AC();
+s32 func_151149AC(u8 arg0);
 
 struct225 *func_151602C0();
 struct225 *func_1516037C();
@@ -17,7 +17,7 @@ void func_15160954();
 s32  func_15161238();
 struct225 *func_1516127C();
 struct225 *func_15161334(s32 arg0, u8 arg1, s32 arg2);
-struct225 *func_15161408();
+struct225 *func_15161408(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161494(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161540();
 struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5);
@@ -48,7 +48,7 @@ void func_1516381C();
 void func_1516387C();
 s32  func_151639D0(struct225 *arg0, s32 arg1, u8 arg2);
 void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2);
-struct225 *func_15163A60(u8 arg0, s32 arg1, s32 arg2);
+struct225 *func_15163A60(u8 arg0, u8 arg1, s32 arg2);
 s32  func_15163B98();
 struct225 *func_15163BE8();
 s32  func_15163CD0();
@@ -311,7 +311,7 @@ struct225 *func_15161334(s32 arg0, u8 arg1, s32 arg2) {
     return temp_v0;
 }
 
-struct225 *func_15161408(s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15161408(s32 arg0, u8 arg1, s32 arg2) {
     struct225 *temp_v0;
     Header header;
     s32 tmp;
@@ -1075,7 +1075,7 @@ void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2) {
     }
 }
 
-struct225 *func_15163A60( u8 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15163A60( u8 arg0, u8 arg1, s32 arg2) {
     struct225 *temp_v0_2;
     Header header;
     f32 tmp1[4];
