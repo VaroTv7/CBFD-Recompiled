@@ -7,7 +7,7 @@
 
 // FIXME: create header file for audio related functions
 void func_10017C00();
-void func_10017C68();
+void func_10017C68(void *seqp, s32 chan, u8 arg2, u8 arg3);
 void func_10017CE0();
 void func_10017D30();
 void func_10018D00();
