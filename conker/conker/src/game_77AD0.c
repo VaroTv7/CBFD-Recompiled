@@ -784,7 +784,7 @@ void func_150548D8(s32 arg0) {
 void func_150548E4(struct127 *arg0) {
     struct127 *temp_s0;
     struct127 *phi_s2;
-    u16 phi_v0;
+    s32 phi_v0;
     s32 i;
 
     temp_s0 = &gObjects[arg0->unk65 - 1];
