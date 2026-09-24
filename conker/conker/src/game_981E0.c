@@ -317,7 +317,7 @@ void func_1506BAD8(s32 arg0, s32 arg1) {
     }
 }
 
-void func_1506BB64(s16 arg0, s32 arg1) {
+void func_1506BB64(s32 arg0, s32 arg1) {
     func_10012718(D_800D1582, gCurrentObject, 28000, arg0, arg1);
 }
 
