@@ -7,8 +7,9 @@ application in [`host/`](../host).
 **Status:** the game runs on Windows in a window, rendered by
 [RT64](../tools/rt64), and can be played with a game controller or the
 keyboard. The boot screens, the 3D intro, the attract-mode cutscenes and the
-menus render correctly. There is no sound yet (audio tasks are dropped). On
-Linux/WSL the host still builds headless only (null renderer, no input).
+menus render correctly, and there is sound: music, effects and the MP3
+voice acting. On Linux/WSL the host still builds headless only (null renderer,
+no input, no sound output).
 
 ## Building and running
 
@@ -147,10 +148,17 @@ N64Recomp (`n64recomp.patch`):
   targets were shifting every following label, which broke loops in
   hand-written asm.
 - `N64RECOMP_KEEP_GOING=1` reports every failing function.
+- division by zero gives the VR4300's results instead of trapping on the host
+  (the hand-written `func_150A3CBC` divides by zero during the attract mode).
 
 N64ModernRuntime (`n64modernruntime.patch`):
 - PI DMA completion posts the request's `OSIoMesg` pointer, as libultra does,
   instead of 0 (Conker's audio code reads it).
+- `osPiStartDma` fills in the `OSIoMesg` (`dramAddr`, `devAddr`, `size`,
+  `retQueue`) as libultra does. Rare's instrument cache (`func_10009CBC` loads,
+  `func_1000A03C` collects) matches finished DMAs by `mb->dramAddr`; without it
+  no instrument ever finished loading, every MIDI channel waited forever, and
+  only the MP3 voices played.
 - `ultramodern::set_running_thread_variable` keeps the game's
   `__osRunningThread` pointing at the running thread (Conker reads it
   directly).
@@ -174,6 +182,22 @@ the shaders. Texture generation (`G_TEXTURE_GEN`), which needs the same normals,
 is disabled for now, so environment-mapped surfaces render without their
 reflection texture.
 
+## Audio
+
+Conker's audio microcode is an ABI-style ucode like libultra's `aspMain`
+(n_audio command numbers), except that command 7 decodes MP3 (the voices). Its
+text is at ROM 0x291A0 and its data at 0x2C960. The first 0xF70 bytes are the
+main code (IMEM 0x1080). The 0x9C0-byte MP3 overlay (text offset 0xF70) is
+DMAed over the main code from IMEM 0x1238 and swaps it back when it's done.
+[`audio_ucode.toml`](audio_ucode.toml) describes this to RSPRecomp, which
+`run.sh` runs to produce `RecompiledFuncs/rsp/audio_ucode.cpp`.
+
+The output is 22020 Hz stereo. `host/src/audio_output.cpp` queues it on an SDL
+device. The audio thread (`func_100095A0`) sizes each buffer from AI_LEN: 736
+frames, or 552 when 249 or more samples are still playing. So the host reports
+only what is queued beyond one buffer, as AI_LEN counts only the buffer playing
+now. Reporting the whole queue made the game fall behind and pop.
+
 ## Host (`host/`)
 
 `main.cpp` registers the game (ROM hash, entrypoint, 16Kbit EEPROM), sets FR
@@ -183,14 +207,13 @@ the code pages. `ultra_extras.cpp` provides `osPiRawReadIo`/`osPiReadIo` (Rare's
 anti-piracy checks read real ROM words), `osPfsInit` (Rare's rumble detection),
 the KSEG1 read helper and `recomp_syscall_handler` (Conker halts with
 `syscall` on fatal errors). `rt64_renderer.cpp` drives RT64 from the runtime's
-graphics thread, and `window_input.cpp` owns the SDL window, the keyboard and
-the controller. `null_renderer.cpp` is used with `--headless` and on Linux.
+graphics thread, `window_input.cpp` owns the SDL window, the keyboard and
+the controller, and `audio_output.cpp` plays the sound. `null_renderer.cpp` is used with `--headless` and on Linux.
 The console gets a backtrace on a crash: SIGSEGV on Linux, and a vectored
 exception handler with DbgHelp on Windows.
 
 ## Next steps
 
-1. Recompile the audio microcode with RSPRecomp and hook up audio output.
-2. Texture generation for CBFD (pass the CPU-computed normals through to RT64).
-3. Play further into the game: saves (EEPROM), rumble, the other microcode build.
-4. An RT64 window on Linux.
+1. Texture generation for CBFD (pass the CPU-computed normals through to RT64).
+2. Play further into the game: saves (EEPROM), rumble, the other microcode build.
+3. An RT64 window and sound on Linux.

@@ -1,12 +1,12 @@
 // Host application for Conker's Bad Fur Day (US), recompiled with N64Recomp.
 //
-// With RT64 (CONKER_RT64) it opens a window and reads the keyboard and game
-// controllers (see window_input.cpp); otherwise, or with --headless, it runs with a
-// null renderer and no input. No audio output yet.
+// With RT64 (CONKER_RT64) it opens a window, reads the keyboard and game
+// controllers (window_input.cpp) and plays sound (audio_output.cpp); otherwise, or
+// with --headless, it runs with a null renderer, no input and no sound output.
 // Usage: ConkerRecomp --rom <baserom.us.z64> [--seconds N] [--headless]
 //   --rom PATH   the US ROM; only needed once, it is then kept in conker_data/
 //   --seconds N  quit after N seconds (default: run until the window is closed)
-//   --headless   null renderer, no window or input
+//   --headless   null renderer, no window, input or sound
 
 #include <atomic>
 #include <chrono>
@@ -91,6 +91,8 @@ static void install_crash_handler() {}
 #endif
 
 extern "C" void recomp_entrypoint(uint8_t* rdram, recomp_context* ctx);
+// Conker's audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml).
+RspExitReason conker_audio_ucode(uint8_t* rdram, uint32_t ucode_addr);
 
 namespace {
     const std::u8string game_id = u8"conker.n64.us.1.0";
@@ -128,15 +130,9 @@ namespace {
         ultramodern::set_running_thread_variable(osRunningThread);
     }
 
-    // Audio tasks: no RSP audio microcode is recompiled yet. Report the task as
-    // finished so the audio thread keeps running (the output is silence).
-    RspExitReason null_audio_ucode(uint8_t*, uint32_t) {
-        return RspExitReason::Broke;
-    }
-
     RspUcodeFunc* get_rsp_microcode(const OSTask* task) {
         if (task->t.type == M_AUDTASK) {
-            return null_audio_ucode;
+            return conker_audio_ucode;
         }
         std::fprintf(stderr, "[host] no RSP microcode for task type %u\n", (unsigned)task->t.type);
         return nullptr;
@@ -242,6 +238,8 @@ int main(int argc, char** argv) {
         cfg.input_callbacks = { conker::window::poll_input, conker::window::get_input, conker::window::set_rumble,
                                 conker::get_connected_device_info };
         cfg.gfx_callbacks = { conker::window::create_gfx, conker::window::create_window, conker::window::update_gfx };
+        cfg.audio_callbacks = { conker::audio::queue_samples, conker::audio::get_frames_remaining,
+                                conker::audio::set_frequency };
     }
 #endif
     cfg.events_callbacks = { vi_callback, nullptr };

@@ -35,6 +35,13 @@ namespace conker {
         void set_rumble(int controller_num, bool rumble);
         ultramodern::input::connected_device_info_t get_connected_device_info(int controller_num);
     }
+
+    // SDL sound output (audio_output.cpp).
+    namespace audio {
+        void queue_samples(int16_t* samples, size_t sample_count);
+        size_t get_frames_remaining();
+        void set_frequency(uint32_t frequency);
+    }
 #endif
 }
 

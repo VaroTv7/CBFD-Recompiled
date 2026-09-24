@@ -22,7 +22,7 @@ index 716d48b..fed5660 100644
  if (WIN32)
      add_compile_definitions(NOMINMAX)
 diff --git a/librecomp/src/pi.cpp b/librecomp/src/pi.cpp
-index 43509ba..8d2e612 100644
+index 43509ba..39b4a99 100644
 --- a/librecomp/src/pi.cpp
 +++ b/librecomp/src/pi.cpp
 @@ -266,7 +266,9 @@ void ultramodern::join_saving_thread() {
@@ -63,16 +63,26 @@ index 43509ba..8d2e612 100644
          } else {
              fprintf(stderr, "[WARN] PI DMA write to unknown region, phys address 0x%08X\n", physical_addr);
          }
-@@ -321,7 +323,7 @@ extern "C" void osPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
+@@ -321,7 +323,17 @@ extern "C" void osPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
  
      debug_printf("[pi] DMA from 0x%08X into 0x%08X of size 0x%08X\n", devAddr, dramAddr, size);
  
 -    do_dma(PASS_RDRAM mq, dramAddr, physical_addr, size, direction);
++    // Fill in the request as libultra does: games can read it back from the
++    // completion message (e.g. Conker matches finished DMAs by mb->dramAddr).
++    OSIoMesg* io = TO_PTR(OSIoMesg, ctx->r4);
++    io->hdr.type = (direction == 0) ? 11 : 12; // OS_MESG_TYPE_DMAREAD / OS_MESG_TYPE_DMAWRITE
++    io->hdr.pri = (u8)pri;
++    io->hdr.retQueue = mq;
++    io->dramAddr = dramAddr;
++    io->devAddr = ctx->r7;
++    io->size = size;
++
 +    do_dma(PASS_RDRAM mq, (OSMesg)mb, dramAddr, physical_addr, size, direction);
  
      ctx->r2 = 0;
  }
-@@ -338,7 +340,7 @@ extern "C" void osEPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
+@@ -338,7 +350,7 @@ extern "C" void osEPiStartDma_recomp(RDRAM_ARG recomp_context* ctx) {
  
      debug_printf("[pi] DMA from 0x%08X into 0x%08X of size 0x%08X\n", devAddr, dramAddr, size);
  

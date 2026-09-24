@@ -60,7 +60,12 @@ add_executable(ConkerRecomp
     src/null_renderer.cpp
     src/overlays.cpp
     src/ultra_extras.cpp
+    # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/run.sh).
+    "${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp"
 )
+if (MSVC)
+    set_source_files_properties("${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp" PROPERTIES COMPILE_OPTIONS "/W0;/bigobj")
+endif()
 target_include_directories(ConkerRecomp PRIVATE
     "${REPO_ROOT}/tools/N64ModernRuntime/N64Recomp/include"
     "${REPO_ROOT}/RecompiledFuncs"
@@ -71,7 +76,7 @@ if (CONKER_RT64)
     set(RT64_STATIC ON CACHE BOOL "" FORCE)
     add_subdirectory("${RT64_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/rt64")
 
-    target_sources(ConkerRecomp PRIVATE src/rt64_renderer.cpp src/window_input.cpp)
+    target_sources(ConkerRecomp PRIVATE src/rt64_renderer.cpp src/window_input.cpp src/audio_output.cpp)
     # CONKER_RT64 selects the window build; the rest are what rt64 compiles its own headers with.
     target_compile_definitions(ConkerRecomp PRIVATE CONKER_RT64 HLSL_CPU)
     if (WIN32)

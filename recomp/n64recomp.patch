@@ -81,6 +81,36 @@ index 9eaaa30..145d4ea 100644
          }
  
          //fmt::print("Jtbl at 0x{:08X} (rom 0x{:08X}) with {} entries used by instr at 0x{:08X}\n", cur_jtbl.vram, cur_jtbl.rom, cur_jtbl.entries.size(), cur_jtbl.jr_vram);
+diff --git a/src/cgenerator.cpp b/src/cgenerator.cpp
+index 94f85c5..9e4d1e5 100644
+--- a/src/cgenerator.cpp
++++ b/src/cgenerator.cpp
+@@ -523,18 +523,21 @@ void N64Recomp::CGenerator::emit_muldiv(InstrId instr_id, int reg1, int reg2) co
+         case InstrId::cpu_dmultu:
+             fmt::print(output_file, "DMULTU(U64({}), U64({}), &lo, &hi);\n", gpr_to_string(reg1), gpr_to_string(reg2));
+             break;
++        // Division by zero doesn't trap on the VR4300: the quotient is -1 (1 for a negative
++        // signed dividend) and the remainder is the dividend. Hand-written code can divide by
++        // zero without checking (e.g. Conker's func_150A3CBC); on the host it would trap.
+         case InstrId::cpu_div:
+             // Cast to 64-bits before division to prevent artihmetic exception for s32(0x80000000) / -1
+-            fmt::print(output_file, "lo = S32(S64(S32({0})) / S64(S32({1}))); hi = S32(S64(S32({0})) % S64(S32({1})));\n", gpr_to_string(reg1), gpr_to_string(reg2));
++            fmt::print(output_file, "if (S32({1}) == 0) {{ lo = S32({0}) >= 0 ? -1 : 1; hi = S32({0}); }} else {{ lo = S32(S64(S32({0})) / S64(S32({1}))); hi = S32(S64(S32({0})) % S64(S32({1}))); }}\n", gpr_to_string(reg1), gpr_to_string(reg2));
+             break;
+         case InstrId::cpu_ddiv:
+-            fmt::print(output_file, "DDIV(S64({}), S64({}), &lo, &hi);\n", gpr_to_string(reg1), gpr_to_string(reg2));
++            fmt::print(output_file, "if (S64({1}) == 0) {{ lo = S64({0}) >= 0 ? -1 : 1; hi = {0}; }} else DDIV(S64({0}), S64({1}), &lo, &hi);\n", gpr_to_string(reg1), gpr_to_string(reg2));
+             break;
+         case InstrId::cpu_divu:
+-            fmt::print(output_file, "lo = S32(U32({0}) / U32({1})); hi = S32(U32({0}) % U32({1}));\n", gpr_to_string(reg1), gpr_to_string(reg2));
++            fmt::print(output_file, "if (U32({1}) == 0) {{ lo = S32(0xFFFFFFFF); hi = S32({0}); }} else {{ lo = S32(U32({0}) / U32({1})); hi = S32(U32({0}) % U32({1})); }}\n", gpr_to_string(reg1), gpr_to_string(reg2));
+             break;
+         case InstrId::cpu_ddivu:
+-            fmt::print(output_file, "DDIVU(U64({}), U64({}), &lo, &hi);\n", gpr_to_string(reg1), gpr_to_string(reg2));
++            fmt::print(output_file, "if (U64({1}) == 0) {{ lo = -1; hi = {0}; }} else DDIVU(U64({0}), U64({1}), &lo, &hi);\n", gpr_to_string(reg1), gpr_to_string(reg2));
+             break;
+         default:
+             assert(false);
 diff --git a/src/main.cpp b/src/main.cpp
 index 669c4a1..adbcb9f 100644
 --- a/src/main.cpp

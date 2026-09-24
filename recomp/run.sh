@@ -12,4 +12,5 @@ rm -rf RecompiledFuncs && mkdir RecompiledFuncs
 ./tools/N64Recomp/build/N64Recomp conker.toml > recomp/n64recomp.out 2> recomp/n64recomp.err || {
     echo "N64Recomp failed:"; tail -5 recomp/n64recomp.err; exit 1; }
 python3 recomp/emit_tlb_pages.py recomp/conker.us.recomp.elf RecompiledFuncs/tlb_pages.c     .game=conker/assets/game.us.bin .debugger=conker/assets/debugger.us.bin
+./tools/N64Recomp/build/RSPRecomp recomp/audio_ucode.toml
 echo "N64Recomp OK: $(ls RecompiledFuncs | wc -l) files"
