@@ -537,7 +537,7 @@ void func_151DB4CC(struct218 *arg0) {
 //     func_15153F18(&tmp, &tmp.unk8, 0, arg3, arg4);
 // }
 
-void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, s32 arg3, s32 arg4) {
+void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, u8 arg3, s32 arg4) {
     struct17 tmp;
     struct217 tmp2;
     f32 temp_f10;
@@ -551,7 +551,7 @@ void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, s32 arg3, s32 arg4) {
     tmp2.unk4 = random_u32();
 
     temp_f10 = (tmp2.unk0 * 25.0f) + 10.0f;
-    func_151D9B8C(tmp2.unkF, *(s32 *) &temp_f10, ((tmp2.unk4 % 0x38U) + 200), arg1 + 4, &tmp, (random_u32() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
+    func_151D9B8C(tmp2.unkF, temp_f10, ((tmp2.unk4 % 0x38U) + 200), (void *) (arg1 + 4), &tmp, (random_u32() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DBCBC.s")
