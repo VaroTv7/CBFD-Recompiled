@@ -257,7 +257,7 @@ s32 func_15108D24(void *arg0, void * arg1) {
     temp_v0 = (char *)(arg0) + (*(s32 *)((char *)(arg0) + 0x50));
     temp_v0_2 = (char *)(temp_v0) + 0xF8;
     sp1C = temp_v0_2;
-    func_150A8050(&sp20, (*(s32 *)((char *)(temp_v0) + 0xF8)), 0, (*(s32 *)((char *)(temp_v0_2) + 0x4)));
+    func_150A8050(&sp20, (*(f32 *)((char *)(temp_v0) + 0xF8)), 0.0f, (*(f32 *)((char *)(temp_v0_2) + 0x4)));
     sp54 = (*(s32 *)((char *)(sp1C) + 0x10));
     sp20 *= D_800A2490;
     sp24 *= D_800A2490;
@@ -297,7 +297,7 @@ s32 func_15108E10(void *arg0) {
     temp_v0 = (*(s32 *)((char *)(arg0) + 0x18));
     temp_s1 = (char *)(temp_v0) + (*(s32 *)((char *)(temp_v0) + 0x50));
     temp_s1_2 = (char *)(temp_s1) + 0xF8;
-    func_150A8050(NULL, &sp70, (*(s32 *)((char *)(temp_s1) + 0xF8)), 0, (*(s32 *)((char *)(temp_s1_2) + 0x4)));
+    func_150A8050(&sp70, (*(f32 *)((char *)(temp_s1) + 0xF8)), 0.0f, (*(f32 *)((char *)(temp_s1_2) + 0x4)));
     spA4 = (*(s32 *)((char *)(temp_s1_2) + 0x10));
     sp70 *= D_800A2494;
     sp74 *= D_800A2494;
@@ -400,7 +400,7 @@ s32 func_15109120(void *arg0, s32 arg1) {
 
     temp_s0 = (char *)(arg0) + (*(s32 *)((char *)(arg0) + 0x50));
     temp_s0_2 = (char *)(temp_s0) + 0xF8;
-    func_150A8050(&spC8, (*(s32 *)((char *)(temp_s0) + 0xF8)), 0, (*(s32 *)((char *)(temp_s0_2) + 0x4)));
+    func_150A8050(&spC8, (*(f32 *)((char *)(temp_s0) + 0xF8)), 0.0f, (*(f32 *)((char *)(temp_s0_2) + 0x4)));
     spFC = (*(s32 *)((char *)(temp_s0_2) + 0x10));
     spC8 *= D_800A2498;
     spCC *= D_800A2498;

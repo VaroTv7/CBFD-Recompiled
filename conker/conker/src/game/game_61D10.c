@@ -390,8 +390,8 @@ void func_15034F30(void *arg0, void *arg1, s32 arg2, void *arg3, void * *arg4, s
     }
     if (arg2 == 2) {
         sp150 = -1.0f;
-        func_150A8050(&sp110, 0, -arg10, 0);
-        func_150A8050(&spD0, 0, arg10, 0);
+        func_150A8050(&sp110, 0.0f, -arg10, 0.0f);
+        func_150A8050(&spD0, 0.0f, arg10, 0.0f);
         var_s3_2 = 0;
         var_s4_2 = 0;
         var_s0_2 = arg4;

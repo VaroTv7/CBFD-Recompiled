@@ -7,7 +7,7 @@
 void func_15043D90(Mtx *m, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8, f32 arg9) {
     f32 sp18[4][4];
 
-    func_150A8050(&sp18, *(s32 *) &arg1, *(s32 *) &arg2, *(s32 *) &arg3);
+    func_150A8050(&sp18, arg1, arg2, arg3);
     sp18[3][0] = arg7;
     sp18[3][1] = arg8;
     sp18[3][2] = arg9;
@@ -26,7 +26,7 @@ void func_15043D90(Mtx *m, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32
 void func_15043E68(Mtx *m, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6) {
     f32 sp18[4][4];
 
-    func_150A8050(&sp18, *(s32 *) &arg1, *(s32 *) &arg2, *(s32 *) &arg3);
+    func_150A8050(&sp18, arg1, arg2, arg3);
     sp18[3][0] = arg4;
     sp18[3][1] = arg5;
     sp18[3][2] = arg6;

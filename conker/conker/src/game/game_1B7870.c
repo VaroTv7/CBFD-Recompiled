@@ -216,7 +216,7 @@ s32 func_1518A914(s32 arg0, void *arg1) {
     f32 sp24;
     void *temp_v0;
 
-    func_150A8050(&sp24, (*(s32 *)((char *)(arg1) + 0x100)), (*(s32 *)((char *)(arg1) + 0x104)), (*(s32 *)((char *)(arg1) + 0x108)));
+    func_150A8050(&sp24, (*(f32 *)((char *)(arg1) + 0x100)), (*(f32 *)((char *)(arg1) + 0x104)), (*(f32 *)((char *)(arg1) + 0x108)));
     temp_v0 = (char *)(arg1) + 0x100;
     sp54 = (*(s32 *)((char *)(arg1) + 0x48));
     sp58 = (*(s32 *)((char *)(arg1) + 0x4C));

@@ -1003,8 +1003,8 @@ void *func_15176DF0(void *arg0, void *arg1, s32 arg2) {
     if (((*(s32 *)((char *)(D_800DDE80) + (temp_v0_2 * 0x14))) == 0) || ((*(s32 *)((char *)(D_800DDF78) + (temp_v0_2 * 4))) == 0)) {
         return arg0;
     }
-    func_150A8050(&sp54, 0, (*(s32 *)((char *)(arg1) + 0xAC)), 0);
-    func_150A8050(&sp94, (*(s32 *)((char *)(arg1) + 0xA8)), 0, (*(s32 *)((char *)(arg1) + 0xB0)));
+    func_150A8050(&sp54, 0.0f, (*(f32 *)((char *)(arg1) + 0xAC)), 0.0f);
+    func_150A8050(&sp94, (*(f32 *)((char *)(arg1) + 0xA8)), 0.0f, (*(f32 *)((char *)(arg1) + 0xB0)));
     func_150A7A48(&sp94, &sp54, &sp54);
     sp84 = (*(s32 *)((char *)(arg1) + 0x98));
     sp88 = (*(s32 *)((char *)(arg1) + 0x9C));
@@ -1071,7 +1071,7 @@ void *func_151770C8(void *arg0, void *arg1, s32 arg2) {
         temp_v0 = (*(s32 *)((char *)(arg1) + 0x91));
         switch (temp_v0) {                          /* irregular */
         case 0:
-            func_150A8050(&sp50, (*(s32 *)((char *)(arg1) + 0xA8)), (*(s32 *)((char *)(arg1) + 0xAC)), (*(s32 *)((char *)(arg1) + 0xB0)));
+            func_150A8050(&sp50, (*(f32 *)((char *)(arg1) + 0xA8)), (*(f32 *)((char *)(arg1) + 0xAC)), (*(f32 *)((char *)(arg1) + 0xB0)));
             sp80 = (*(s32 *)((char *)(arg1) + 0x98));
             sp84 = (*(s32 *)((char *)(arg1) + 0x9C));
             sp88 = (*(s32 *)((char *)(arg1) + 0xA0));

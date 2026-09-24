@@ -232,7 +232,7 @@ s32 func_150B89E0(void *arg0, f32 arg1, void * arg2, f32 arg3, f32 arg4, void * 
     (*(s32 *)((char *)(arg0) + 0x72)) = 1;
     (*(s32 *)((char *)(arg0) + 0x78)) = 1;
     (*(s32 *)((char *)(arg0) + 0x60)) = (s32) ((*(s32 *)((char *)(arg0) + 0x60)) & ~0xFF);
-    func_150A8050(&sp68, (*(s32 *)((char *)(arg0) + 0x20)), (*(s32 *)((char *)(arg0) + 0x24)), (*(s32 *)((char *)(arg0) + 0x28)));
+    func_150A8050(&sp68, (*(f32 *)((char *)(arg0) + 0x20)), (*(f32 *)((char *)(arg0) + 0x24)), (*(f32 *)((char *)(arg0) + 0x28)));
     func_150A7960(&sp68, 0, 0, 0x43480000, (char *)(arg0) + 0x20, (char *)(arg0) + 0x24, (char *)(arg0) + 0x28);
     (*(f32 *)((char *)(arg0) + 0x20)) = (f32) ((*(f32 *)((char *)(arg0) + 0x20)) + (*(f32 *)((char *)(arg0) + 0x38)));
     (*(f32 *)((char *)(arg0) + 0x24)) = (f32) ((*(f32 *)((char *)(arg0) + 0x24)) + (*(f32 *)((char *)(arg0) + 0x3C)));

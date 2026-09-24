@@ -777,7 +777,7 @@ s32 func_151B76CC(void *arg0, s32 arg1) {
 
     temp_v0 = (*(s32 *)((*(s32 *)((char *)((*(s32 *)((char *)(arg0) + 0x98))) + 0x4))));
     sp6C = temp_v0;
-    func_150A8050(&sp2C, (*(s32 *)((char *)(temp_v0) + 0x20)), (*(s32 *)((char *)(temp_v0) + 0x24)), (*(s32 *)((char *)(temp_v0) + 0x28)));
+    func_150A8050(&sp2C, (*(f32 *)((char *)(temp_v0) + 0x20)), (*(f32 *)((char *)(temp_v0) + 0x24)), (*(f32 *)((char *)(temp_v0) + 0x28)));
     sp5C = (*(s32 *)((char *)(sp6C) + 0x38));
     sp60 = (*(s32 *)((char *)(sp6C) + 0x3C));
     sp64 = (*(s32 *)((char *)(sp6C) + 0x40));

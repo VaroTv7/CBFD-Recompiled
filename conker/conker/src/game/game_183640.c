@@ -879,7 +879,7 @@ s32 func_15157918(void *arg0) {
     void *temp_v1_8;
     void *temp_v1_9;
 
-    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, (*(s32 *)((char *)(arg0) + 0x120)), (*(s32 *)((char *)(arg0) + 0x124)), (*(s32 *)((char *)(arg0) + 0x128)));
+    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, (*(f32 *)((char *)(arg0) + 0x120)), (*(f32 *)((char *)(arg0) + 0x124)), (*(f32 *)((char *)(arg0) + 0x128)));
     temp_a0 = (char *)(arg0) + 0x120;
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xAC)) = (f32) (*(f32 *)((char *)(arg0) + 0x54));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB0)) = (f32) (*(f32 *)((char *)(arg0) + 0x58));
@@ -1020,7 +1020,7 @@ void func_15157DEC(void *arg0, void *arg1) {
     void *temp_v0_8;
     void *temp_v0_9;
 
-    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, (*(s32 *)((char *)(arg1) + 0x0)), (*(s32 *)((char *)(arg1) + 0x4)), (*(s32 *)((char *)(arg1) + 0x8)));
+    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, (*(f32 *)((char *)(arg1) + 0x0)), (*(f32 *)((char *)(arg1) + 0x4)), (*(f32 *)((char *)(arg1) + 0x8)));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xAC)) = (f32) (*(f32 *)((char *)(arg0) + 0x54));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB0)) = (f32) (*(f32 *)((char *)(arg0) + 0x58));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB4)) = (f32) (*(f32 *)((char *)(arg0) + 0x5C));

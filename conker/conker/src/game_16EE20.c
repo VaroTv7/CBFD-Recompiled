@@ -300,7 +300,7 @@ s32 func_151422F8(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
 void func_15142838(Mtx *m, f32 scale02, f32 scale1, f32 rotX, f32 rotY, f32 rotZ, f32 transX, f32 transY, f32 transZ) {
     f32 mtx[4][4];
 
-    func_150A8050(&mtx, *(s32 *) &rotX, *(s32 *) &rotY, *(s32 *) &rotZ);
+    func_150A8050(&mtx, rotX, rotY, rotZ);
     mtx[3][0] = transX;
     mtx[3][1] = transY;
     mtx[3][2] = transZ;

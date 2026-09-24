@@ -384,13 +384,13 @@ void func_1503E82C(s32 arg0) {
                             func_150A7DA0(&sp64, (*(s32 *)((char *)(temp_s0) + 0x24)), (*(s32 *)((char *)(temp_s0) + 0x28)), (*(s32 *)((char *)(temp_s0) + 0x2C)));
                             func_150A7A48(&sp64, (*(s32 *)((char *)(temp_fp) + 0x1D4)) + (temp_s3 << 6), &sp64);
                             temp_s0_2 = (*(s32 *)((char *)(temp_s6) + 0x0)) + temp_s2;
-                            func_150A8050(temp_s1, (*(s32 *)((char *)(temp_s0_2) + 0x30)), (*(s32 *)((char *)(temp_s0_2) + 0x34)), (*(s32 *)((char *)(temp_s0_2) + 0x38)));
+                            func_150A8050(temp_s1, (*(f32 *)((char *)(temp_s0_2) + 0x30)), (*(f32 *)((char *)(temp_s0_2) + 0x34)), (*(f32 *)((char *)(temp_s0_2) + 0x38)));
                             func_150A7A48(temp_s1, &sp64, temp_s1);
                             temp_s0_3 = (*(s32 *)((char *)(temp_s6) + 0x0)) + temp_s2;
                             func_150A7CB0(&sp64, (*(s32 *)((char *)(temp_s0_3) + 0x3C)), (*(s32 *)((char *)(temp_s0_3) + 0x40)), (*(s32 *)((char *)(temp_s0_3) + 0x44)));
                             func_150A7A48(&sp64, temp_s1, temp_s1);
                         } else {
-                            func_150A8050(temp_s1, (*(s32 *)((char *)(temp_s0) + 0x30)), (*(s32 *)((char *)(temp_s0) + 0x34)), (*(s32 *)((char *)(temp_s0) + 0x38)));
+                            func_150A8050(temp_s1, (*(f32 *)((char *)(temp_s0) + 0x30)), (*(f32 *)((char *)(temp_s0) + 0x34)), (*(f32 *)((char *)(temp_s0) + 0x38)));
                             temp_s0_4 = (*(s32 *)((char *)(temp_s6) + 0x0)) + temp_s2;
                             func_15043EC8(temp_s1, (*(s32 *)((char *)(temp_s0_4) + 0x3C)), (*(s32 *)((char *)(temp_s0_4) + 0x40)), (*(s32 *)((char *)(temp_s0_4) + 0x44)), (*(s32 *)((char *)(temp_s0_4) + 0x24)), (*(s32 *)((char *)(temp_s0_4) + 0x28)), (*(s32 *)((char *)(temp_s0_4) + 0x2C)));
                         }

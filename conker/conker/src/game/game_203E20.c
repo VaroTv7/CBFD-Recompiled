@@ -265,7 +265,7 @@ s32 func_151D6E60(void *arg0) {
     void *temp_v1_8;
     void *temp_v1_9;
 
-    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, 0, func_15144AA8(0) + 25.0f, 0);
+    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, 0.0f, func_15144AA8(0) + 25.0f, 0.0f);
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xAC)) = (f32) (*(f32 *)((char *)((*(s32 *)((char *)(arg0) + 0x4C))) + 0x14));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB0)) = (f32) ((*(f32 *)((char *)((*(s32 *)((char *)(arg0) + 0x4C))) + 0x18)) + 120.0f);
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB4)) = (f32) (*(f32 *)((char *)((*(s32 *)((char *)(arg0) + 0x4C))) + 0x1C));

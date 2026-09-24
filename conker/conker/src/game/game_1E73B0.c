@@ -2764,7 +2764,7 @@ s32 func_151BEB20(void *arg0) {
     void *temp_v1_8;
     void *temp_v1_9;
 
-    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, 0, (*(s32 *)((char *)(arg0) + 0x120)), 0);
+    func_150A8050((char *)(arg0) + (D_800BE9C0 << 6) + 0x7C, 0.0f, (*(f32 *)((char *)(arg0) + 0x120)), 0.0f);
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xAC)) = (f32) (*(f32 *)((char *)(arg0) + 0x54));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB0)) = (f32) (*(f32 *)((char *)(arg0) + 0x58));
     (*(f32 *)((char *)(((char *)(arg0) + (D_800BE9C0 << 6))) + 0xB4)) = (f32) (*(f32 *)((char *)(arg0) + 0x5C));

@@ -186,7 +186,7 @@ void func_15182C5C(void *arg0) {
     temp_v0 = &(&D_800DDE54)[temp_fp];
     temp_s4 = (*(s32 *)((char *)(((char *)(arg0) + (D_800BE9C0 * 4))) + 0x20));
     sp70 = temp_v0;
-    func_150A8050(&sp88, 0.0f, (f32) -*(&D_8008D060 + (*temp_v0 * 0x18)), 0);
+    func_150A8050(&sp88, 0.0f, (f32) -*(&D_8008D060 + (*temp_v0 * 0x18)), 0.0f);
     var_s3 = 0;
     var_s2 = 0;
     if ((s32) (*(s32 *)((char *)((D_800DBEF4 + (*(&D_8008D062 + (*sp70 * 0x18)) * 0xA0))) + 0x16)) > 0) {
@@ -265,7 +265,7 @@ s8 func_15182FDC(void * *arg0, s32 arg1, s32 arg2) {
     spAC = (*(s32 *)((char *)(arg0) + 0x14)) - temp_f14;
     sp3C = temp_t1;
     spA4 = (*(f32 *)((char *)(arg0) + 0x1C)) - (f32) (*(f32 *)((char *)(temp_v0) + 0x14));
-    func_150A8050((*(void **)&temp_f12), temp_f14, (f32)(s32)&sp4C, 0, (f32) (*(f32 *)((char *)(temp_t0) + 0x10)), 0);
+    func_150A8050(&sp4C, 0.0f, (f32) (*(s16 *)((char *)(temp_t0) + 0x10)), 0.0f);
     func_150A7960(&sp4C, spAC, 0.0f, spA4, &spA0, &sp9C, &sp98);
     if ((sp98 > 0.0f) || (temp_t0_2 = (*sp3C * 0x18) + &D_8008D050, (sp98 < (f32) (*(f32 *)((char *)(temp_t0_2) + 0xC)))) || (spA0 < 0.0f) || ((f32) (*(f32 *)((char *)(temp_t0_2) + 0xE)) < spA0)) {
         goto block_15;

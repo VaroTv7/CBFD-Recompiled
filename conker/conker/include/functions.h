@@ -1087,7 +1087,7 @@ s32  func_150859AC(s16 arg0, s32 arg1); // a guess
 void func_1508B20C(f32 arg0, f32 arg1, f32 arg2, f32 arg3);
 s32  func_150A29C8();
 void func_150A7CB0();
-void func_150A8050();
+void func_150A8050(void *arg0, f32 arg1, f32 arg2, f32 arg3);
 void func_150A9B0C();
 void func_150AD770();
 f32  func_150AD780(f32 arg0);

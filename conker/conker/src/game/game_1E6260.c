@@ -340,7 +340,7 @@ s32 func_151B9310(s32 arg0, void *arg1) {
     f32 sp2C;
     f32 sp28;
 
-    func_150A8050(&sp28, 0, 0, (*(s32 *)((char *)(arg1) + 0x170)));
+    func_150A8050(&sp28, 0.0f, 0.0f, (*(f32 *)((char *)(arg1) + 0x170)));
     sp58 = (*(s32 *)((char *)(arg1) + 0x38));
     sp5C = (*(s32 *)((char *)(arg1) + 0x3C));
     sp60 = (*(s32 *)((char *)(arg1) + 0x40));
@@ -389,7 +389,7 @@ s32 func_151B9408(void *arg0) {
 
     temp_v0 = (*(s32 *)((char *)(arg0) + 0x18));
     spA0 = temp_v0;
-    func_150A8050(&sp54, 0, 0, (*(s32 *)((char *)(temp_v0) + 0x170)));
+    func_150A8050(&sp54, 0.0f, 0.0f, (*(f32 *)((char *)(temp_v0) + 0x170)));
     sp84 = (*(s32 *)((char *)(spA0) + 0x38));
     sp88 = (*(s32 *)((char *)(spA0) + 0x3C));
     sp8C = (*(s32 *)((char *)(spA0) + 0x40));

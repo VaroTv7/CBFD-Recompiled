@@ -1873,7 +1873,7 @@ void *func_15187A98(void *arg0, void *arg1, void * arg2) {
             spE0 *= (*(s32 *)((char *)(arg1) + 0x9C));
             temp_v0 = (*(s32 *)((char *)(arg1) + 0xA4)) + var_s3;
             if ((*(s32 *)((char *)(temp_v0) + 0x98)) == 0) {
-                func_150A8050(&sp78, (*(s32 *)((char *)(temp_v0) + 0x80)), (*(s32 *)((char *)(temp_v0) + 0x84)), (*(s32 *)((char *)(temp_v0) + 0x88)));
+                func_150A8050(&sp78, (*(f32 *)((char *)(temp_v0) + 0x80)), (*(f32 *)((char *)(temp_v0) + 0x84)), (*(f32 *)((char *)(temp_v0) + 0x88)));
             } else {
                 func_15187D6C(&sp78, (*(s32 *)((char *)(temp_v0) + 0x80)), (*(s32 *)((char *)(temp_v0) + 0x84)), (*(s32 *)((char *)(temp_v0) + 0x88)));
             }

@@ -220,7 +220,7 @@ s32 func_1515858C(s32 arg0, void *arg1) {
     f32 sp24;
     void *temp_v0;
 
-    func_150A8050(&sp24, (*(s32 *)((char *)(arg1) + 0xF8)), (*(s32 *)((char *)(arg1) + 0xFC)), (*(s32 *)((char *)(arg1) + 0x100)));
+    func_150A8050(&sp24, (*(f32 *)((char *)(arg1) + 0xF8)), (*(f32 *)((char *)(arg1) + 0xFC)), (*(f32 *)((char *)(arg1) + 0x100)));
     temp_v0 = (char *)(arg1) + 0xF8;
     sp54 = (*(s32 *)((char *)(arg1) + 0x48));
     sp58 = (*(s32 *)((char *)(arg1) + 0x4C));
@@ -1086,7 +1086,7 @@ void func_15159C08(void *arg0) {
                 temp_f22 = random_float() * (*(s32 *)((char *)(temp_s0) + 0x1C));
                 temp_f24 = sinf(temp_f20) * temp_f22;
                 temp_f20_2 = cosf(temp_f20) * temp_f22;
-                func_150A8050(&spA0, (*(s32 *)((char *)(temp_s0) + 0x20)), (*(s32 *)((char *)(temp_s0) + 0x24)), 0);
+                func_150A8050(&spA0, (*(f32 *)((char *)(temp_s0) + 0x20)), (*(f32 *)((char *)(temp_s0) + 0x24)), 0.0f);
                 func_150A7960(&spA0, temp_f24, 0, temp_f20_2, &sp108, &sp10C, &sp110);
                 sp114 = random_float() * temp_f30;
                 sp118 = ((random_float() * 320.0f) + -160.0f) * D_800A63C8;

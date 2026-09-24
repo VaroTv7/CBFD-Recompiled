@@ -363,7 +363,7 @@ void *func_150CD59C(void *arg0, s32 arg1) {
         sp80 = (*(s32 *)((char *)(arg0) + 0x2C));
         sp88 = 0.0f;
         sp84 = -(*(s32 *)((char *)(arg0) + 0x30));
-        func_150A8050(&sp8C, (*(s32 *)((char *)(arg0) + 0x40)), (*(s32 *)((char *)(arg0) + 0x44)), (*(s32 *)((char *)(arg0) + 0x48)));
+        func_150A8050(&sp8C, (*(f32 *)((char *)(arg0) + 0x40)), (*(f32 *)((char *)(arg0) + 0x44)), (*(f32 *)((char *)(arg0) + 0x48)));
         spBC = (*(s32 *)((char *)(arg0) + 0x34));
         spC0 = (*(s32 *)((char *)(arg0) + 0x38));
         spC4 = (*(s32 *)((char *)(arg0) + 0x3C));

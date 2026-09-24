@@ -42,7 +42,7 @@ void func_150D1C30(void *arg0) {
         (*(f32 *)((char *)(temp_s2_2) + 0xC)) = (f32) ((*(f32 *)((char *)(temp_s2_2) + 0xC)) + ((*(f32 *)((char *)(temp_s2_2) + 0x18)) * D_800BE9A4));
         (*(f32 *)((char *)(temp_s2_2) + 0x10)) = (f32) ((*(f32 *)((char *)(temp_s2_2) + 0x10)) + ((*(f32 *)((char *)(temp_s2_2) + 0x1C)) * D_800BE9A4));
         (*(f32 *)((char *)(temp_s2_2) + 0x14)) = (f32) ((*(f32 *)((char *)(temp_s2_2) + 0x14)) + ((*(f32 *)((char *)(temp_s2_2) + 0x20)) * D_800BE9A4));
-        func_150A8050(&spA8, (*(s32 *)((char *)(temp_s2_2) + 0xC)), (*(s32 *)((char *)(temp_s2_2) + 0x10)), (*(s32 *)((char *)(temp_s2_2) + 0x14)));
+        func_150A8050(&spA8, (*(f32 *)((char *)(temp_s2_2) + 0xC)), (*(f32 *)((char *)(temp_s2_2) + 0x10)), (*(f32 *)((char *)(temp_s2_2) + 0x14)));
         var_s3 = 0;
         var_s1 = temp_s2_2;
         do {

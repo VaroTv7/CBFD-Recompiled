@@ -262,7 +262,7 @@ void func_1512C490(void *arg0) {
         temp_v0_5 = (*(s32 *)((char *)(arg0) + 0x3D4));
         temp_f2_4 = (*(s32 *)((char *)(temp_v0_5) + 0x130));
         temp_f16_3 = (*(s32 *)((char *)(temp_v0_5) + 0x138));
-        func_150A8050(&sp64, (-func_150484A0((*(s32 *)((char *)(temp_v0_5) + 0x134)), sqrtf((temp_f2_4 * temp_f2_4) + (temp_f16_3 * temp_f16_3))) * D_800A36B8) - ((*(s32 *)((char *)(arg0) + 0x858)) * spC4), sp60 - ((*(s32 *)((char *)(arg0) + 0x85C)) * spC4), 0);
+        func_150A8050(&sp64, (-func_150484A0((*(s32 *)((char *)(temp_v0_5) + 0x134)), sqrtf((temp_f2_4 * temp_f2_4) + (temp_f16_3 * temp_f16_3))) * D_800A36B8) - ((*(s32 *)((char *)(arg0) + 0x858)) * spC4), sp60 - ((*(s32 *)((char *)(arg0) + 0x85C)) * spC4), 0.0f);
         guMtxXFMF(&sp64, 0, 0, 0x3F800000, &spA4, &spA8, &spAC);
         (*(s32 *)((char *)((*(s32 *)((char *)(arg0) + 0x3D4))) + 0x130)) = spA4;
         (*(s32 *)((char *)((*(s32 *)((char *)(arg0) + 0x3D4))) + 0x134)) = spA8;

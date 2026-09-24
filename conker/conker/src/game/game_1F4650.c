@@ -172,7 +172,7 @@ s32 func_151C71A0(void *arg0) {
         sp174 = (f32) (*(f32 *)((char *)(arg0) + 0x0));
         sp178 = (f32) (*(f32 *)((char *)(arg0) + 0x2));
         sp17C = (f32) (*(f32 *)((char *)(arg0) + 0x4));
-        func_150A8050(&sp104, (*(s32 *)((char *)(arg0) + 0xC)), (*(s32 *)((char *)(arg0) + 0x10)), 0);
+        func_150A8050(&sp104, (*(f32 *)((char *)(arg0) + 0xC)), (*(f32 *)((char *)(arg0) + 0x10)), 0.0f);
         func_150A7960(&sp104, 0, (f32) (*(f32 *)((char *)(arg0) + 0x8)), 0, &sp168, &sp16C, &sp170);
         temp_f18 = sp168 + sp174;
         temp_f10 = sp16C + sp178;
