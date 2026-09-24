@@ -293,7 +293,7 @@ void func_160012B0(s32 arg0, u8 *arg1) {
     }
 }
 // convert rgb to rgba16
-void func_16001338( s32 arg0, s32 arg1, s32 arg2) {
+void func_16001338(arg0, arg1, arg2) u8 arg0; u8 arg1; u8 arg2; {
     D_1600388C = ((arg0 & 0xF8) << 8) | ((arg1 & 0xF8) << 3) | ((arg2 & 0xF8) >> 2) | 1;
 }
 
