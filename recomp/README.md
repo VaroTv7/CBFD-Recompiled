@@ -48,7 +48,9 @@ environment and builds `host/build-win` (RelWithDebInfo, so the crash handler
 can name functions). Extra arguments go to `cmake --build`, e.g.
 `hostuild_windows.cmd -- -j 8 -k 0`. SDL2 and DXC come from RT64's
 bundled dependencies and are copied next to the exe. The ROM is only needed on
-the first run; it is kept in `conker_data/`. `--headless` runs without a window.
+the first run: pass it with `--rom`, drop it onto the exe, or pick it in the file
+dialog that opens when none is stored. It is kept in `conker_data/` next to the
+exe, wherever the game is started from. `--headless` runs without a window.
 
 Controls: a game controller (XInput or anything SDL recognises) or the keyboard.
 

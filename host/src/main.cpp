@@ -3,8 +3,10 @@
 // With RT64 (CONKER_RT64) it opens a window, reads the keyboard and game
 // controllers (window_input.cpp) and plays sound (audio_output.cpp); otherwise, or
 // with --headless, it runs with a null renderer, no input and no sound output.
-// Usage: ConkerRecomp --rom <baserom.us.z64> [--seconds N] [--headless]
-//   --rom PATH   the US ROM; only needed once, it is then kept in conker_data/
+// Usage: ConkerRecomp [--rom <baserom.us.z64>] [--seconds N] [--headless]
+//   --rom PATH   the US ROM (a bare path works too, e.g. a ROM dropped onto the exe);
+//                only needed once, it is then kept in conker_data/ next to the exe.
+//                Without one, the window build asks for it with a file dialog.
 //   --seconds N  quit after N seconds (default: run until the window is closed)
 //   --headless   null renderer, no window, input or sound
 
@@ -52,6 +54,7 @@ static void install_crash_handler() {
 #elif defined(_WIN32)
 #include <Windows.h>
 #include <DbgHelp.h>
+#include <commdlg.h>
 
 // Debugging aid: report the faulting function (the recompiled functions are
 // named after their vram) and a short stack, using the PDB next to the exe.
@@ -171,6 +174,109 @@ ultramodern::input::connected_device_info_t conker::get_connected_device_info(in
     return { ultramodern::input::Device::None, ultramodern::input::Pak::None };
 }
 
+namespace {
+    // conker_data/ (the stored ROM and saves) lives next to the executable, so it's
+    // found however the game is started: double-click, shortcut or another directory.
+    std::filesystem::path exe_directory(const char* argv0) {
+#if defined(_WIN32)
+        wchar_t buffer[MAX_PATH];
+        DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+        if (length > 0 && length < MAX_PATH) {
+            return std::filesystem::path(buffer).parent_path();
+        }
+#elif defined(__linux__)
+        std::error_code error;
+        std::filesystem::path exe = std::filesystem::read_symlink("/proc/self/exe", error);
+        if (!error) {
+            return exe.parent_path();
+        }
+#endif
+        return std::filesystem::absolute(argv0).parent_path();
+    }
+
+    const char* rom_error_text(recomp::RomValidationError error) {
+        switch (error) {
+            case recomp::RomValidationError::FailedToOpen:
+                return "The file couldn't be opened.";
+            case recomp::RomValidationError::NotARom:
+                return "The file isn't an N64 ROM.";
+            case recomp::RomValidationError::IncorrectRom:
+            case recomp::RomValidationError::IncorrectVersion:
+                return "This isn't the US version of Conker's Bad Fur Day, the only one supported.";
+            default:
+                return "The ROM couldn't be loaded.";
+        }
+    }
+
+    // Reports an error on the console and, in the window build, in a message box.
+    void show_error(const std::string& text) {
+        std::fprintf(stderr, "[host] %s\n", text.c_str());
+#if defined(_WIN32)
+        if (!headless) {
+            int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+            std::wstring wide(length, L'\0');
+            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wide.data(), length);
+            MessageBoxW(nullptr, wide.c_str(), L"Conker's Bad Fur Day (recompiled)", MB_OK | MB_ICONERROR);
+        }
+#endif
+    }
+
+    std::string path_text(const std::filesystem::path& path) {
+        std::u8string text = path.u8string();
+        return std::string(text.begin(), text.end());
+    }
+
+#if defined(_WIN32)
+    // The standard Windows open dialog; returns an empty path if cancelled.
+    std::filesystem::path ask_for_rom() {
+        wchar_t file[MAX_PATH] = L"";
+        OPENFILENAMEW dialog{};
+        dialog.lStructSize = sizeof(dialog);
+        dialog.lpstrFilter = L"N64 ROMs (*.z64, *.n64, *.v64)\0*.z64;*.n64;*.v64\0All files\0*.*\0";
+        dialog.lpstrFile = file;
+        dialog.nMaxFile = MAX_PATH;
+        dialog.lpstrTitle = L"Select your Conker's Bad Fur Day (US) ROM";
+        dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+        if (!GetOpenFileNameW(&dialog)) {
+            return {};
+        }
+        return std::filesystem::path(file);
+    }
+#endif
+
+    // The ROM comes from the command line, else from the copy an earlier run stored in
+    // conker_data/, else (window build) from a file dialog. Returns false to quit.
+    bool select_rom(const std::filesystem::path& rom_path) {
+        if (!rom_path.empty()) {
+            recomp::RomValidationError result = recomp::select_rom(rom_path, game_id);
+            if (result != recomp::RomValidationError::Good) {
+                show_error(path_text(rom_path) + ": " + rom_error_text(result));
+                return false;
+            }
+            return true;
+        }
+        recomp::check_all_stored_roms();
+        if (recomp::is_rom_valid(game_id)) {
+            return true;
+        }
+#if defined(_WIN32)
+        while (!headless) {
+            std::filesystem::path chosen = ask_for_rom();
+            if (chosen.empty()) {
+                return false;
+            }
+            recomp::RomValidationError result = recomp::select_rom(chosen, game_id);
+            if (result == recomp::RomValidationError::Good) {
+                return true;
+            }
+            show_error(path_text(chosen) + ": " + rom_error_text(result));
+        }
+#endif
+        std::fprintf(stderr, "[host] No ROM yet: run once with --rom <path to the US ROM>.\n");
+        return false;
+    }
+}
+
 int main(int argc, char** argv) {
     // Unbuffered, so diagnostics (e.g. RT64's microcode hashes) survive a crash.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
@@ -190,9 +296,12 @@ int main(int argc, char** argv) {
         else if (std::strcmp(argv[i], "--headless") == 0) {
             headless = true;
         }
+        else if (argv[i][0] != '-' && rom_path.empty()) {
+            rom_path = argv[i]; // e.g. a ROM dropped onto the executable
+        }
     }
 
-    recomp::register_config_path(std::filesystem::current_path() / "conker_data");
+    recomp::register_config_path(exe_directory(argv[0]) / "conker_data");
     std::filesystem::create_directories(recomp::get_config_path());
 
     recomp::GameEntry game{};
@@ -211,13 +320,8 @@ int main(int argc, char** argv) {
 
     conker::register_overlays();
 
-    if (!rom_path.empty()) {
-        auto result = recomp::select_rom(rom_path, game_id);
-        if (result != recomp::RomValidationError::Good) {
-            std::fprintf(stderr, "[host] %s is not the US Conker ROM (validation error %d)\n",
-                rom_path.string().c_str(), (int)result);
-            return EXIT_FAILURE;
-        }
+    if (!select_rom(rom_path)) {
+        return EXIT_FAILURE;
     }
 
     // librecomp starts a game named on the command line with --game.

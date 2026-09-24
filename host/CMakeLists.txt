@@ -117,6 +117,6 @@ if (UNIX)
     # Exported symbols let the crash handler's backtrace name recompiled functions.
     target_link_options(ConkerRecomp PRIVATE -rdynamic)
 elseif (WIN32)
-    # The crash handler symbolises the stack with DbgHelp.
-    target_link_libraries(ConkerRecomp PRIVATE DbgHelp)
+    # The crash handler symbolises the stack with DbgHelp; Comdlg32 has the ROM file dialog.
+    target_link_libraries(ConkerRecomp PRIVATE DbgHelp Comdlg32)
 endif()
