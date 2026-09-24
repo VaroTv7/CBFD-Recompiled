@@ -598,6 +598,8 @@ void func_1516968C(struct102 *arg0, u8 *arg1, u8 arg2) {
 //     return v0;
 // }
 
+// Target never sets $v0: effectively void, but the K&R s32 declaration in
+// functions.h is kept because some src/game callers read the result.
 s32 func_1516972C(struct102 *arg0) {
     void (*func)(struct102 *arg0);
     func_151696DC();
@@ -606,11 +608,10 @@ s32 func_1516972C(struct102 *arg0) {
         func = D_8008B4D0[arg0->unk0].unk0;
         if (func != NULL) {
             func(arg0);
-            return 0;
+            return;
         }
         func_15169804(arg0);
     }
-    return 0;
 }
 
 void func_1516979C(struct102 *arg0) {
