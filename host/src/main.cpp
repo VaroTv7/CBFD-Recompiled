@@ -27,6 +27,9 @@
 
 #include "conker.hpp"
 
+// The game's RDRAM, for reporting fault addresses as N64 addresses.
+static uint8_t* crash_rdram = nullptr;
+
 #if defined(__linux__)
 #include <csignal>
 #include <execinfo.h>
@@ -67,8 +70,20 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
     HANDLE process = GetCurrentProcess();
     SymInitialize(process, nullptr, TRUE);
     std::fprintf(stderr, "[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
+    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2) {
+        // The faulting address, and the N64 address it stands for (rdram is the KSEG0 base).
+        uintptr_t fault = (uintptr_t)info->ExceptionRecord->ExceptionInformation[1];
+        std::fprintf(stderr, "[host] %s %p", info->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading",
+            (void*)fault);
+        if (crash_rdram != nullptr) {
+            std::fprintf(stderr, " (N64 address 0x%08X)", (uint32_t)(fault - (uintptr_t)crash_rdram + 0x80000000u));
+        }
+        std::fprintf(stderr, "\n");
+    }
+    // The first frame is the faulting instruction itself.
     void* frames[32];
-    USHORT count = CaptureStackBackTrace(0, 32, frames, nullptr);
+    frames[0] = info->ExceptionRecord->ExceptionAddress;
+    USHORT count = 1 + CaptureStackBackTrace(0, 31, frames + 1, nullptr);
     alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + 256];
     SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -76,7 +91,17 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
     for (USHORT i = 0; i < count; i++) {
         DWORD64 offset = 0;
         if (SymFromAddr(process, (DWORD64)frames[i], &offset, symbol)) {
-            std::fprintf(stderr, "  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
+            // The source line: in RecompiledFuncs/ the line's comment gives the MIPS instruction.
+            IMAGEHLP_LINE64 line{};
+            line.SizeOfStruct = sizeof(line);
+            DWORD displacement = 0;
+            if (SymGetLineFromAddr64(process, (DWORD64)frames[i], &displacement, &line)) {
+                std::fprintf(stderr, "  %s+0x%llx (%s:%lu)\n", symbol->Name, (unsigned long long)offset,
+                    std::filesystem::path(line.FileName).filename().string().c_str(), line.LineNumber);
+            }
+            else {
+                std::fprintf(stderr, "  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
+            }
         }
         else {
             std::fprintf(stderr, "  %p\n", frames[i]);
@@ -118,6 +143,7 @@ namespace {
     }
 
     void on_init(uint8_t* rdram, recomp_context* ctx) {
+        crash_rdram = rdram;
         set_fr_mode(ctx);
         conker::register_tlb_mapped_code();
         conker::map_tlb_code_pages(rdram);
