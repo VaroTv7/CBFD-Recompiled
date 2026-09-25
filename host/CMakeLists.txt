@@ -34,7 +34,26 @@ if (MSVC)
         PROPERTIES COMPILE_OPTIONS "/Od")
 endif()
 
-# The recompiled game code.
+# The recompiled game code. recomp/run.sh records hashes of the files that shape it; stop if
+# any has changed since, as the build would otherwise quietly use stale code.
+set(RECOMP_INPUTS conker.toml recomp/prepare_elf.py recomp/n64recomp.patch recomp/emit_tlb_pages.py recomp/audio_ucode.toml)
+set(RECOMP_STAMP "${REPO_ROOT}/RecompiledFuncs/inputs.sha256")
+if (NOT EXISTS "${RECOMP_STAMP}")
+    message(FATAL_ERROR "RecompiledFuncs/ is missing or predates input tracking: run `sh recomp/run.sh` (in WSL on Windows).")
+endif()
+file(READ "${RECOMP_STAMP}" RECOMP_STAMP_TEXT)
+set(RECOMP_EXPECTED "")
+foreach(input ${RECOMP_INPUTS})
+    file(READ "${REPO_ROOT}/${input}" input_text)
+    string(REPLACE "\r" "" input_text "${input_text}")
+    string(SHA256 input_hash "${input_text}")
+    string(APPEND RECOMP_EXPECTED "${input_hash} ${input}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${REPO_ROOT}/${input}")
+endforeach()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${RECOMP_STAMP}")
+if (NOT RECOMP_STAMP_TEXT STREQUAL RECOMP_EXPECTED)
+    message(FATAL_ERROR "RecompiledFuncs/ is out of date (${RECOMP_INPUTS} changed since it was generated): run `sh recomp/run.sh` (in WSL on Windows), then build again.")
+endif()
 file(GLOB RECOMPILED_FUNCS CONFIGURE_DEPENDS "${REPO_ROOT}/RecompiledFuncs/funcs_*.c")
 add_library(RecompiledFuncs STATIC ${RECOMPILED_FUNCS} "${REPO_ROOT}/RecompiledFuncs/tlb_pages.c")
 target_include_directories(RecompiledFuncs PRIVATE

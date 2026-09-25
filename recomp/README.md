@@ -26,6 +26,11 @@ cmake --build host/build
 cd host/build && ./ConkerRecomp --rom ../../baserom.us.z64 --seconds 30
 ```
 
+`run.sh` records hashes of the files that shape `RecompiledFuncs/` (`conker.toml`,
+`prepare_elf.py`, the N64Recomp patch, ...), and CMake stops with "RecompiledFuncs/
+is out of date" when any of them has changed since: rerun `sh recomp/run.sh` after
+pulling, then build.
+
 `tools/N64Recomp` (ffb39cd) and `tools/N64ModernRuntime` (cdf5abb) are
 untracked checkouts, so their changes live in the patch files here.
 
