@@ -48,6 +48,11 @@ namespace {
         if (controller != nullptr) {
             return;
         }
+        // Debugging aid: CONKER_NO_CONTROLLER=1 ignores game controllers, e.g. for test
+        // runs while someone else is playing with the controller on the same machine.
+        if (SDL_getenv("CONKER_NO_CONTROLLER") != nullptr) {
+            return;
+        }
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             if (SDL_IsGameController(i)) {
                 controller = SDL_GameControllerOpen(i);

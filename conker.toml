@@ -272,26 +272,6 @@ text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
 func = "func_150AC0F8"
 before_vram = 0x150AC1C4
 text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
-=======
-# func_150AB1F0 (camera/collision math) has an internal subroutine at 0x150AC1C4
-# that returns with `jr $t0`: its caller at 0x150AB5C0 sets $t0 to its own return
-# point and uses jal, so prepare_elf rewrites that return to `jr $ra`. But
-# 0x150AC1B4 also falls into the subroutine with $t0 = 0x150AB6F0 (the routine's
-# loop head) and no jal: there the rewritten return left func_150AB1F0 without its
-# epilogue, returning with $sp 0x268 low. The caller (func_15044380) then restored
-# $s0 from the wrong slot, the camera spun, and func_1512BB10 crashed storing
-# through a float (right after Hungover's opening cutscene). Make the fall-through
-# a call to the subroutine followed by the jump to 0x150AB6F0. The instruction is
-# in two functions: func_150AC0F8 runs on into it, and 0x150AC1B4 is a branch target.
-[[patches.hook]]
-func = "func_150AC0F8"
-before_vram = 0x150AC1BC
-text = "{ ctx->r8 = (int32_t)0x150AB6F0; func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
-
-[[patches.hook]]
-func = "func_150AC1B4"
-before_vram = 0x150AC1BC
-text = "{ ctx->r8 = (int32_t)0x150AB6F0; func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
 
 # ---------------------------------------------------------------------------
 # libultra state that the runtime's replacements don't set up.

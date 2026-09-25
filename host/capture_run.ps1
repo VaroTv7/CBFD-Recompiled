@@ -48,6 +48,8 @@ public static class Win {
 "@
 
 Get-ChildItem shot*.png -ErrorAction SilentlyContinue | Remove-Item
+# Test runs ignore the game controller, which may be in use by someone playing.
+$env:CONKER_NO_CONTROLLER = "1"
 $p = Start-Process -FilePath ".\ConkerRecomp.exe" -ArgumentList "--seconds", "$Seconds" `
     -RedirectStandardOutput "run-out.txt" -RedirectStandardError "run-err.txt" -PassThru -NoNewWindow
 $start = Get-Date
