@@ -575,8 +575,14 @@ def main(src, dst, symbol_lists=None, originals=None):
         if sec is None or t & 3 or t in kinds[sec] or t in jtbl_labels:
             continue
         in_c = c_function_containing(sec, t)
-        if in_c and (t not in code_pointers or not self_contained(sec, t, in_c[1])):
+        # A data word may still point at a function that the decomp's symbol
+        # swallowed: one starting right after the previous code's `jr $ra` return
+        # (e.g. the empty callback 0x1506D4EC at the end of func_1506D2E8.s).
+        after_return = in_c and t - 8 >= in_c[0] and elf.word(sec, t - 8) == JR_RA
+        if in_c and not ((t in code_pointers or after_return) and self_contained(sec, t, in_c[1])):
             continue
+        if in_c and t not in code_pointers:
+            print(f"prepare_elf: code pointer {t:#010x} from data, after a return inside {in_c[0]:#010x}")
         add_start(sec, t)
         stats["pointers"] += 1
 
