@@ -1,13 +1,14 @@
 // Host application for Conker's Bad Fur Day (US), recompiled with N64Recomp.
 //
-// With RT64 (CONKER_RT64) it opens a window, reads the keyboard and game
-// controllers (window_input.cpp) and plays sound (audio_output.cpp); otherwise, or
-// with --headless, it runs with a null renderer, no input and no sound output.
+// With RT64 (CONKER_RT64) it opens RecompFrontend's launcher and menus with
+// remappable keyboard/controller input (frontend.cpp) and plays sound
+// (audio_output.cpp); otherwise, or with --headless, it runs with a null renderer,
+// no input and no sound output.
 // Usage: ConkerRecomp [--rom <baserom.us.z64>] [--seconds N] [--headless]
 //   --rom PATH   the US ROM (a bare path works too, e.g. a ROM dropped onto the exe);
-//                only needed once, it is then kept in conker_data/ next to the exe.
-//                Without one, the window build asks for it with a file dialog.
-//   --seconds N  quit after N seconds (default: run until the window is closed)
+//                only needed once, it is then kept with the game's data. The window
+//                build can also load it from the launcher.
+//   --seconds N  start the game right away (no launcher) and quit after N seconds
 //   --headless   null renderer, no window, input or sound
 
 #include <atomic>
@@ -26,6 +27,12 @@
 #include "ultramodern/ultramodern.hpp"
 
 #include "conker.hpp"
+
+#if defined(CONKER_RT64)
+#include "nfd.h"
+#include "recompui/program_config.h"
+#include "util/file.h"
+#endif
 
 // The game's RDRAM, for reporting fault addresses as N64 addresses.
 static uint8_t* crash_rdram = nullptr;
@@ -57,7 +64,6 @@ static void install_crash_handler() {
 #elif defined(_WIN32)
 #include <Windows.h>
 #include <DbgHelp.h>
-#include <commdlg.h>
 
 // Debugging aid: report the faulting function (the recompiled functions are
 // named after their vram) and a short stack, using the PDB next to the exe.
@@ -199,7 +205,14 @@ namespace {
         return ultramodern::renderer::WindowHandle{};
     }
 
-    void vi_callback() { ++vi_count; }
+    void vi_callback() {
+        ++vi_count;
+#if defined(CONKER_RT64)
+        if (!headless) {
+            conker::frontend::on_vi();
+        }
+#endif
+    }
 
     void message_box(const char* msg) {
         std::fprintf(stderr, "[host] %s\n", msg);
@@ -209,7 +222,7 @@ namespace {
 ultramodern::input::connected_device_info_t conker::get_connected_device_info(int controller_num) {
 #if defined(CONKER_RT64)
     if (!headless) {
-        return conker::window::get_connected_device_info(controller_num);
+        return conker::frontend::get_connected_device_info(controller_num);
     }
 #endif
     if (controller_num == 0) {
@@ -252,72 +265,48 @@ namespace {
         }
     }
 
-    // Reports an error on the console and, in the window build, in a message box.
-    void show_error(const std::string& text) {
-        std::fprintf(stderr, "[host] %s\n", text.c_str());
-#if defined(_WIN32)
-        if (!headless) {
-            int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-            std::wstring wide(length, L'\0');
-            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wide.data(), length);
-            MessageBoxW(nullptr, wide.c_str(), L"Conker's Bad Fur Day (recompiled)", MB_OK | MB_ICONERROR);
-        }
-#endif
-    }
-
     std::string path_text(const std::filesystem::path& path) {
         std::u8string text = path.u8string();
         return std::string(text.begin(), text.end());
     }
 
-#if defined(_WIN32)
-    // The standard Windows open dialog; returns an empty path if cancelled.
-    std::filesystem::path ask_for_rom() {
-        wchar_t file[MAX_PATH] = L"";
-        OPENFILENAMEW dialog{};
-        dialog.lStructSize = sizeof(dialog);
-        dialog.lpstrFilter = L"N64 ROMs (*.z64, *.n64, *.v64)\0*.z64;*.n64;*.v64\0All files\0*.*\0";
-        dialog.lpstrFile = file;
-        dialog.nMaxFile = MAX_PATH;
-        dialog.lpstrTitle = L"Select your Conker's Bad Fur Day (US) ROM";
-        dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
-        if (!GetOpenFileNameW(&dialog)) {
-            return {};
-        }
-        return std::filesystem::path(file);
-    }
-#endif
-
-    // The ROM comes from the command line, else from the copy an earlier run stored in
-    // conker_data/, else (window build) from a file dialog. Returns false to quit.
-    bool select_rom(const std::filesystem::path& rom_path) {
+    // A ROM from the command line is stored with the game's data; without one, an
+    // earlier run's stored copy is used. The window build's launcher can also load
+    // one, so there it's only required when starting the game directly.
+    bool select_rom(const std::filesystem::path& rom_path, bool required) {
         if (!rom_path.empty()) {
             recomp::RomValidationError result = recomp::select_rom(rom_path, game_id);
             if (result != recomp::RomValidationError::Good) {
-                show_error(path_text(rom_path) + ": " + rom_error_text(result));
+                std::fprintf(stderr, "[host] %s: %s\n", path_text(rom_path).c_str(), rom_error_text(result));
                 return false;
             }
             return true;
         }
         recomp::check_all_stored_roms();
-        if (recomp::is_rom_valid(game_id)) {
+        if (!required || recomp::is_rom_valid(game_id)) {
             return true;
         }
-#if defined(_WIN32)
-        while (!headless) {
-            std::filesystem::path chosen = ask_for_rom();
-            if (chosen.empty()) {
-                return false;
-            }
-            recomp::RomValidationError result = recomp::select_rom(chosen, game_id);
-            if (result == recomp::RomValidationError::Good) {
-                return true;
-            }
-            show_error(path_text(chosen) + ": " + rom_error_text(result));
-        }
-#endif
         std::fprintf(stderr, "[host] No ROM yet: run once with --rom <path to the US ROM>.\n");
         return false;
+    }
+
+    // Earlier builds kept the ROM and saves in conker_data/ next to the executable.
+    // Copy them to the window build's data folder once, if it doesn't have them yet.
+    void migrate_old_data(const std::filesystem::path& old_dir, const std::filesystem::path& new_dir) {
+        std::error_code error;
+        if (!std::filesystem::is_directory(old_dir, error) || old_dir == new_dir) {
+            return;
+        }
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(old_dir, error)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+            std::filesystem::path target = new_dir / std::filesystem::relative(entry.path(), old_dir);
+            if (!std::filesystem::exists(target)) {
+                std::filesystem::create_directories(target.parent_path(), error);
+                std::filesystem::copy_file(entry.path(), target, error);
+            }
+        }
     }
 }
 
@@ -345,8 +334,22 @@ int main(int argc, char** argv) {
         }
     }
 
-    recomp::register_config_path(exe_directory(argv[0]) / "conker_data");
+    std::filesystem::path old_data_dir = exe_directory(argv[0]) / "conker_data";
+#if defined(CONKER_RT64)
+    if (!headless) {
+        NFD_Init();
+        recompui::programconfig::set_program_id(conker::program_id);
+        recomp::register_config_path(recompui::file::get_app_folder_path());
+        migrate_old_data(old_data_dir, recomp::get_config_path());
+    }
+    else
+#endif
+    {
+        recomp::register_config_path(old_data_dir);
+    }
     std::filesystem::create_directories(recomp::get_config_path());
+    // --seconds (test runs) starts the game directly instead of opening the launcher.
+    bool start_directly = headless || seconds > 0;
 
     recomp::GameEntry game{};
     game.rom_hash = rom_hash;
@@ -360,16 +363,26 @@ int main(int argc, char** argv) {
     game.entrypoint = recomp_entrypoint;
     game.on_init_callback = on_init;
     game.thread_create_callback = on_thread_create;
+#if defined(CONKER_RT64)
+    if (!headless) {
+        conker::frontend::init(game);
+    }
+#endif
     recomp::register_game(game);
 
     conker::register_overlays();
 
-    if (!select_rom(rom_path)) {
+    if (!select_rom(rom_path, start_directly)) {
         return EXIT_FAILURE;
     }
 
-    // librecomp starts a game named on the command line with --game.
-    std::vector<char*> runtime_argv{ argv[0], (char*)"--game", (char*)"conker" };
+    // librecomp starts a game named on the command line with --game; otherwise the
+    // launcher does.
+    std::vector<char*> runtime_argv{ argv[0] };
+    if (start_directly) {
+        runtime_argv.push_back((char*)"--game");
+        runtime_argv.push_back((char*)"conker");
+    }
 
     recomp::Configuration cfg{};
     cfg.argc = (int)runtime_argv.size();
@@ -382,16 +395,17 @@ int main(int argc, char** argv) {
     cfg.gfx_callbacks = { nullptr, create_window, nullptr };
 #if defined(CONKER_RT64)
     if (!headless) {
-        cfg.renderer_callbacks.create_render_context = conker::create_rt64_renderer;
-        cfg.input_callbacks = { conker::window::poll_input, conker::window::get_input, conker::window::set_rumble,
-                                conker::get_connected_device_info };
-        cfg.gfx_callbacks = { conker::window::create_gfx, conker::window::create_window, conker::window::update_gfx };
         cfg.audio_callbacks = { conker::audio::queue_samples, conker::audio::get_frames_remaining,
                                 conker::audio::set_frequency };
     }
 #endif
     cfg.events_callbacks = { vi_callback, nullptr };
     cfg.error_handling_callbacks = { message_box };
+#if defined(CONKER_RT64)
+    if (!headless) {
+        conker::frontend::set_callbacks(cfg);
+    }
+#endif
 
     std::thread timer;
     if (seconds > 0) {
@@ -403,6 +417,12 @@ int main(int argc, char** argv) {
     }
 
     recomp::start(cfg);
+
+#if defined(CONKER_RT64)
+    if (!headless) {
+        NFD_Quit();
+    }
+#endif
 
     if (timer.joinable()) {
         timer.join();

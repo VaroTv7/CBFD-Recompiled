@@ -7,6 +7,11 @@
 #include "ultramodern/input.hpp"
 #include "ultramodern/renderer_context.hpp"
 
+#if defined(CONKER_RT64)
+#include <string>
+#include "librecomp/game.hpp"
+#endif
+
 namespace conker {
     // overlays.cpp
     void register_overlays();
@@ -21,20 +26,21 @@ namespace conker {
         uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode);
 
 #if defined(CONKER_RT64)
-    // rt64_renderer.cpp
-    std::unique_ptr<ultramodern::renderer::RendererContext> create_rt64_renderer(
-        uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode);
+    inline constexpr const char* program_name = "Conker's Bad Fur Day: Recompiled";
+    inline const std::u8string program_id = u8"ConkerRecompiled";
 
-    // window_input.cpp: SDL2 window, keyboard and game controller.
-    namespace window {
-        void* create_gfx();
-        ultramodern::renderer::WindowHandle create_window(void*);
-        void update_gfx(void*);
-        void poll_input();
-        bool get_input(int controller_num, uint16_t* buttons, float* x, float* y);
-        void set_rumble(int controller_num, bool rumble);
+    // frontend.cpp: RecompFrontend's launcher and menus (recompui) and input (recompinput).
+    namespace frontend {
+        // Registers the game with the launcher and sets up the menus.
+        void init(recomp::GameEntry& game);
+        // The window, renderer, input and error callbacks.
+        void set_callbacks(recomp::Configuration& cfg);
+        void on_vi();
         ultramodern::input::connected_device_info_t get_connected_device_info(int controller_num);
     }
+
+    // conker_config.cpp: the settings tabs.
+    void init_config();
 
     // SDL sound output (audio_output.cpp).
     namespace audio {

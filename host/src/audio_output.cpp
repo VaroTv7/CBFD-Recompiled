@@ -11,6 +11,8 @@
 
 #include <SDL.h>
 
+#include "recompui/config.h"
+
 #include "conker.hpp"
 
 namespace {
@@ -57,10 +59,12 @@ void conker::audio::queue_samples(int16_t* samples, size_t sample_count) {
     }
     // RDRAM is kept as native-endian 32-bit words, so each stereo frame's two 16-bit
     // samples read back swapped: [i + 1] is the left channel and [i] the right.
+    // Scaled by the main volume from the Sound settings (0-100).
+    const float scale = static_cast<float>(recompui::config::sound::get_main_volume()) / (100.0f * 32768.0f);
     convert_buffer.resize(sample_count);
     for (size_t i = 0; i + 1 < sample_count; i += channels) {
-        convert_buffer[i + 0] = samples[i + 1] * (1.0f / 32768.0f);
-        convert_buffer[i + 1] = samples[i + 0] * (1.0f / 32768.0f);
+        convert_buffer[i + 0] = samples[i + 1] * scale;
+        convert_buffer[i + 1] = samples[i + 0] * scale;
     }
     SDL_QueueAudio(device, convert_buffer.data(), (Uint32)(sample_count * sizeof(float)));
 }

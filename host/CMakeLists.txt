@@ -97,7 +97,36 @@ if (CONKER_RT64)
     set(RT64_STATIC ON CACHE BOOL "" FORCE)
     add_subdirectory("${RT64_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/rt64")
 
-    target_sources(ConkerRecomp PRIVATE src/rt64_renderer.cpp src/window_input.cpp src/audio_output.cpp)
+    # RecompFrontend: the launcher, config and mod menus (recompui, on RmlUi) and
+    # remappable input (recompinput). tools/RecompFrontend is an untracked checkout.
+    if (WIN32)
+        set(sdl2_SOURCE_DIR "${RT64_DIR}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3")
+    endif()
+    set(RECOMP_FRONTEND_N64MODERNRUNTIME_PATH "${REPO_ROOT}/tools/N64ModernRuntime")
+    set(RECOMP_FRONTEND_RT64_PATH "${RT64_DIR}")
+    # recompui compiles its shaders with rt64's build_*_shader functions, which use
+    # these variables from rt64's own directory scope: repeat them here.
+    set(DXC_COMMON_OPTS "-I${RT64_DIR}/src")
+    set(DXC_DXIL_OPTS "-Wno-ignored-attributes")
+    set(DXC_SPV_OPTS "-spirv" "-fspv-target-env=vulkan1.0" "-fvk-use-dx-layout")
+    set(DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T ps_6_0" "-D DYNAMIC_RENDER_PARAMS")
+    set(DXC_VS_OPTS "${DXC_COMMON_OPTS}" "-E" "VSMain" "-T vs_6_0" "-D DYNAMIC_RENDER_PARAMS" "-fvk-invert-y")
+    if (WIN32)
+        set(DXC "${RT64_DIR}/src/contrib/dxc/bin/x64/dxc.exe")
+    else()
+        set(DXC "LD_LIBRARY_PATH=${RT64_DIR}/src/contrib/dxc/lib/x64" "${RT64_DIR}/src/contrib/dxc/bin/x64/dxc-linux")
+    endif()
+    add_subdirectory("${REPO_ROOT}/tools/RecompFrontend" "${CMAKE_CURRENT_BINARY_DIR}/RecompFrontend")
+    if (MSVC)
+        # Their GCC-style -Wno-unused-parameter is an error for cl.
+        set_property(TARGET recompui recompinput PROPERTY COMPILE_OPTIONS "")
+    endif()
+    target_link_libraries(ConkerRecomp PRIVATE recompui recompinput nfd)
+    # recompui loads its fonts, icons and style sheet from assets/ next to the executable.
+    add_custom_command(TARGET ConkerRecomp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:ConkerRecomp>/assets")
+
+    target_sources(ConkerRecomp PRIVATE src/frontend.cpp src/conker_config.cpp src/audio_output.cpp)
     # CONKER_RT64 selects the window build; the rest are what rt64 compiles its own headers with.
     target_compile_definitions(ConkerRecomp PRIVATE CONKER_RT64 HLSL_CPU)
     if (WIN32)
@@ -138,6 +167,6 @@ if (UNIX)
     # Exported symbols let the crash handler's backtrace name recompiled functions.
     target_link_options(ConkerRecomp PRIVATE -rdynamic)
 elseif (WIN32)
-    # The crash handler symbolises the stack with DbgHelp; Comdlg32 has the ROM file dialog.
-    target_link_libraries(ConkerRecomp PRIVATE DbgHelp Comdlg32)
+    # The crash handler symbolises the stack with DbgHelp.
+    target_link_libraries(ConkerRecomp PRIVATE DbgHelp)
 endif()

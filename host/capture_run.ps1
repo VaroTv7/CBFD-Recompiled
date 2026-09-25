@@ -6,11 +6,12 @@
 param(
     [int]$Seconds = 60,
     [string]$Shots = "10,20,30,40,50",
-    [string]$Keys = ""
+    [string]$Keys = "",
+    [switch]$Launcher
 )
 $shotTimes = $Shots.Split(",") | ForEach-Object { [int]$_ }
 # PS/2 set-1 scancodes; the E0-prefixed arrow keys are marked with 0x100.
-$scancodes = @{ Enter = 0x1C; Space = 0x39; Shift = 0x2A; Q = 0x10; E = 0x12; Tab = 0x0F;
+$scancodes = @{ Escape = 0x01; Enter = 0x1C; Space = 0x39; Shift = 0x2A; Q = 0x10; E = 0x12; Tab = 0x0F;
     W = 0x11; A = 0x1E; S = 0x1F; D = 0x20; Up = 0x148; Down = 0x150; Left = 0x14B; Right = 0x14D }
 $events = @()
 foreach ($t in $shotTimes) { $events += [pscustomobject]@{ Time = $t; Key = $null } }
@@ -50,7 +51,10 @@ public static class Win {
 Get-ChildItem shot*.png -ErrorAction SilentlyContinue | Remove-Item
 # Test runs ignore the game controller, which may be in use by someone playing.
 $env:CONKER_NO_CONTROLLER = "1"
-$p = Start-Process -FilePath ".\ConkerRecomp.exe" -ArgumentList "--seconds", "$Seconds" `
+# -Launcher opens the launcher instead of starting the game (no --seconds); the
+# game is then closed after -Seconds.
+$gameArgs = if ($Launcher) { @("--launcher") } else { @("--seconds", "$Seconds") }
+$p = Start-Process -FilePath ".\ConkerRecomp.exe" -ArgumentList $gameArgs `
     -RedirectStandardOutput "run-out.txt" -RedirectStandardError "run-err.txt" -PassThru -NoNewWindow
 $start = Get-Date
 foreach ($ev in $events) {
@@ -79,6 +83,9 @@ foreach ($ev in $events) {
     $bmp.Save((Join-Path $dir "shot$t.png"))
     $g.Dispose(); $bmp.Dispose()
 }
-$p.WaitForExit(($Seconds + 30) * 1000) | Out-Null
+if ($Launcher) {
+    while (((Get-Date) - $start).TotalSeconds -lt $Seconds -and -not $p.HasExited) { Start-Sleep -Milliseconds 200 }
+}
+$p.WaitForExit($(if ($Launcher) { 0 } else { ($Seconds + 30) * 1000 })) | Out-Null
 if (-not $p.HasExited) { $p.Kill(); "killed" }
 "exit code: $($p.ExitCode)"

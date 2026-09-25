@@ -43,38 +43,35 @@ Visual Studio 2022 or later (Build Tools is enough, with the C++ workload), CMak
 git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
 git -C tools/rt64 apply ../../recomp/rt64.patch
 host\build_windows.cmd
-cd host\build-win
-ConkerRecomp.exe --rom ..\..\baserom.us.z64
+host\build-win\ConkerRecomp.exe
 ```
 
-`tools/rt64` is an untracked checkout of rt64/rt64 at 4337374, with its
-submodules. `build_windows.cmd` finds Visual Studio, sets up the x64 compiler
-environment and builds `host/build-win` (RelWithDebInfo, so the crash handler
-can name functions). Extra arguments go to `cmake --build`, e.g.
-`hostuild_windows.cmd -- -j 8 -k 0`. SDL2 and DXC come from RT64's
-bundled dependencies and are copied next to the exe. The ROM is only needed on
-the first run: pass it with `--rom`, drop it onto the exe, or pick it in the file
-dialog that opens when none is stored. It is kept in `conker_data/` next to the
-exe, wherever the game is started from. `--headless` runs without a window.
+`tools/rt64` is an untracked checkout of rt64/rt64 at 4337374, and
+`tools/RecompFrontend` one of N64Recomp/RecompFrontend at b1a1477, both with their
+submodules (`git submodule update --init --recursive`). `build_windows.cmd` finds
+Visual Studio, sets up the x64 compiler environment and builds `host/build-win`
+(RelWithDebInfo, so the crash handler can name functions). Extra arguments go to
+`cmake --build`, e.g. `host\build_windows.cmd -- -j 8 -k 0`. SDL2 and DXC come
+from RT64's bundled dependencies and are copied next to the exe, and so is
+`host/assets/` (the menus' fonts, icons and the launcher picture).
 
-Controls: a game controller (XInput or anything SDL recognises) or the keyboard.
-
-| N64 | controller | keyboard |
-|-----|------------|----------|
-| stick | left stick | WASD |
-| A / B | A / B (or X) | Space / Left Shift |
-| Z | left trigger | Q |
-| R / L | right shoulder or trigger / left shoulder | E / Tab |
-| Start | Start | Enter |
-| C buttons | right stick | arrow keys |
-| D-pad | D-pad | I J K L |
-
-F11 toggles fullscreen. A controller with rumble is reported to the game as having
-a Rumble Pak.
+The game opens on RecompFrontend's launcher: Start Game (or Load ROM, the first
+time), Controls, Settings, Mods and Exit. Settings has the General (rumble),
+Graphics (resolution, aspect ratio, fullscreen, anti-aliasing, framerate, HUD
+placement), Controls (remapping for keyboard and controller), Sound (volume) and
+Mods tabs; Esc or the controller's menu button opens it in game too. The ROM,
+saves and settings live in `%LOCALAPPDATA%\ConkerRecompiled` (or next to the exe
+when a `portable.txt` is there); a `conker_data/` from older builds next to the exe
+is copied over once. `--rom PATH` stores a ROM from the command line, `--seconds N`
+starts the game directly (no launcher) and quits after N seconds, and `--headless`
+runs without a window, input or sound (then with `conker_data/` next to the exe).
 
 `host/capture_run.ps1` runs the game for a while, saves screenshots of the window
 at given times and can press keys, for checking a build without watching it:
-`powershell -File host\capture_run.ps1 -Seconds 60 -Shots "20,40" -Keys "30:Enter"`.
+`powershell -File host\capture_run.ps1 -Seconds 60 -Shots "20,40" -Keys "30:Enter"`
+(`-Launcher` opens the launcher instead of starting the game). It sets
+`CONKER_NO_CONTROLLER=1`, which makes the game ignore controllers, so a test run
+doesn't pick up someone playing on the same machine.
 
 ## Debugging tools
 
@@ -236,11 +233,16 @@ mode, `osCicId` = 6105 (the idle thread won't start the game otherwise) and
 the code pages. `ultra_extras.cpp` provides `osPiRawReadIo`/`osPiReadIo` (Rare's
 anti-piracy checks read real ROM words), `osPfsInit` (Rare's rumble detection),
 the KSEG1 read helper and `recomp_syscall_handler` (Conker halts with
-`syscall` on fatal errors). `rt64_renderer.cpp` drives RT64 from the runtime's
-graphics thread, `window_input.cpp` owns the SDL window, the keyboard and
-the controller, and `audio_output.cpp` plays the sound. `null_renderer.cpp` is used with `--headless` and on Linux.
-The console gets a backtrace on a crash: SIGSEGV on Linux, and a vectored
-exception handler with DbgHelp on Windows.
+`syscall` on fatal errors). `frontend.cpp` wires RecompFrontend in: the SDL
+window, recompui's renderer (RT64 plus the menus drawn over it), recompinput for
+the keyboard and controllers, and the launcher entry (`supported_games`, which
+recompui declares extern). `conker_config.cpp` sets up the settings tabs and
+Conker's control descriptions, and `audio_output.cpp` plays the sound at the
+Sound tab's volume. `patches/` holds the headers recompui includes for the
+game-side patch code that mods will use. `null_renderer.cpp` is used with
+`--headless` and on Linux. A crash prints a backtrace (SIGSEGV on Linux; on
+Windows an unhandled-exception filter with DbgHelp, which also writes
+`crash.log` next to the exe and shows a message box).
 
 ## Next steps
 

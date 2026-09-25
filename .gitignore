@@ -8,3 +8,5 @@
 /host/build-win/
 /host/build-win-log.txt
 __pycache__/
+/tools/RecompFrontend/
+/tools/BanjoRecomp/
