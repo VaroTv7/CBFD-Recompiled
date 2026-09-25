@@ -64,33 +64,28 @@ static void install_crash_handler() {
 #elif defined(_WIN32)
 #include <Windows.h>
 #include <DbgHelp.h>
+#include <atomic>
+#include <csignal>
+#include <cstdarg>
+#include <exception>
 
-// Debugging aid: report the faulting function (the recompiled functions are
-// named after their vram) and a short stack, using the PDB next to the exe.
-static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
-    DWORD code = info->ExceptionRecord->ExceptionCode;
-    std::string report;
-    auto add = [&report](const char* fmt, auto... args) {
-        char line[512];
-        std::snprintf(line, sizeof(line), fmt, args...);
-        report += line;
-    };
+// Debugging aid: report where the game died (the recompiled functions are named
+// after their vram, and their source lines give the MIPS instruction), using the
+// PDB next to the exe.
+using CrashReport = std::string;
+
+static void crash_add(CrashReport& report, const char* fmt, ...) {
+    char line[512];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(line, sizeof(line), fmt, args);
+    va_end(args);
+    report += line;
+}
+
+static void crash_add_stack(CrashReport& report, void* const* frames, USHORT count) {
     HANDLE process = GetCurrentProcess();
     SymInitialize(process, nullptr, TRUE);
-    add("[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
-    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2) {
-        // The faulting address, and the N64 address it stands for (rdram is the KSEG0 base).
-        uintptr_t fault = (uintptr_t)info->ExceptionRecord->ExceptionInformation[1];
-        add("[host] %s %p", info->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading", (void*)fault);
-        if (crash_rdram != nullptr) {
-            add(" (N64 address 0x%08X)", (uint32_t)(fault - (uintptr_t)crash_rdram + 0x80000000u));
-        }
-        add("\n");
-    }
-    // The first frame is the faulting instruction itself.
-    void* frames[32];
-    frames[0] = info->ExceptionRecord->ExceptionAddress;
-    USHORT count = 1 + CaptureStackBackTrace(0, 31, frames + 1, nullptr);
     alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + 256];
     SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -103,20 +98,22 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
             line.SizeOfStruct = sizeof(line);
             DWORD displacement = 0;
             if (SymGetLineFromAddr64(process, (DWORD64)frames[i], &displacement, &line)) {
-                add("  %s+0x%llx (%s:%lu)\n", symbol->Name, (unsigned long long)offset,
+                crash_add(report, "  %s+0x%llx (%s:%lu)\n", symbol->Name, (unsigned long long)offset,
                     std::filesystem::path(line.FileName).filename().string().c_str(), line.LineNumber);
             }
             else {
-                add("  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
+                crash_add(report, "  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
             }
         }
         else {
-            add("  %p\n", frames[i]);
+            crash_add(report, "  %p\n", frames[i]);
         }
     }
+}
 
-    // The console window closes with the process, so also keep the report in
-    // crash.log next to the executable and say where it is.
+// The console window closes with the process, so also keep the report in
+// crash.log next to the executable, and show it with where it was saved.
+static void crash_publish(const CrashReport& report) {
     std::fputs(report.c_str(), stderr);
     std::fflush(stderr);
     wchar_t exe[MAX_PATH];
@@ -131,12 +128,78 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
     std::string message = "Conker's Bad Fur Day (recompiled) crashed. The report below was saved to " +
         log_path.string() + ".\n\n" + report;
     MessageBoxA(nullptr, message.c_str(), "Conker's Bad Fur Day (recompiled)", MB_OK | MB_ICONERROR);
+}
+
+static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
+    DWORD code = info->ExceptionRecord->ExceptionCode;
+    CrashReport report;
+    crash_add(report, "[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
+    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2) {
+        // The faulting address, and the N64 address it stands for (rdram is the KSEG0 base).
+        uintptr_t fault = (uintptr_t)info->ExceptionRecord->ExceptionInformation[1];
+        crash_add(report, "[host] %s %p", info->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading", (void*)fault);
+        if (crash_rdram != nullptr) {
+            crash_add(report, " (N64 address 0x%08X)", (uint32_t)(fault - (uintptr_t)crash_rdram + 0x80000000u));
+        }
+        crash_add(report, "\n");
+    }
+    // The first frame is the faulting instruction itself.
+    void* frames[32];
+    frames[0] = info->ExceptionRecord->ExceptionAddress;
+    USHORT count = 1 + CaptureStackBackTrace(0, 31, frames + 1, nullptr);
+    crash_add_stack(report, frames, count);
+    crash_publish(report);
     return EXCEPTION_CONTINUE_SEARCH;
+}
+
+// abort() (the runtime's fatal errors, e.g. switch_error, and std::terminate) ends
+// the process with a fast fail that skips the exception filter, so report it here.
+// The runtime prints its reason to the console just before; the stack shows where.
+static std::atomic<bool> crash_reported{ false };
+
+static void abort_handler(int) {
+    if (crash_reported.exchange(true)) {
+        return;
+    }
+    CrashReport report;
+    crash_add(report, "[host] abort() called (the console output just before it gives the reason)\n");
+    void* frames[40];
+    USHORT count = CaptureStackBackTrace(1, 40, frames, nullptr);
+    crash_add_stack(report, frames, count);
+    crash_publish(report);
+}
+
+// An exception nothing caught (in any thread): name it, then abort as usual.
+static void on_terminate() {
+    CrashReport report;
+    crash_add(report, "[host] uncaught C++ exception");
+    if (std::exception_ptr current = std::current_exception()) {
+        try {
+            std::rethrow_exception(current);
+        }
+        catch (const std::exception& e) {
+            crash_add(report, ": %s", e.what());
+        }
+        catch (...) {
+        }
+    }
+    crash_add(report, "\n");
+    void* frames[40];
+    USHORT count = CaptureStackBackTrace(1, 40, frames, nullptr);
+    crash_add_stack(report, frames, count);
+    if (!crash_reported.exchange(true)) {
+        crash_publish(report);
+    }
+    std::abort();
 }
 
 static void install_crash_handler() {
     // Only exceptions nothing else handles: libraries like DXC raise and catch their own.
     SetUnhandledExceptionFilter(crash_handler);
+    std::signal(SIGABRT, abort_handler);
+    std::set_terminate(on_terminate);
+    // No "abort() has been called" dialog or error report on top of ours.
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 }
 #else
 static void install_crash_handler() {}
