@@ -253,6 +253,19 @@ func = "func_150AE280"
 before_vram = 0x150AE290
 text = "{ extern jmp_buf conker_interpreter_exit; ctx->r29 = ctx->r10; longjmp(conker_interpreter_exit, 1); }"
 
+# The collision code's shared subroutine at 0x150AC1C4 returns with `jr $t0`,
+# which prepare_elf.py turns into `jr $ra` because its callers (`jal`) pass their
+# return point in $t0. func_150AC1B4 instead loads $t0 with 0x150AB6F0 and falls
+# into it: a goto to 0x150AB6F0 once the subroutine is done. Recompiled, that
+# path just returned, skipping the rest of func_150AB1F0 and its epilogue, so its
+# caller came back with $sp 0x268 bytes short and a garbage $s0 (a crash in
+# func_1512BB10 shortly after Hungover starts). Call the subroutine, then go on
+# at 0x150AB6F0.
+[[patches.hook]]
+func = "func_150AC1B4"
+before_vram = 0x150AC1C4
+text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
+
 # ---------------------------------------------------------------------------
 # libultra state that the runtime's replacements don't set up.
 # ---------------------------------------------------------------------------

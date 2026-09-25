@@ -252,7 +252,34 @@ def manual_link_returns(elf, funcs):
                 t = branch_target(w, pc)
                 if t is not None and w >> 26 != 3 and not (start <= t < end) and t in by_start:
                     work.append(t)
+        for addr, how in other_entries(elf, funcs, [by_start[v] for v in seen]):
+            print(f"  warning: {addr:08X} enters {callee:08X}'s manual-link code by {how}; "
+                  f"its jr ${reg} became jr $ra (see conker.toml)")
     return rewritten
+
+
+def other_entries(elf, funcs, group):
+    """Ways into a group of functions other than calls: fall-through from the
+    preceding code, and j/branches from code outside the group."""
+    inside = lambda a: any(f["value"] <= a < f["value"] + f["size"] for f in group)
+    found = []
+    for f in group:
+        prev = f["value"] - 8
+        if not inside(prev) and any(g["value"] <= prev < g["value"] + g["size"] for g in funcs):
+            w = elf.word(f["shndx"], prev)
+            op = w >> 26
+            unconditional = op == 2 or (op == 0 and (w & 0x3F) == 8) or (op == 4 and (w >> 16) & 0xFFFF == 0 and ((w >> 21) & 0x1F) == 0)
+            if not unconditional:
+                found.append((f["value"] - 4, "fall-through"))
+    for g in funcs:
+        if g in group:
+            continue
+        for pc in range(g["value"], g["value"] + g["size"], 4):
+            w = elf.word(g["shndx"], pc)
+            t = branch_target(w, pc)
+            if t is not None and w >> 26 != 3 and inside(t) and not (g["value"] <= t < g["value"] + g["size"]):
+                found.append((pc, "jump"))
+    return found
 
 
 K1 = 27
