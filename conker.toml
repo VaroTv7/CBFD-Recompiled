@@ -266,6 +266,13 @@ func = "func_150AC1B4"
 before_vram = 0x150AC1C4
 text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
 
+# func_150AC0F8 falls through func_150AC1B4 into the same code, so its body
+# holds another copy of that path (a crash walking toward Birdy).
+[[patches.hook]]
+func = "func_150AC0F8"
+before_vram = 0x150AC1C4
+text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
+
 # ---------------------------------------------------------------------------
 # libultra state that the runtime's replacements don't set up.
 # ---------------------------------------------------------------------------

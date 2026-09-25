@@ -264,13 +264,10 @@ def other_entries(elf, funcs, group):
     inside = lambda a: any(f["value"] <= a < f["value"] + f["size"] for f in group)
     found = []
     for f in group:
-        prev = f["value"] - 8
-        if not inside(prev) and any(g["value"] <= prev < g["value"] + g["size"] for g in funcs):
-            w = elf.word(f["shndx"], prev)
-            op = w >> 26
-            unconditional = op == 2 or (op == 0 and (w & 0x3F) == 8) or (op == 4 and (w >> 16) & 0xFFFF == 0 and ((w >> 21) & 0x1F) == 0)
-            if not unconditional:
-                found.append((f["value"] - 4, "fall-through"))
+        # Functions that run into f from before it (sized over a fall-through).
+        for g in funcs:
+            if g not in group and g["value"] < f["value"] < g["value"] + g["size"]:
+                found.append((f["value"] - 4, f"fall-through (in func_{g['value']:08X})"))
     for g in funcs:
         if g in group:
             continue

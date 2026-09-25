@@ -155,8 +155,8 @@ Runs before N64Recomp.
   Recompiled as plain calls, it returned only from the innermost function and
   crashed in the Panther King cutscene.
 - Runs the collision code's `$t0`-linked subroutine at 0x150AC1C4 as a call
-  from `func_150AC1B4`, which enters it by fall-through with `$t0` holding a
-  goto target rather than a return point (`prepare_elf.py` warns about such
+  from `func_150AC1B4` and `func_150AC0F8`, which enter it by fall-through with
+  `$t0` holding a goto target rather than a return point (`prepare_elf.py` warns about such
   entries). Recompiled as a return, it skipped `func_150AB1F0`'s epilogue and
   crashed shortly after Hungover starts.
 
