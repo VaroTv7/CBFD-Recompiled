@@ -244,6 +244,32 @@ game-side patch code that mods will use. `null_renderer.cpp` is used with
 Windows an unhandled-exception filter with DbgHelp, which also writes
 `crash.log` next to the exe and shows a message box).
 
+## Mods
+
+Mods are `.nrm` files for N64ModernRuntime, installed by dropping them into
+`mods/` in the data folder (or through the launcher's Mods menu, which also
+enables and configures them). Each mod in `mods/` here has a `mod.toml` and C
+sources in `src/`; build one in WSL from the repo root with
+
+    sh mods/build_mod.sh mods/skip_cutscenes
+
+which compiles for MIPS with clang, links with `mips-linux-gnu-ld` (`ld.lld`
+isn't needed) and runs RecompModTool, leaving the `.nrm` in the mod's `build/`.
+Mods link against `mods/syms/conker.us.{syms,datasyms}.toml`, which
+`recomp/run.sh` regenerates with N64Recomp's `--dump-context`; rebuild mods
+after the game's function layout changes.
+
+Only `RECOMP_PATCH` (replace a game function) works: Conker's code is
+compressed in the ROM, so the runtime can't apply `RECOMP_HOOK`s
+(`has_compressed_code`). Patching rewrites the start of the recompiled host
+function, which is why the exe links with `/OPT:NOICF`. The game exports
+`recomp_printf` (`host/src/mod_api.cpp`), and the runtime provides the
+`recomp_get_config_*` functions for a mod's config options.
+
+`mods/skip_cutscenes` lets L skip any cutscene the first time it plays (the game
+normally only lets you skip ones you've watched), and optionally the ones the
+game's script never lets you skip, like the opening.
+
 ## Next steps
 
 1. Texture generation for CBFD (pass the CPU-computed normals through to RT64).

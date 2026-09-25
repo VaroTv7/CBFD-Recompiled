@@ -18,6 +18,9 @@ namespace conker {
     void register_tlb_mapped_code();
     void map_tlb_code_pages(uint8_t* rdram);
 
+    // mod_api.cpp: functions the game exports to mods.
+    void register_mod_exports();
+
     // main.cpp: the device info for whichever input backend is active.
     ultramodern::input::connected_device_info_t get_connected_device_info(int controller_num);
 
@@ -27,7 +30,9 @@ namespace conker {
 
 #if defined(CONKER_RT64)
     inline constexpr const char* program_name = "Conker's Bad Fur Day: Recompiled";
-    inline const std::u8string program_id = u8"ConkerRecompiled";
+    // The data folder's name (%LOCALAPPDATA%\<id>). CONKER_TEST_PROFILE=1 gives test
+    // runs their own ("ConkerRecompiledTest"), so they never touch the player's saves.
+    std::u8string program_id();
 
     // frontend.cpp: RecompFrontend's launcher and menus (recompui) and input (recompinput).
     namespace frontend {

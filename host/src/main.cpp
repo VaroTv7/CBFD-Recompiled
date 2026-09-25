@@ -338,7 +338,10 @@ int main(int argc, char** argv) {
 #if defined(CONKER_RT64)
     if (!headless) {
         NFD_Init();
-        recompui::programconfig::set_program_id(conker::program_id);
+        // recompui loads assets/ (and looks for portable.txt) relative to the working
+        // directory: make that the executable's folder, wherever the game is started from.
+        std::filesystem::current_path(exe_directory(argv[0]));
+        recompui::programconfig::set_program_id(conker::program_id());
         recomp::register_config_path(recompui::file::get_app_folder_path());
         migrate_old_data(old_data_dir, recomp::get_config_path());
     }
@@ -359,6 +362,10 @@ int main(int argc, char** argv) {
     game.mod_game_id = "conker";
     game.save_type = recomp::SaveType::Eep16k;
     game.is_enabled = true;
+    // .game's code is compressed in the ROM (Rare's own format). Mods patch functions
+    // by replacing them, which doesn't need it; hooks (RECOMP_HOOK) regenerate game
+    // functions from the ROM's code and stay unavailable until there is a decompressor.
+    game.has_compressed_code = true;
     game.entrypoint_address = (gpr)(int32_t)0x80001000u;
     game.entrypoint = recomp_entrypoint;
     game.on_init_callback = on_init;
@@ -371,6 +378,7 @@ int main(int argc, char** argv) {
     recomp::register_game(game);
 
     conker::register_overlays();
+    conker::register_mod_exports();
 
     if (!select_rom(rom_path, start_directly)) {
         return EXIT_FAILURE;

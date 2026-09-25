@@ -51,6 +51,8 @@ public static class Win {
 Get-ChildItem shot*.png -ErrorAction SilentlyContinue | Remove-Item
 # Test runs ignore the game controller, which may be in use by someone playing.
 $env:CONKER_NO_CONTROLLER = "1"
+# ...and use their own data folder (%LOCALAPPDATA%\ConkerRecompiledTest), not the player's saves.
+$env:CONKER_TEST_PROFILE = "1"
 # -Launcher opens the launcher instead of starting the game (no --seconds); the
 # game is then closed after -Seconds.
 $gameArgs = if ($Launcher) { @("--launcher") } else { @("--seconds", "$Seconds") }

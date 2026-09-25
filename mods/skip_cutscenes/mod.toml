@@ -1,0 +1,32 @@
+# Skip Any Cutscene: a mod for Conker's Bad Fur Day: Recompiled.
+
+[manifest]
+id = "conker_skip_any_cutscene"
+version = "1.0.0"
+display_name = "Skip Any Cutscene"
+description = """
+Lets you skip any cutscene with L, even the first time it plays (normally only \
+cutscenes you've already watched can be skipped), including the ones the game \
+never lets you skip, like the opening (see the mod's settings)."""
+short_description = "Skip cutscenes with L without watching them first."
+authors = [ "Conker Recomp" ]
+game_id = "conker"
+minimum_recomp_version = "0.1.0"
+dependencies = []
+optional_dependencies = []
+native_libraries = []
+
+[inputs]
+elf_path = "build/mod.elf"
+mod_filename = "conker_skip_any_cutscene"
+func_reference_syms_file = "../syms/conker.us.syms.toml"
+data_reference_syms_files = [ "../syms/conker.us.datasyms.toml" ]
+additional_files = []
+
+[[manifest.config_options]]
+id = "skip_unskippable"
+name = "Skip Unskippable Cutscenes"
+description = "Also lets L skip the cutscenes the game never lets you skip, like the opening in the throne room and the hangover scene after it."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "On"

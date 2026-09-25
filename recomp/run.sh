@@ -15,6 +15,11 @@ rm -rf RecompiledFuncs && mkdir RecompiledFuncs
     echo "N64Recomp failed:"; tail -5 recomp/n64recomp.err; exit 1; }
 python3 recomp/emit_tlb_pages.py recomp/conker.us.recomp.elf RecompiledFuncs/tlb_pages.c     .game=conker/assets/game.us.bin .debugger=conker/assets/debugger.us.bin
 ./tools/N64Recomp/build/RSPRecomp recomp/audio_ucode.toml
+# Symbol files for mods (RecompModTool): they must match this build exactly.
+./tools/N64Recomp/build/N64Recomp conker.toml --dump-context > /dev/null
+mkdir -p mods/syms
+mv dump.toml mods/syms/conker.us.syms.toml
+mv data_dump.toml mods/syms/conker.us.datasyms.toml
 # Hashes of the inputs, which host/CMakeLists.txt checks so a build can't use stale output
 # (line endings stripped, so a CRLF checkout on Windows matches).
 for f in $RECOMP_INPUTS; do printf '%s %s\n' "$(tr -d '\r' < "$f" | sha256sum | cut -d' ' -f1)" "$f"; done > RecompiledFuncs/inputs.sha256

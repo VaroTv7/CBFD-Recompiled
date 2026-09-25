@@ -1,0 +1,33 @@
+#!/bin/sh
+# Builds a mod into its .nrm file. Run in WSL from the repo root:
+#
+#   sh mods/build_mod.sh mods/skip_cutscenes
+#
+# Compiles the mod's src/*.c for MIPS with clang, links with GNU ld (the mod
+# template uses ld.lld; mips-linux-gnu-ld takes the same flags but --no-nmagic), then runs
+# N64Recomp's RecompModTool with the mod's mod.toml. The .nrm ends up in the mod's
+# build/ folder; copy it into the game's mods folder (the launcher's Mods menu can
+# open it) to install it. mods/syms/ must match the game build (recomp/run.sh
+# regenerates it).
+set -e
+MOD_DIR=$1
+ROOT=$(pwd)
+CFLAGS="-target mips -mips2 -mabi=32 -O2 -G0 -mno-abicalls -mno-odd-spreg -mno-check-zero-division \
+    -fomit-frame-pointer -ffast-math -fno-unsafe-math-optimizations -fno-builtin-memset -funsigned-char \
+    -fno-builtin-sinf -fno-builtin-cosf -ffunction-sections -nostdinc -D_LANGUAGE_C -DMIPS \
+    -Wall -Wno-incompatible-library-redeclaration -Wno-unused-parameter -Wno-unknown-pragmas \
+    -Werror=section -Wno-visibility \
+    -I mods/include -I conker/conker/include/2.0L -I conker/conker/include/2.0L/PR"
+
+mkdir -p "$MOD_DIR/build"
+OBJS=""
+for src in "$MOD_DIR"/src/*.c; do
+    obj="$MOD_DIR/build/$(basename "${src%.c}").o"
+    clang $CFLAGS -c "$src" -o "$obj"
+    OBJS="$OBJS $obj"
+done
+mips-linux-gnu-ld $OBJS -nostdlib -T mods/mod.ld -Map "$MOD_DIR/build/mod.map" \
+    --unresolved-symbols=ignore-all --emit-relocs -e 0 -gc-sections -o "$MOD_DIR/build/mod.elf"
+cd "$MOD_DIR"
+"$ROOT/tools/N64Recomp/build/RecompModTool" mod.toml build
+ls -la build/*.nrm

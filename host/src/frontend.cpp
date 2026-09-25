@@ -89,9 +89,13 @@ ultramodern::input::connected_device_info_t conker::frontend::get_connected_devi
     return { ultramodern::input::Device::None, ultramodern::input::Pak::None };
 }
 
+std::u8string conker::program_id() {
+    return SDL_getenv("CONKER_TEST_PROFILE") != nullptr ? u8"ConkerRecompiledTest" : u8"ConkerRecompiled";
+}
+
 void conker::frontend::init(recomp::GameEntry& game) {
     recompui::programconfig::set_program_name(program_name);
-    recompui::programconfig::set_program_id(program_id);
+    recompui::programconfig::set_program_id(program_id());
 
     // The launcher's picture of the game.
     std::ifstream file(recompui::file::get_asset_path("thumbnail.png"), std::ios::binary);

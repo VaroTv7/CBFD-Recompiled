@@ -81,6 +81,7 @@ add_executable(ConkerRecomp
     src/null_renderer.cpp
     src/overlays.cpp
     src/ultra_extras.cpp
+    src/mod_api.cpp
     # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/run.sh).
     "${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp"
 )
@@ -169,4 +170,7 @@ if (UNIX)
 elseif (WIN32)
     # The crash handler symbolises the stack with DbgHelp.
     target_link_libraries(ConkerRecomp PRIVATE DbgHelp)
+    # Mods replace recompiled functions by patching their machine code, so identical
+    # functions must not be folded into one.
+    target_link_options(ConkerRecomp PRIVATE /OPT:NOICF)
 endif()
