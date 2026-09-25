@@ -439,6 +439,15 @@ def main(src, dst, symbol_lists=None, originals=None):
     # .init originals. Only names on N64Recomp's lists are safe: they are never
     # emitted, so the duplicate name doesn't produce two C definitions.
     aliased = 0
+    # The decomp has .game's EEPROM read and write swapped: 0x151DD140 packs
+    # command 4 (read: 2 bytes out, 8 in) and 0x151DD4E0 command 5 (write: 10 out,
+    # 1 in). N64Recomp replaces these libultra functions by name, so every save
+    # read the EEPROM over the game's buffer and every load wrote it.
+    corrected = {0x151DD140: "osEepromRead", 0x151DD304: "__osPackEepReadData",
+                 0x151DD4E0: "osEepromWrite", 0x151DD65C: "__osPackEepWriteData"}
+    for s in syms:
+        if (s["info"] & 0xF) == STT_FUNC and corrected.get(s["value"], s["name"]) != s["name"]:
+            s["name"], s["new"] = corrected[s["value"]], True
     if symbol_lists:
         known = load_n64recomp_names(symbol_lists)
         func_names = {s["name"] for s in syms if (s["info"] & 0xF) == STT_FUNC}
