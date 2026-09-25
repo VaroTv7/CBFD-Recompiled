@@ -219,8 +219,14 @@ surface was cut at the 4:3 edges. Both checks, the wide viewport in
 now allow 4 pixels of slack (`CoversWidthSlack`). They must agree, or the 3D is
 stretched.
 
-Screen-space sprites (bubbles, bees) are widened by the game-side hooks in
-`host/src/widescreen.cpp`.
+A rectangle whose scissor spans the frame (with the same slack) is clipped at
+the edges of the widened frame, as widened 3D is, instead of at the 4:3 area.
+Together with the game-side hooks in `host/src/widescreen.cpp`, that keeps
+screen-space sprites (bubbles, bees) whole past the 4:3 edges. The hooks emit
+each sprite as RT64's extended texture rectangle with signed corners. It takes
+the same three commands as the game's `G_TEXRECT`. The enable goes where the
+sprite's pipe sync was, so the display lists don't grow; they're allocated to
+fit what the game writes.
 
 ## Audio
 

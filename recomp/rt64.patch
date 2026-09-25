@@ -470,7 +470,7 @@ index 61bb3b1..313f93a 100644
          void setVertexSegmentV1(bool isEnabled, uint32_t vertexElement, uint32_t vertexAddress, uint32_t baseSegmentAddress);
          template<uint32_t floatCount, uint32_t vertexSize>
 diff --git a/src/render/rt64_framebuffer_renderer.cpp b/src/render/rt64_framebuffer_renderer.cpp
-index 9fae0d4..571cf0d 100644
+index 9fae0d4..e8bd2db 100644
 --- a/src/render/rt64_framebuffer_renderer.cpp
 +++ b/src/render/rt64_framebuffer_renderer.cpp
 @@ -1488,7 +1488,7 @@ namespace RT64 {
@@ -482,6 +482,42 @@ index 9fae0d4..571cf0d 100644
                  bool horizontalRatio = !intersectionRect.isEmpty() && (intersectionRect.width(true, true) > intersectionRect.height(true, true));
                  bool useWideViewport = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
                  if (useWideViewport) {
+@@ -1625,6 +1625,7 @@ namespace RT64 {
+ 
+                         float invRatioScale = 1.0f / aspectRatioScale;
+                         float horizontalMisalignment = 0.0f;
++                        bool wideRectScissor = false;
+                         switch (proj.type) {
+                         case Projection::Type::Perspective:
+                         case Projection::Type::Orthographic: {
+@@ -1652,6 +1653,13 @@ namespace RT64 {
+                                 horizontalMisalignment = p.horizontalMisalignment;
+                             }
+ 
++                            // A scissor spanning the frame's width clips the rect at the edges of the widened
++                            // frame, as it does for widened 3D, rather than at the 4:3 area: a rect the game draws
++                            // partly off the 4:3 screen (Conker's sprites near the edges) stays whole.
++                            const FixedRect &callScissor = call.callDesc.scissorRect;
++                            wideRectScissor = (call.callDesc.scissorLeftOrigin == G_EX_ORIGIN_NONE) && (call.callDesc.scissorRightOrigin == G_EX_ORIGIN_NONE) &&
++                                (callScissor.ulx <= fbPair.scissorRect.ulx + CoversWidthSlack) && (callScissor.lrx >= fbPair.scissorRect.lrx - CoversWidthSlack);
++
+                             RenderViewport viewportRect = convertViewportRect(call.callDesc.rect, p.resolutionScale, p.fbWidth, invRatioScale, extOriginPercentage, horizontalMisalignment, call.callDesc.rectLeftOrigin, call.callDesc.rectRightOrigin);
+                             triangles.screenScale = { viewportRect.width / framebuffer.viewport.width, viewportRect.height / framebuffer.viewport.height };
+                             triangles.screenOffset.x = halfPixelOffset.x + ((viewportRect.x + viewportRect.width / 2.0f) - halfViewportSize.x) / halfViewportSize.x;
+@@ -1676,7 +1684,12 @@ namespace RT64 {
+                             break;
+                         }
+ 
+-                        triangles.scissor = convertFixedRect(call.callDesc.scissorRect, p.resolutionScale, p.fbWidth, invRatioScale, extOriginPercentage, int32_t(horizontalMisalignment), call.callDesc.scissorLeftOrigin, call.callDesc.scissorRightOrigin);
++                        if (wideRectScissor) {
++                            triangles.scissor = convertFixedRect(call.callDesc.scissorRect, p.resolutionScale, p.fbWidth, 1.0f, extOriginPercentage, 0, call.callDesc.scissorLeftOrigin, call.callDesc.scissorRightOrigin);
++                        }
++                        else {
++                            triangles.scissor = convertFixedRect(call.callDesc.scissorRect, p.resolutionScale, p.fbWidth, invRatioScale, extOriginPercentage, int32_t(horizontalMisalignment), call.callDesc.scissorLeftOrigin, call.callDesc.scissorRightOrigin);
++                        }
+ 
+                         bool usesViewport = (proj.type == Projection::Type::Perspective) || (proj.type == Projection::Type::Orthographic);
+                         if (usesViewport) {
 diff --git a/src/render/rt64_projection_processor.cpp b/src/render/rt64_projection_processor.cpp
 index e842dcc..b27031f 100644
 --- a/src/render/rt64_projection_processor.cpp
