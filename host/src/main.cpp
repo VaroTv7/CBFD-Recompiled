@@ -63,22 +63,23 @@ static void install_crash_handler() {
 // named after their vram) and a short stack, using the PDB next to the exe.
 static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
     DWORD code = info->ExceptionRecord->ExceptionCode;
-    if (code != EXCEPTION_ACCESS_VIOLATION && code != EXCEPTION_ILLEGAL_INSTRUCTION &&
-        code != EXCEPTION_STACK_OVERFLOW && code != EXCEPTION_INT_DIVIDE_BY_ZERO) {
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
+    std::string report;
+    auto add = [&report](const char* fmt, auto... args) {
+        char line[512];
+        std::snprintf(line, sizeof(line), fmt, args...);
+        report += line;
+    };
     HANDLE process = GetCurrentProcess();
     SymInitialize(process, nullptr, TRUE);
-    std::fprintf(stderr, "[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
+    add("[host] exception 0x%08lX at %p\n", code, info->ExceptionRecord->ExceptionAddress);
     if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2) {
         // The faulting address, and the N64 address it stands for (rdram is the KSEG0 base).
         uintptr_t fault = (uintptr_t)info->ExceptionRecord->ExceptionInformation[1];
-        std::fprintf(stderr, "[host] %s %p", info->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading",
-            (void*)fault);
+        add("[host] %s %p", info->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading", (void*)fault);
         if (crash_rdram != nullptr) {
-            std::fprintf(stderr, " (N64 address 0x%08X)", (uint32_t)(fault - (uintptr_t)crash_rdram + 0x80000000u));
+            add(" (N64 address 0x%08X)", (uint32_t)(fault - (uintptr_t)crash_rdram + 0x80000000u));
         }
-        std::fprintf(stderr, "\n");
+        add("\n");
     }
     // The first frame is the faulting instruction itself.
     void* frames[32];
@@ -96,23 +97,40 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* info) {
             line.SizeOfStruct = sizeof(line);
             DWORD displacement = 0;
             if (SymGetLineFromAddr64(process, (DWORD64)frames[i], &displacement, &line)) {
-                std::fprintf(stderr, "  %s+0x%llx (%s:%lu)\n", symbol->Name, (unsigned long long)offset,
+                add("  %s+0x%llx (%s:%lu)\n", symbol->Name, (unsigned long long)offset,
                     std::filesystem::path(line.FileName).filename().string().c_str(), line.LineNumber);
             }
             else {
-                std::fprintf(stderr, "  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
+                add("  %s+0x%llx\n", symbol->Name, (unsigned long long)offset);
             }
         }
         else {
-            std::fprintf(stderr, "  %p\n", frames[i]);
+            add("  %p\n", frames[i]);
         }
     }
+
+    // The console window closes with the process, so also keep the report in
+    // crash.log next to the executable and say where it is.
+    std::fputs(report.c_str(), stderr);
     std::fflush(stderr);
+    wchar_t exe[MAX_PATH];
+    DWORD length = GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    std::filesystem::path log_path = (length > 0 && length < MAX_PATH)
+        ? std::filesystem::path(exe).parent_path() / "crash.log" : std::filesystem::path("crash.log");
+    if (FILE* log = _wfopen(log_path.c_str(), L"a")) {
+        std::fputs(report.c_str(), log);
+        std::fputs("\n", log);
+        std::fclose(log);
+    }
+    std::string message = "Conker's Bad Fur Day (recompiled) crashed. The report below was saved to " +
+        log_path.string() + ".\n\n" + report;
+    MessageBoxA(nullptr, message.c_str(), "Conker's Bad Fur Day (recompiled)", MB_OK | MB_ICONERROR);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
 static void install_crash_handler() {
-    AddVectoredExceptionHandler(1, crash_handler);
+    // Only exceptions nothing else handles: libraries like DXC raise and catch their own.
+    SetUnhandledExceptionFilter(crash_handler);
 }
 #else
 static void install_crash_handler() {}
