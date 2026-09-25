@@ -122,7 +122,9 @@ Runs before N64Recomp.
   value is rewritten:
   - `jr rX` where rX is a copy of `$ra`, or a link register every caller loads
     with its return point, becomes `jr $ra`.
-  - `$ra = ret; j F` becomes `jal F`.
+  - `$ra = ret; j F` becomes `jal F`, and the function is re-sized to take in
+    the code the call returns into (`func_150A7A00` stores a transform's W
+    there; cut off, the camera spun around Conker at the start of Hungover).
   - A loop head kept in `$ra` moves to `$k1`, and its `jr $ra` gotos become
     `jr $k1`.
 - Gives .game's `<name>2` libultra duplicates their libultra names when

@@ -574,7 +574,7 @@ def main(src, dst, symbol_lists=None, originals=None):
         add_start(sec, t)
         stats["pointers"] += 1
 
-    while True:
+    def size_functions():
         ordered = {i: sorted(set(k) | {text_end[i]}) for i, k in kinds.items()}
         for s in asm_funcs:
             sec, start = s["shndx"], s["value"]
@@ -583,6 +583,9 @@ def main(src, dst, symbol_lists=None, originals=None):
             while not ends_control_flow(sec, start, b[k]) and b[k] < text_end[sec] and kinds[sec].get(b[k]) == "func":
                 k += 1
             s["size"] = b[k] - start
+
+    while True:
+        size_functions()
 
         new_targets = set()
         for s in asm_funcs:
@@ -607,6 +610,12 @@ def main(src, dst, symbol_lists=None, originals=None):
     ranges = [(lo[i], text_end[i]) for i in code]
     calls, loops, gotos, conflicts = ra_as_code_pointer(elf, owner, ranges)
     stats["ra_calls"], stats["ra_loops"], stats["ra_gotos"] = calls, loops, gotos
+    if calls:
+        # A hand-made call's j ended its function when it was sized; as a jal it
+        # returns into the code after it (e.g. func_150A7A00, whose continuation
+        # at 0x150A7A14 stores the transform's W and returns with jr $t9).
+        size_functions()
+        stats["returns"] += sum(normalise_returns(elf, s["shndx"], s["value"], s["value"] + s["size"]) for s in asm_funcs)
     for p in conflicts:
         print(f"  warning: jr $ra at {p:08X} is both a loop goto and a return; left as a return")
     for s in asm_funcs:

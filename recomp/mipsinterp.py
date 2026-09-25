@@ -357,6 +357,26 @@ class Cpu:
                 word = self.r32(addr & ~3)
                 mask = M32 >> shift
                 self.set32(rt, (g[rt] & ~mask) | (word >> shift))
+            elif op == 26:  # ldl
+                shift = (addr & 7) * 8
+                dword = self.r64(addr & ~7)
+                mask = (M64 << shift) & M64
+                self.set(rt, (g[rt] & ~mask) | ((dword << shift) & mask))
+            elif op == 27:  # ldr
+                shift = (7 - (addr & 7)) * 8
+                dword = self.r64(addr & ~7)
+                mask = M64 >> shift
+                self.set(rt, (g[rt] & ~mask) | (dword >> shift))
+            elif op == 44:  # sdl
+                shift = (addr & 7) * 8
+                old = self.r64(addr & ~7)
+                mask = M64 >> shift
+                self.w64(addr & ~7, (old & ~mask) | (g[rt] >> shift))
+            elif op == 45:  # sdr
+                shift = (7 - (addr & 7)) * 8
+                old = self.r64(addr & ~7)
+                mask = (M64 << shift) & M64
+                self.w64(addr & ~7, (old & ~mask) | ((g[rt] << shift) & mask))
             elif op == 40: self.w8(addr, g[rt])
             elif op == 41: self.w16(addr, g[rt])
             elif op == 43: self.w32(addr, g[rt])
