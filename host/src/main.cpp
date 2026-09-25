@@ -362,10 +362,11 @@ int main(int argc, char** argv) {
     game.mod_game_id = "conker";
     game.save_type = recomp::SaveType::Eep16k;
     game.is_enabled = true;
-    // .game's code is compressed in the ROM (Rare's own format). Mods patch functions
-    // by replacing them, which doesn't need it; hooks (RECOMP_HOOK) regenerate game
-    // functions from the ROM's code and stay unavailable until there is a decompressor.
+    // .game's code is compressed in the ROM (Rare's own format). Mods' hooks
+    // (RECOMP_HOOK) rebuild game functions from their original instructions, which
+    // decompress_rom provides from the copy of the code the exe already carries.
     game.has_compressed_code = true;
+    game.decompression_routine = conker::decompress_rom;
     game.entrypoint_address = (gpr)(int32_t)0x80001000u;
     game.entrypoint = recomp_entrypoint;
     game.on_init_callback = on_init;

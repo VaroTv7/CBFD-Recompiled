@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
+#include <vector>
 
 #include "ultramodern/input.hpp"
 #include "ultramodern/renderer_context.hpp"
@@ -17,6 +19,7 @@ namespace conker {
     void register_overlays();
     void register_tlb_mapped_code();
     void map_tlb_code_pages(uint8_t* rdram);
+    std::vector<uint8_t> decompress_rom(std::span<const uint8_t> rom);
 
     // mod_api.cpp: functions the game exports to mods.
     void register_mod_exports();

@@ -259,16 +259,28 @@ Mods link against `mods/syms/conker.us.{syms,datasyms}.toml`, which
 `recomp/run.sh` regenerates with N64Recomp's `--dump-context`; rebuild mods
 after the game's function layout changes.
 
-Only `RECOMP_PATCH` (replace a game function) works: Conker's code is
-compressed in the ROM, so the runtime can't apply `RECOMP_HOOK`s
-(`has_compressed_code`). Patching rewrites the start of the recompiled host
-function, which is why the exe links with `/OPT:NOICF`. The game exports
-`recomp_printf` (`host/src/mod_api.cpp`), and the runtime provides the
-`recomp_get_config_*` functions for a mod's config options.
+Mods can replace a game function (`RECOMP_PATCH`) or run code before it or
+when it returns (`RECOMP_HOOK`, `RECOMP_HOOK_RETURN`). Patching rewrites the
+start of the recompiled host function, which is why the exe links with
+`/OPT:NOICF`. A hook makes the runtime recompile the hooked function again,
+with LiveRecomp, from its instructions in the ROM. `.game` is compressed in the
+real ROM, so `conker::decompress_rom` (`host/src/overlays.cpp`) builds the ROM
+the recompiler saw instead: the original `.game` and `.debugger` code (which
+the exe already carries for the TLB pages) at their ROM addresses in the
+recompiled layout, plus the words `prepare_elf.py` rewrote
+(`emit_tlb_pages.py` emits both). Limits of hooks: a function with a jump
+table can't be hooked (its table is in `.game_data`, which the regenerated
+code can't see), and hooking a function that `conker.toml` hooks drops the
+toml hook. `func_1501BBB8` (reads the controllers once per game frame) makes
+a good per-frame hook.
+
+The game exports `recomp_printf` (`host/src/mod_api.cpp`), and the runtime
+provides the `recomp_get_config_*` functions for a mod's config options.
 
 `mods/skip_cutscenes` lets L skip any cutscene the first time it plays (the game
 normally only lets you skip ones you've watched), and optionally the ones the
-game's script never lets you skip, like the opening.
+game's script never lets you skip, like the opening. `mods/cheats` has infinite
+health, infinite lives and a full wallet, each an option.
 
 ## Next steps
 

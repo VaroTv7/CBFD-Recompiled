@@ -1,0 +1,48 @@
+# Cheats: a mod for Conker's Bad Fur Day: Recompiled.
+
+[manifest]
+id = "conker_cheats"
+version = "1.0.0"
+display_name = "Cheats"
+description = """
+Classic cheats, each switched on in the mod's settings: infinite health, \
+infinite lives and a full wallet. Instant deaths (falls, drowning) still kill \
+Conker; with infinite lives that only costs you the walk back."""
+short_description = "Infinite health, lives and cash."
+authors = [ "Conker Recomp" ]
+game_id = "conker"
+minimum_recomp_version = "0.1.0"
+dependencies = []
+optional_dependencies = []
+native_libraries = []
+
+[inputs]
+elf_path = "build/mod.elf"
+mod_filename = "conker_cheats"
+func_reference_syms_file = "../syms/conker.us.syms.toml"
+data_reference_syms_files = [ "../syms/conker.us.datasyms.toml" ]
+additional_files = []
+
+[[manifest.config_options]]
+id = "infinite_health"
+name = "Infinite Health"
+description = "Conker's chocolate refills after every hit."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "On"
+
+[[manifest.config_options]]
+id = "infinite_lives"
+name = "Infinite Lives"
+description = "Keeps the squirrel tail count at 9."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "On"
+
+[[manifest.config_options]]
+id = "max_cash"
+name = "Full Wallet"
+description = "Keeps at least $9999 in Conker's wallet, for everything that costs money."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "Off"

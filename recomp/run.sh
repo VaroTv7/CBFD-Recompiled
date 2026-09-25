@@ -13,7 +13,8 @@ python3 recomp/prepare_elf.py conker/conker/build/conker.us.elf recomp/conker.us
 rm -rf RecompiledFuncs && mkdir RecompiledFuncs
 ./tools/N64Recomp/build/N64Recomp conker.toml > recomp/n64recomp.out 2> recomp/n64recomp.err || {
     echo "N64Recomp failed:"; tail -5 recomp/n64recomp.err; exit 1; }
-python3 recomp/emit_tlb_pages.py recomp/conker.us.recomp.elf RecompiledFuncs/tlb_pages.c     .game=conker/assets/game.us.bin .debugger=conker/assets/debugger.us.bin
+python3 recomp/emit_tlb_pages.py recomp/conker.us.recomp.elf RecompiledFuncs/tlb_pages.c \
+    .init=conker/assets/init.us.bin .game=conker/assets/game.us.bin .debugger=conker/assets/debugger.us.bin
 ./tools/N64Recomp/build/RSPRecomp recomp/audio_ucode.toml
 # Symbol files for mods (RecompModTool): they must match this build exactly.
 ./tools/N64Recomp/build/N64Recomp conker.toml --dump-context > /dev/null
