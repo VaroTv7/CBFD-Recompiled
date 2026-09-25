@@ -237,6 +237,15 @@ def manual_link_returns(elf, funcs):
         if len(regset) != 1 or None in regset or callee not in by_start:
             continue
         reg = next(iter(regset))
+        # A callee that code above it can also fall into (the instruction before the
+        # delay slot isn't an unconditional jump) is entered without a call there,
+        # and the rewritten return would leave the recompiled function instead of
+        # jumping to whatever that path put in the link register. Those entries need
+        # a conker.toml hook (see func_150AC1B4).
+        above = containing(callee - 8)
+        if above and not is_unconditional(elf.word(above[0]["shndx"], callee - 8)):
+            print(f"prepare_elf: warning: {callee:#010x} returns through ${reg} (rewritten to $ra) "
+                  f"but can be entered by falling through from {callee - 8:#010x}", file=sys.stderr)
         seen, work = set(), [callee]
         while work:
             f = by_start.get(work.pop())
