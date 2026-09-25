@@ -26,6 +26,11 @@ cmake --build host/build
 cd host/build && ./ConkerRecomp --rom ../../baserom.us.z64 --seconds 30
 ```
 
+`run.sh` records hashes of the files that shape `RecompiledFuncs/` (`conker.toml`,
+`prepare_elf.py`, the N64Recomp patch, ...), and CMake stops with "RecompiledFuncs/
+is out of date" when any of them has changed since: rerun `sh recomp/run.sh` after
+pulling, then build.
+
 `tools/N64Recomp` (ffb39cd) and `tools/N64ModernRuntime` (cdf5abb) are
 untracked checkouts, so their changes live in the patch files here.
 
@@ -122,7 +127,9 @@ Runs before N64Recomp.
   value is rewritten:
   - `jr rX` where rX is a copy of `$ra`, or a link register every caller loads
     with its return point, becomes `jr $ra`.
-  - `$ra = ret; j F` becomes `jal F`.
+  - `$ra = ret; j F` becomes `jal F`, and the function is re-sized to take in
+    the code the call returns into (`func_150A7A00` stores a transform's W
+    there; cut off, the camera spun around Conker at the start of Hungover).
   - A loop head kept in `$ra` moves to `$k1`, and its `jr $ra` gotos become
     `jr $k1`.
 - Gives .game's `<name>2` libultra duplicates their libultra names when
@@ -147,6 +154,12 @@ Runs before N64Recomp.
   saved by `func_150ADAF0` and jumps to its epilogue) into a `setjmp`/`longjmp`.
   Recompiled as plain calls, it returned only from the innermost function and
   crashed in the Panther King cutscene.
+- Runs the collision code's `$t0`-linked subroutine at 0x150AC1C4 as a call
+  from `func_150AC1B4` and `func_150AC0F8`, which enter it by fall-through with
+  `$t0` holding a goto target rather than a return point (`prepare_elf.py` warns about such
+  entries). Recompiled as a return, it skipped `func_150AB1F0`'s epilogue and
+  crashed shortly after Hungover starts.
+=======
 - Makes the fall-through into `func_150AB1F0`'s internal subroutine at
   0x150AC1C4 a call followed by a jump to 0x150AB6F0. The subroutine returns with
   `jr $t0`, which `prepare_elf.py` rewrites to `jr $ra` for its jal caller; on the

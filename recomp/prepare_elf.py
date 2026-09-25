@@ -261,7 +261,31 @@ def manual_link_returns(elf, funcs):
                 t = branch_target(w, pc)
                 if t is not None and w >> 26 != 3 and not (start <= t < end) and t in by_start:
                     work.append(t)
+        for addr, how in other_entries(elf, funcs, [by_start[v] for v in seen]):
+            print(f"  warning: {addr:08X} enters {callee:08X}'s manual-link code by {how}; "
+                  f"its jr ${reg} became jr $ra (see conker.toml)")
     return rewritten
+
+
+def other_entries(elf, funcs, group):
+    """Ways into a group of functions other than calls: fall-through from the
+    preceding code, and j/branches from code outside the group."""
+    inside = lambda a: any(f["value"] <= a < f["value"] + f["size"] for f in group)
+    found = []
+    for f in group:
+        # Functions that run into f from before it (sized over a fall-through).
+        for g in funcs:
+            if g not in group and g["value"] < f["value"] < g["value"] + g["size"]:
+                found.append((f["value"] - 4, f"fall-through (in func_{g['value']:08X})"))
+    for g in funcs:
+        if g in group:
+            continue
+        for pc in range(g["value"], g["value"] + g["size"], 4):
+            w = elf.word(g["shndx"], pc)
+            t = branch_target(w, pc)
+            if t is not None and w >> 26 != 3 and inside(t) and not (g["value"] <= t < g["value"] + g["size"]):
+                found.append((pc, "jump"))
+    return found
 
 
 K1 = 27
@@ -556,7 +580,7 @@ def main(src, dst, symbol_lists=None, originals=None):
         add_start(sec, t)
         stats["pointers"] += 1
 
-    while True:
+    def size_functions():
         ordered = {i: sorted(set(k) | {text_end[i]}) for i, k in kinds.items()}
         for s in asm_funcs:
             sec, start = s["shndx"], s["value"]
@@ -565,6 +589,9 @@ def main(src, dst, symbol_lists=None, originals=None):
             while not ends_control_flow(sec, start, b[k]) and b[k] < text_end[sec] and kinds[sec].get(b[k]) == "func":
                 k += 1
             s["size"] = b[k] - start
+
+    while True:
+        size_functions()
 
         new_targets = set()
         for s in asm_funcs:
@@ -589,6 +616,12 @@ def main(src, dst, symbol_lists=None, originals=None):
     ranges = [(lo[i], text_end[i]) for i in code]
     calls, loops, gotos, conflicts = ra_as_code_pointer(elf, owner, ranges)
     stats["ra_calls"], stats["ra_loops"], stats["ra_gotos"] = calls, loops, gotos
+    if calls:
+        # A hand-made call's j ended its function when it was sized; as a jal it
+        # returns into the code after it (e.g. func_150A7A00, whose continuation
+        # at 0x150A7A14 stores the transform's W and returns with jr $t9).
+        size_functions()
+        stats["returns"] += sum(normalise_returns(elf, s["shndx"], s["value"], s["value"] + s["size"]) for s in asm_funcs)
     for p in conflicts:
         print(f"  warning: jr $ra at {p:08X} is both a loop goto and a return; left as a return")
     for s in asm_funcs:
