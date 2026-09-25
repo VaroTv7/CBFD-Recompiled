@@ -2,12 +2,14 @@
 #   powershell -File host\capture_run.ps1 [-Seconds 60] [-Shots "10,20,30"] [-Keys "40:Enter,44:Space"]
 # -Keys presses a key (held ~150 ms) at each given second, to test input. Key names:
 # Enter, Space, Shift, Q, E, Tab, W, A, S, D, Up, Down, Left, Right.
+# -Exe runs another build in host\build-win (e.g. a debug copy linked while the game is open).
 # Output: host\build-win\shotN.png, run-out.txt, run-err.txt
 param(
     [int]$Seconds = 60,
     [string]$Shots = "10,20,30,40,50",
     [string]$Keys = "",
-    [switch]$Launcher
+    [switch]$Launcher,
+    [string]$Exe = "ConkerRecomp.exe"
 )
 $shotTimes = $Shots.Split(",") | ForEach-Object { [int]$_ }
 # PS/2 set-1 scancodes; the E0-prefixed arrow keys are marked with 0x100.
@@ -56,7 +58,7 @@ $env:CONKER_TEST_PROFILE = "1"
 # -Launcher opens the launcher instead of starting the game (no --seconds); the
 # game is then closed after -Seconds.
 $gameArgs = if ($Launcher) { @("--launcher") } else { @("--seconds", "$Seconds") }
-$p = Start-Process -FilePath ".\ConkerRecomp.exe" -ArgumentList $gameArgs `
+$p = Start-Process -FilePath ".\$Exe" -ArgumentList $gameArgs `
     -RedirectStandardOutput "run-out.txt" -RedirectStandardError "run-err.txt" -PassThru -NoNewWindow
 $start = Get-Date
 foreach ($ev in $events) {

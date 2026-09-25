@@ -209,6 +209,19 @@ the shaders. Texture generation (`G_TEXTURE_GEN`), which needs the same normals,
 is disabled for now, so environment-mapped surfaces render without their
 reflection texture.
 
+The patch also changes widescreen. RT64 widens a projection only if its
+scissor covers the whole width of its framebuffer's combined scissor. Conker's
+3D scissor stops 2 pixels short of each edge of its 292-wide frame. Some effects
+(water, diving) also draw a rectangle with a full-frame scissor. In those frames
+the 3D fell back to 4:3, so the picture flickered between the two, and the water
+surface was cut at the 4:3 edges. Both checks, the wide viewport in
+`FramebufferRenderer` and the projection adjustment in `ProjectionProcessor`,
+now allow 4 pixels of slack (`CoversWidthSlack`). They must agree, or the 3D is
+stretched.
+
+Screen-space sprites (bubbles, bees) are widened by the game-side hooks in
+`host/src/widescreen.cpp`.
+
 ## Audio
 
 Conker's audio microcode is an ABI-style ucode like libultra's `aspMain`

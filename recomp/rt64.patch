@@ -10,6 +10,23 @@ index 79dfc38..aef4a58 100644
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dgolden.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dpd.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dwave.cpp"
+diff --git a/src/common/rt64_common.h b/src/common/rt64_common.h
+index f79adbf..6e0a6f9 100644
+--- a/src/common/rt64_common.h
++++ b/src/common/rt64_common.h
+@@ -70,6 +70,12 @@ namespace RT64 {
+         int x, y, w, h;
+     };
+ 
++    // How far (10.2 fixed point) a projection's scissor may fall short of its framebuffer pair's scissor on each
++    // side and still count as covering the whole width, for the widescreen viewport and projection adjustment.
++    // Conker's 3D scissor stops 2 pixels short of each edge of the frame, and a full-frame rectangle drawn in the
++    // same pair would otherwise put its 3D back in the 4:3 area.
++    constexpr int32_t CoversWidthSlack = 4 * 4;
++
+     struct FixedRect {
+         int32_t ulx;
+         int32_t uly;
 diff --git a/src/gbi/rt64_gbi.cpp b/src/gbi/rt64_gbi.cpp
 index 7006549..4984e7c 100644
 --- a/src/gbi/rt64_gbi.cpp
@@ -452,3 +469,30 @@ index 61bb3b1..313f93a 100644
          void setVertexColorPD(uint32_t address);
          void setVertexSegmentV1(bool isEnabled, uint32_t vertexElement, uint32_t vertexAddress, uint32_t baseSegmentAddress);
          template<uint32_t floatCount, uint32_t vertexSize>
+diff --git a/src/render/rt64_framebuffer_renderer.cpp b/src/render/rt64_framebuffer_renderer.cpp
+index 9fae0d4..571cf0d 100644
+--- a/src/render/rt64_framebuffer_renderer.cpp
++++ b/src/render/rt64_framebuffer_renderer.cpp
+@@ -1488,7 +1488,7 @@ namespace RT64 {
+                 // The call's scissor spans the whole width of the framebuffer pair scissor. Custom origin must not be in use to be able to use the stretched viewport.
+                 const auto &viewport = drawData.rspViewports[proj.transformsIndex];
+                 FixedRect intersectionRect = proj.scissorRect.intersection(viewport.rect(viewportClipRatios));
+-                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= fbPair.scissorRect.ulx) && (intersectionRect.lrx >= fbPair.scissorRect.lrx);
++                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= fbPair.scissorRect.ulx + CoversWidthSlack) && (intersectionRect.lrx >= fbPair.scissorRect.lrx - CoversWidthSlack);
+                 bool horizontalRatio = !intersectionRect.isEmpty() && (intersectionRect.width(true, true) > intersectionRect.height(true, true));
+                 bool useWideViewport = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
+                 if (useWideViewport) {
+diff --git a/src/render/rt64_projection_processor.cpp b/src/render/rt64_projection_processor.cpp
+index e842dcc..b27031f 100644
+--- a/src/render/rt64_projection_processor.cpp
++++ b/src/render/rt64_projection_processor.cpp
+@@ -92,7 +92,8 @@ namespace RT64 {
+                 }
+ 
+                 if (!intersectionRect.isEmpty()) {
+-                    bool coversWholeWidth = (intersectionRect.ulx <= fbPair.scissorRect.ulx) && (intersectionRect.lrx >= fbPair.scissorRect.lrx);
++                    // Same slack as FramebufferRenderer's wide viewport check: the two must agree.
++                    bool coversWholeWidth = (intersectionRect.ulx <= fbPair.scissorRect.ulx + CoversWidthSlack) && (intersectionRect.lrx >= fbPair.scissorRect.lrx - CoversWidthSlack);
+                     bool horizontalRatio = (intersectionRect.width(true, true) > intersectionRect.height(true, true));
+                     adjustAspectRatio = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
+                 }
