@@ -1,0 +1,27 @@
+[submodule "tools/N64Recomp"]
+	path = tools/N64Recomp
+	url = https://github.com/N64Recomp/N64Recomp.git
+[submodule "tools/N64ModernRuntime"]
+	path = tools/N64ModernRuntime
+	url = https://github.com/N64Recomp/N64ModernRuntime.git
+[submodule "tools/rt64"]
+	path = tools/rt64
+	url = https://github.com/rt64/rt64.git
+[submodule "tools/RecompFrontend"]
+	path = tools/RecompFrontend
+	url = https://github.com/N64Recomp/RecompFrontend.git
+[submodule "tools/m2c"]
+	path = tools/m2c
+	url = https://github.com/matt-kempster/m2c.git
+[submodule "conker/tools/n64splat"]
+	path = conker/tools/n64splat
+	url = https://github.com/ethteck/n64splat.git
+[submodule "conker/tools/asm-differ"]
+	path = conker/tools/asm-differ
+	url = https://github.com/simonlindholm/asm-differ.git
+[submodule "conker/tools/asm-processor"]
+	path = conker/tools/asm-processor
+	url = https://github.com/simonlindholm/asm-processor.git
+[submodule "conker/tools/mips_to_c"]
+	path = conker/tools/mips_to_c
+	url = https://github.com/matt-kempster/mips_to_c.git
