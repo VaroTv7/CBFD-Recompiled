@@ -1,12 +1,14 @@
 // libultra functions the recompiled code calls that neither N64Recomp's output
 // nor N64ModernRuntime provides.
 
+#include <csetjmp>
 #include <cstdio>
 
 #include "recomp.h"
 #include "librecomp/addresses.hpp"
 #include "librecomp/game.hpp"
 #include "ultramodern/error_handling.hpp"
+#include "ultramodern/ultra64.h"
 
 #include "conker.hpp"
 
@@ -49,6 +51,25 @@ extern "C" int32_t conker_kseg1_read32(uint8_t* rdram, uint32_t vaddr) {
     }
     std::fprintf(stderr, "[ultra_extras] unhandled KSEG1 read: 0x%08X\n", vaddr);
     return 0;
+}
+
+// Where the script interpreter (func_150ADAF0) returns to when a script aborts
+// (func_150AE280); see conker.toml. Only the game's main thread runs scripts.
+extern "C" {
+    jmp_buf conker_interpreter_exit;
+}
+
+// libultra's osContInit creates __osEepromTimerQ, which libultra's EEPROM
+// functions and Rare's EEPROM code (func_151DCFD8) put their timer messages on.
+// The runtime's osContInit doesn't, so conker.toml calls this after the game's
+// osContInit. Like osContInit, only the first call creates it.
+extern "C" void conker_create_eeprom_timer_queue(uint8_t* rdram) {
+    constexpr int32_t osEepromTimerQ = 0x80042A78;
+    constexpr int32_t osEepromTimerMsg = 0x80042A90;
+    OSMesgQueue* queue = TO_PTR(OSMesgQueue, osEepromTimerQ);
+    if (queue->msgCount == 0) {
+        osCreateMesgQueue(rdram, osEepromTimerQ, osEepromTimerMsg, 1);
+    }
 }
 
 // s32 osPiRawReadIo(u32 devAddr, u32 *data)

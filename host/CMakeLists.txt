@@ -43,10 +43,12 @@ target_include_directories(RecompiledFuncs PRIVATE
 )
 # funcs.h does not declare the libultra functions N64Recomp skips (the runtime
 # provides them), and the generated code has many unused labels and variables.
+# setjmp.h is for conker.toml's hooks on the script interpreter's abort (func_150AE280).
 if (MSVC)
-    target_compile_options(RecompiledFuncs PRIVATE /W0 /bigobj)
+    target_compile_options(RecompiledFuncs PRIVATE /W0 /bigobj /FIsetjmp.h)
 else()
     target_compile_options(RecompiledFuncs PRIVATE
+        -include setjmp.h
         -Wno-implicit-function-declaration
         -Wno-unused-label
         -Wno-unused-variable

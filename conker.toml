@@ -230,3 +230,40 @@ value = 0x3C098000  # lui $t1, 0x8000 (was 0xA000)
 func = "func_150A6A5C"
 vram = 0x150A6B90
 value = 0x3C098000  # lui $t1, 0x8000 (was 0xA000)
+
+# ---------------------------------------------------------------------------
+# Non-local exits in hand-written asm.
+# ---------------------------------------------------------------------------
+
+# func_150ADAF0 is a hand-written script interpreter. It saves its $sp in
+# D_800D3858 on entry, and its abort (func_150AE280, called from func_1509F8xx
+# inside a script callback) reloads that $sp and jumps to the interpreter's
+# epilogue (func_150AE0AC): a longjmp out of the nested calls. Recompiled, the
+# epilogue only returned from the innermost C call, and the interpreter went on
+# with its caller's registers (a crash reading 0x000000BF in func_150ADBC4, in
+# the Panther King cutscene after Hungover's opening). Do it with setjmp/longjmp
+# (host/CMakeLists.txt force-includes setjmp.h; the buffer is in ultra_extras.cpp).
+[[patches.hook]]
+func = "func_150ADAF0"
+before_vram = 0x150ADAFC
+text = "{ extern jmp_buf conker_interpreter_exit; if (setjmp(conker_interpreter_exit)) { func_150AE0AC(rdram, ctx); return; } }"
+
+[[patches.hook]]
+func = "func_150AE280"
+before_vram = 0x150AE290
+text = "{ extern jmp_buf conker_interpreter_exit; ctx->r29 = ctx->r10; longjmp(conker_interpreter_exit, 1); }"
+
+# ---------------------------------------------------------------------------
+# libultra state that the runtime's replacements don't set up.
+# ---------------------------------------------------------------------------
+
+# libultra's osContInit creates __osEepromTimerQ (0x80042A78, one slot); the
+# runtime's osContInit doesn't. Rare's EEPROM code (func_151DCFD8) paces its
+# accesses with one-shot timers on that queue. Uncreated, the queue counts as
+# full, no timer message ever arrives, and the game froze on a black screen at
+# the first save (the start of Hungover, after the intro cutscene). Create it
+# after func_15006234's first osContInit call, the game's only one at boot.
+[[patches.hook]]
+func = "func_15006234"
+before_vram = 0x15006288
+text = "{ extern void conker_create_eeprom_timer_queue(uint8_t*); conker_create_eeprom_timer_queue(rdram); }"

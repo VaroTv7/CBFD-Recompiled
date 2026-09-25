@@ -139,6 +139,14 @@ Runs before N64Recomp.
   audio thread's `AI_LEN` read, Rare's PIO ROM copy (`func_1000480C`) and an
   anti-piracy ROM read (`func_15001A08`), plus an uncached RDRAM pointer
   retargeted to KSEG0.
+- Creates libultra's `__osEepromTimerQ` after the game's `osContInit` (the
+  runtime's `osContInit` doesn't). Rare's EEPROM code paces its accesses with
+  timers on it; without it the game froze on a black screen at the first save,
+  after the intro cutscene.
+- Turns the script interpreter's abort (`func_150AE280`, which reloads the `$sp`
+  saved by `func_150ADAF0` and jumps to its epilogue) into a `setjmp`/`longjmp`.
+  Recompiled as plain calls, it returned only from the innermost function and
+  crashed in the Panther King cutscene.
 
 ## Local changes to the tools
 
