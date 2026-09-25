@@ -82,6 +82,7 @@ add_executable(ConkerRecomp
     src/overlays.cpp
     src/ultra_extras.cpp
     src/mod_api.cpp
+    src/widescreen.cpp
     # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/run.sh).
     "${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp"
 )

@@ -287,3 +287,21 @@ text = "{ func_150AC1C4(rdram, ctx); func_150AB6F0(rdram, ctx); return; }"
 func = "func_15006234"
 before_vram = 0x15006288
 text = "{ extern void conker_create_eeprom_timer_queue(uint8_t*); conker_create_eeprom_timer_queue(rdram); }"
+
+# Widescreen: screen-space sprites (bubbles, bees, sparkles) are culled to the 4:3
+# screen and drawn with G_TEXRECT, which can't reach left of x = 0. Widen the cull
+# bounds and emit the rectangle as RT64's extended one (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "func_15130A9C"
+before_vram = 0x15130CEC
+text = "{ extern void conker_widen_sprite_cull_left(uint8_t*, recomp_context*); conker_widen_sprite_cull_left(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15130A9C"
+before_vram = 0x15130D08
+text = "{ extern void conker_widen_sprite_cull_right(uint8_t*, recomp_context*); conker_widen_sprite_cull_right(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15130A9C"
+before_vram = 0x15131168
+text = "{ extern void conker_emit_sprite_texrect(uint8_t*, recomp_context*); conker_emit_sprite_texrect(rdram, ctx); goto L_15131360; }"
