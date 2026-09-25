@@ -132,6 +132,20 @@ def is_unconditional(w):
             or w == 0x42000018)                            # eret
 
 
+def written_gpr(w):
+    """The general register an instruction writes (0 or None if none)."""
+    op = w >> 26
+    if op == 0:                                            # SPECIAL: rd
+        return (w >> 11) & 0x1F
+    if op == 3 or (op == 1 and (w >> 16) & 0x1F in (16, 17, 18, 19)):
+        return 31                                          # jal, bltzal/bgezal(l)
+    if op in (16, 17, 18) and (w >> 21) & 0x1F in (0, 1, 2):
+        return (w >> 16) & 0x1F                            # mfc/dmfc/cfc
+    if 8 <= op <= 15 or op in (24, 25, 26, 27, 55) or 32 <= op <= 39:
+        return (w >> 16) & 0x1F                            # immediate ALU ops, loads
+    return None
+
+
 RA = 31
 JR_RA = 0x03E00008
 
@@ -576,9 +590,13 @@ def main(src, dst, symbol_lists=None, originals=None):
             op, rs, rt = w >> 26, (w >> 21) & 0x1F, (w >> 16) & 0x1F
             if op == 15:
                 regs[rt] = (w & 0xFFFF) << 16
-            elif op in (9, 13) and rs in regs:
+                continue
+            if op in (9, 13) and rs in regs:
                 imm = ((w & 0xFFFF) ^ 0x8000) - 0x8000 if op == 9 else (w & 0xFFFF)
                 code_pointers.add((regs[rs] + imm) & 0xFFFFFFFF)
+            # Any other write replaces the lui's value (e.g. `lw $a0, 0x134($sp)` then
+            # `addiu $a1, $a0, -0x20` in func_151978xx isn't a pointer into 0x1518FFE0).
+            regs.pop(written_gpr(w), None)
     for t in sorted(data_pointers | code_pointers):
         sec = owner(t)
         if sec is None or t & 3 or t in kinds[sec] or t in jtbl_labels:
