@@ -9,9 +9,13 @@
 #   3. In this repository's Settings > Secrets and variables > Actions, add the secrets
 #      ROM_REPO (owner/name of the private repository) and ROM_REPO_TOKEN (the token).
 #
-# Runs when a tag like v0.2.0 is pushed (and then publishes a release with the packages),
-# or by hand from the Actions tab (packages as downloadable artifacts only). It has no
+# A pushed tag like v0.2.0 builds both packages into a draft release, which is published
+# once both have built. Run by hand from the Actions tab, it makes a draft "Test build"
+# release instead (drafts are only visible to the repository's collaborators). It has no
 # pull request trigger, so the ROM token is never exposed to code from forks.
+#
+# It uses no third-party actions (the repository only allows its owner's): git and the
+# GitHub CLI, both installed on GitHub's runners.
 name: release
 
 on:
@@ -26,22 +30,47 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  GIT_TERMINAL_PROMPT: '0'
+
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Create the draft release
+        id: tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag=$GITHUB_REF_NAME
+            title="Conker's Bad Fur Day: Recompiled $tag"
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "$title" --notes "Building..."
+          else
+            tag=test-build-$GITHUB_RUN_NUMBER
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
+              --title "Test build $GITHUB_RUN_NUMBER" --notes "Test build of $GITHUB_SHA (not published)."
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   windows:
+    needs: prepare
     runs-on: windows-latest
     timeout-minutes: 150
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        shell: bash
+        run: |
+          git clone -q --no-checkout "https://github.com/$GITHUB_REPOSITORY" .
+          git checkout -q "$GITHUB_SHA"
 
       - name: Get the ROM
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.ROM_REPO }}
-          token: ${{ secrets.ROM_REPO_TOKEN }}
-          path: rom-src
+        shell: bash
+        env:
+          ROM_REPO: ${{ secrets.ROM_REPO }}
+          ROM_REPO_TOKEN: ${{ secrets.ROM_REPO_TOKEN }}
+        run: git clone -q --depth 1 "https://x-access-token:$ROM_REPO_TOKEN@github.com/$ROM_REPO.git" rom-src
 
       - name: Build
         shell: cmd
@@ -56,38 +85,27 @@ jobs:
           Copy-Item "$build\ConkerRecomp.exe", "$build\SDL2.dll", "$build\dxcompiler.dll", "$build\dxil.dll" $out
           Copy-Item -Recurse "$build\assets" "$out\assets"
           Copy-Item .github\release\README.txt, LICENSE $out
-          $name = "ConkerRecompiled-${{ github.ref_name }}-Windows.zip" -replace '/', '-'
-          Compress-Archive -Path "$out\*" -DestinationPath "package\$name"
-          "PACKAGE=package\$name" >> $env:GITHUB_ENV
+          Compress-Archive -Path "$out\*" -DestinationPath "package\ConkerRecompiled-${{ needs.prepare.outputs.tag }}-Windows.zip"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows
-          path: ${{ env.PACKAGE }}
-
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.PACKAGE }}
-          body_path: .github/release/notes.md
+      - name: Upload to the release
+        shell: bash
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" package/*.zip --repo "$GITHUB_REPOSITORY" --clobber
 
   linux:
+    needs: prepare
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        run: |
+          git clone -q --no-checkout "https://github.com/$GITHUB_REPOSITORY" .
+          git checkout -q "$GITHUB_SHA"
 
       - name: Get the ROM
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.ROM_REPO }}
-          token: ${{ secrets.ROM_REPO_TOKEN }}
-          path: rom-src
+        env:
+          ROM_REPO: ${{ secrets.ROM_REPO }}
+          ROM_REPO_TOKEN: ${{ secrets.ROM_REPO_TOKEN }}
+        run: git clone -q --depth 1 "https://x-access-token:$ROM_REPO_TOKEN@github.com/$ROM_REPO.git" rom-src
 
       - name: Install dependencies
         run: |
@@ -105,19 +123,17 @@ jobs:
           strip "$out/ConkerRecomp"
           cp -r host/build/assets "$out/assets"
           cp .github/release/README.txt LICENSE "$out/"
-          name="ConkerRecompiled-$(echo '${{ github.ref_name }}' | tr / -)-Linux.tar.gz"
-          tar -czf "package/$name" -C package ConkerRecompiled
-          echo "PACKAGE=package/$name" >> "$GITHUB_ENV"
+          tar -czf "package/ConkerRecompiled-${{ needs.prepare.outputs.tag }}-Linux.tar.gz" -C package ConkerRecompiled
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Linux
-          path: ${{ env.PACKAGE }}
+      - name: Upload to the release
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" package/*.tar.gz --repo "$GITHUB_REPOSITORY" --clobber
 
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.PACKAGE }}
-          body_path: .github/release/notes.md
+  publish:
+    needs: [prepare, windows, linux]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        run: |
+          git clone -q --depth 1 --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY" src
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --notes-file src/.github/release/notes.md
