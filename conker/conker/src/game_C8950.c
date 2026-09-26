@@ -153,7 +153,9 @@ void func_1509B764(struct249 *arg0) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_C8950/func_1509B810.s")
 
-void func_1509B8FC( s32 arg0) {
+void func_1509B8FC(arg0)
+    s16 arg0;
+{
     struct248 *temp_v0;
     s16 sp18[2];
 

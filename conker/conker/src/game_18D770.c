@@ -60,7 +60,19 @@ s32  func_1516429C();
 void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2);
 void func_151644F4(struct242 *arg0, struct17 *arg1, s32 arg2, f32 arg3, f32 arg4);
 
-struct225 *func_151602C0(Header *header, Header2 *header2, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 offset, s32 arg9, s32 argA) {
+struct225 *func_151602C0(header, header2, arg2, arg3, arg4, arg5, arg6, arg7, offset, arg9, argA)
+    Header *header;
+    Header2 *header2;
+    s32 arg2;
+    s32 arg3;
+    s32 arg4;
+    s32 arg5;
+    u8 arg6;
+    u8 arg7;
+    s32 offset;
+    u8 arg9;
+    s32 argA;
+{
     struct225 *ret;
     struct226 *sp30;
 
@@ -77,7 +89,13 @@ struct225 *func_151602C0(Header *header, Header2 *header2, s32 arg2, s32 arg3, s
     return ret;
 }
 
-struct225 *func_1516037C(Header *header, struct226 *arg1, s32 offset, s32 arg3, s32 arg4) {
+struct225 *func_1516037C(header, arg1, offset, arg3, arg4)
+    Header *header;
+    struct226 *arg1;
+    s32 offset;
+    u8 arg3;
+    s32 arg4;
+{
     struct225 *ret = func_15167A68(53, arg4, offset + 24, 1, arg3, 1);
     if (ret == 0) {
         return NULL;
@@ -261,7 +279,11 @@ s32 func_15161238(struct127 *arg0, struct127 *arg1) {
     return 1;
 }
 
-struct225 *func_1516127C(s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_1516127C(arg0, arg1, arg2)
+    s32 arg0;
+    u8 arg1;
+    s32 arg2;
+{
     struct225 *temp_v0;
     Header header;
     f32 src[4];
@@ -353,7 +375,11 @@ struct225 *func_15161494(s32 arg0, u8 arg1, s32 arg2) {
     return temp_v0;
 }
 
-struct225 *func_15161540(s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15161540(arg0, arg1, arg2)
+    s32 arg0;
+    u8 arg1;
+    s32 arg2;
+{
     struct225 *temp_v0;
     Header header;
     f32 tmp[4];
@@ -375,7 +401,14 @@ struct225 *func_15161540(s32 arg0, s32 arg1, s32 arg2) {
     return temp_v0;
 }
 
-struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5) {
+struct225 *func_151615F8(arg0, arg1, arg2, arg3, arg4, arg5)
+    s32 arg0;
+    u8 arg1;
+    u8 arg2;
+    u8 arg3;
+    u8 arg4;
+    s32 arg5;
+{
     struct225 *temp_v0;
     Header header;
     struct232 tmp1;
@@ -498,7 +531,12 @@ void func_15161860(struct225 *arg0) {
 // the closest natural form.
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151618BC.s")
 
-struct225 *func_151619A0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+struct225 *func_151619A0(arg0, arg1, arg2, arg3)
+    s32 arg0;
+    s16 arg1;
+    u8 arg2;
+    s32 arg3;
+{
     struct225 *temp_v0;
     Header header;
     s32 tmp;
@@ -588,7 +626,18 @@ s32 func_15161A68(struct225 *arg0) {
     return 1;
 }
 
-struct225 *func_15161E24(struct127 *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, s32 arg9) {
+struct225 *func_15161E24(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+    struct127 *arg0;
+    u8 arg1;
+    u8 arg2;
+    s16 arg3;
+    s32 arg4;
+    s32 arg5;
+    s32 arg6;
+    s32 arg7;
+    u8 arg8;
+    s32 arg9;
+{
     struct225 *temp_v0;
     Header header;
     struct244 tmp;
@@ -752,7 +801,16 @@ void func_15162110(s32 arg0) {
 //     return 1;
 // }
 
-struct225 *func_15162740(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+struct225 *func_15162740(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    s32 arg0;
+    u8 arg1;
+    u8 arg2;
+    u8 arg3;
+    s16 arg4;
+    s8 arg5;
+    u8 arg6;
+    s32 arg7;
+{
     struct225 *temp_v0;
     Header header;
     f32 src[8];
@@ -782,7 +840,19 @@ struct225 *func_15162740(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 a
     return temp_v0;
 }
 
-struct225 *func_1516284C(Header *header, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 offset, s32 arg8, s32 arg9, s32 argA) {
+struct225 *func_1516284C(header, arg1, arg2, arg3, arg4, arg5, arg6, offset, arg8, arg9, argA)
+    Header *header;
+    s32 arg1;
+    s32 arg2;
+    s32 arg3;
+    s32 arg4;
+    u8 arg5;
+    u8 arg6;
+    s32 offset;
+    u8 arg8;
+    u8 arg9;
+    s32 argA;
+{
     struct225 *temp_v0;
     f32 src[8];
 
@@ -896,7 +966,16 @@ void func_15162F50(struct239 *arg0) {
     func_151403A8(&sp1C, 37);
 }
 
-struct225 *func_15162FAC(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+struct225 *func_15162FAC(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    s32 arg0;
+    u8 arg1;
+    u8 arg2;
+    u8 arg3;
+    s16 arg4;
+    s8 arg5;
+    u8 arg6;
+    s32 arg7;
+{
     struct225 *temp_v0;
     Header header;
     struct241 src;
@@ -934,7 +1013,23 @@ struct225 *func_15162FAC(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 a
 // big one
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_151630F4.s")
 
-struct225 *func_15163414(Header *header, f32* arg1, f32* arg2, f32* arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, s32 arg9, s32 argA, s32 argB, s32 argC, s32 argD, s32 argE) {
+struct225 *func_15163414(header, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, argA, argB, argC, argD, argE)
+    Header *header;
+    f32 *arg1;
+    f32 *arg2;
+    f32 *arg3;
+    s8 arg4;
+    u8 arg5;
+    u8 arg6;
+    u8 arg7;
+    u8 arg8;
+    u8 arg9;
+    u8 argA;
+    u8 argB;
+    s32 argC;
+    u8 argD;
+    s32 argE;
+{
     struct225 *temp_v0;
     struct245 data;
     Header2 header2;
@@ -1035,7 +1130,16 @@ void func_1516381C(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     func_1516037C(&tmp, arg0, 0, arg2, arg3);
 }
 
-void func_1516387C(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 offset, s32 arg6, s32 arg7) {
+void func_1516387C(arg0, arg1, arg2, arg3, arg4, offset, arg6, arg7)
+    s32 arg0;
+    u8 arg1;
+    s8 arg2;
+    s16 arg3;
+    u8 arg4;
+    s32 offset;
+    u8 arg6;
+    s32 arg7;
+{
     Header tmp;
     tmp.unk0 = arg1;
     tmp.unk1 = arg2;
@@ -1100,7 +1204,7 @@ struct225 *func_15163A60( u8 arg0, u8 arg1, s32 arg2) {
     header.unk2 = 300;
     header.unk4 = 5;
 
-    temp_v0_2 = func_151602C0(&header, &header2, D_800A6964[6], 0, 0xFF, 0, 0xFF, 0, 20, arg1, arg2);
+    temp_v0_2 = func_151602C0(&header, &header2, (s32) D_800A6964[6], 0, 0xFF, 0, 0xFF, 0, 20, arg1, arg2);
     if (temp_v0_2 != 0) {
         memcpy(&temp_v0_2->unk18, &tmp1, 16);
         memcpy(&temp_v0_2->unk28, &temp_v0, 4);
@@ -1122,7 +1226,11 @@ s32 func_15163B98(struct230 *arg0) {
     }
 }
 
-struct225 *func_15163BE8(s32 arg0, s32 arg1, s32 arg2) {
+struct225 *func_15163BE8(arg0, arg1, arg2)
+    s32 arg0;
+    u8 arg1;
+    s32 arg2;
+{
     struct225 *temp_v0;
     f32 src[4];
 

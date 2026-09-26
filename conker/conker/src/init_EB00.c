@@ -227,8 +227,10 @@ s32 func_1000F44C( u16 arg0) {
 void func_1000F91C(u16 arg0, u16 arg1, s16 arg2, u8 arg3, s32 arg4,
                    s16 arg5, s16 arg6, s16 arg7, s16 arg8, s16 arg9) {
     s32 sp2C;
+    u32 volume;
 
-    func_1000F85C(arg0, 8, (u32) (arg1 * func_1000F6B8(arg4, arg5, arg6, arg7, &sp2C, (s32) arg8, (s32) arg9)) >> 0xF);
+    volume = func_1000F6B8(arg4, arg5, arg6, arg7, &sp2C, (s32) arg8, (s32) arg9);
+    func_1000F85C(arg0, 8, (arg1 * volume) >> 0xF);
     func_1000F85C(arg0, 4, sp2C & 0x7F);
     func_1000F85C(arg0, 256, (sp2C & 0x80) | arg3);
     func_1000F85C(arg0, 16, arg2);
