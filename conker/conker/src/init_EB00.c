@@ -263,28 +263,21 @@ void func_1000FD38(s32 x, s32 y, s32 z) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FDF4.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FE88.s")
-// ? func_1000FE88(s32 arg0, s32 arg1, void *arg2) {
-//     void *sp1C;
-//     s32 temp_t7;
-//     u16 temp_a0;
-//     void *temp_v1;
-//     ? phi_return;
-//
-//     phi_return = 1;
-//     if (arg1 < *arg2) {
-//         temp_t7 = arg1 * 0x30;
-//         temp_v1 = arg0 + temp_t7;
-//         temp_a0 = temp_v1->unk24;
-//         if (temp_a0 != 0) {
-//             sp1C = temp_v1;
-//             func_100111C8(temp_a0);
-//         }
-//         (arg0 + temp_t7)->unk10 = (s32) ((arg0 + temp_t7)->unk10 | 0x80);
-//         phi_return = 0;
-//     }
-//     return phi_return;
-// }
+// Stops the sound of entry `index` of an array of positional sound entries (the
+// 0x30-byte entries of D_80041FE0; see func_1000FD38), and sets its flag 0x80, if
+// the index is below *count. Returns 0 when it did, 1 when the index was out of
+// range. Its caller, func_10011624, calls it for an entry when the entry's own
+// callback returns non-zero.
+s32 func_1000FE88(struct15 *entries, s32 index, s32 *count) {
+    if (index < *count) {
+        if (entries[index].unk24 != 0) {
+            func_100111C8(entries[index].unk24);
+        }
+        entries[index].unk10 |= 0x80;
+        return 0;
+    }
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FEF0.s")
 // NON-MATCHING: needs a re-work
