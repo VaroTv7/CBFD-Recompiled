@@ -323,6 +323,30 @@ Writing your own is covered in [recomp/README.md](recomp/README.md#mods).
 - the host application in `host/`;
 - debugging tools.
 
+## AI assistance
+
+This project was made with heavy use of an AI coding assistant (Claude, through
+Claude Code). That covers the recompilation setup, the patches to the tools, the
+host application, the mods, and the functions decompiled to C in this repository.
+
+What's checked, and how:
+
+- **Decompiled C** is only kept when it compiles to exactly the original
+  instructions. The build fails unless the rebuilt code is byte-for-byte
+  identical to the ROM's.
+- **The port** is checked by playing it, and by comparing its behaviour with
+  the original running in an emulator.
+
+What isn't checked: names, types and comments don't change the compiled bytes,
+so a byte-for-byte match says nothing about whether they're right. Names that
+end in an address (for example `resetSlotState_150104F0`) are best guesses based
+on what the code appears to do. Treat them as hints, not established facts.
+
+This is an independent project. The AI-assisted work here isn't part of the
+upstream decompilation, and the people behind that project and other N64
+decompilation communities aren't responsible for it. Please report problems here,
+not to them.
+
 ## Credits
 
 - The [Conker's Bad Fur Day decompilation](https://github.com/mkst/conker) project,
