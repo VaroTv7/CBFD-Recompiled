@@ -1,9 +1,11 @@
-Ready-to-play builds for Windows and Linux. **You need your own US ROM of Conker's Bad Fur Day**: these packages contain no game data.
+Ready-to-play builds for Windows, Linux and macOS. **You need your own US ROM of Conker's Bad Fur Day**: these packages contain no game data.
 
 1. Download the package for your system and unpack it anywhere.
-2. Run `ConkerRecomp` (`ConkerRecomp.exe` on Windows).
+2. Run `ConkerRecomp` (`ConkerRecomp.exe` on Windows, `ConkerRecomp.app` on macOS).
 3. The first time, the launcher asks for your ROM: pick your US `.z64`. Then Start Game.
 
 Linux needs SDL2, GTK 3 and FreeType (Ubuntu/Debian: `sudo apt install libsdl2-2.0-0 libgtk-3-0 libfreetype6`) and a Vulkan driver.
+
+macOS needs Apple Silicon and macOS 15 or later. The app isn't signed with an Apple developer ID, so macOS blocks it the first time: open it once, then choose **Open Anyway** in System Settings > Privacy & Security (or run `xattr -dr com.apple.quarantine ConkerRecomp.app` in Terminal first).
 
 To build it yourself instead, see the [README](https://github.com/sciaschi/CBFD-Recompiled#readme).

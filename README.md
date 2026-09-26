@@ -15,10 +15,14 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 ## Download
 
 Ready-to-play Windows and Linux builds are on the
-[Releases page](https://github.com/sciaschi/CBFD-Recompiled/releases). Unpack one
-anywhere, run `ConkerRecomp`, and pick your US ROM in the launcher the first time.
-The packages contain no game data: you still need your own ROM. To build it yourself
-instead, read on.
+[Releases page](https://github.com/sciaschi/CBFD-Recompiled/releases), and macOS
+builds (Apple Silicon, macOS 15 or later) on
+[this fork's Releases page](https://github.com/nitrostemp/CBFD-Recompiled-mac/releases).
+Unpack one anywhere, run `ConkerRecomp`, and pick your US ROM in the launcher the
+first time. The packages contain no game data: you still need your own ROM. The
+macOS app isn't signed with an Apple developer ID, so the first time, open it and
+then choose **Open Anyway** in System Settings > Privacy & Security. To build it
+yourself instead, read on.
 
 ## Features
 
@@ -155,6 +159,10 @@ Homebrew packages (`cmake ninja pkg-config sdl2 freetype`) and offers to install
 them. It also offers to download Xcode's Metal Toolchain (about 850 MB), which
 Xcode 26 and later install separately. When it's done, the game is
 `host/build/ConkerRecomp` (see [Playing](#playing)).
+
+To turn it into a standalone `ConkerRecomp.app` that runs without Homebrew (as the
+release workflow does), run `sh host/package_macos.sh` after `brew install
+dylibbundler`. The app ends up in `host/build/`.
 
 ### Updating
 
