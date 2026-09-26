@@ -258,7 +258,7 @@ index 0000000..99ef5c2
 +    };
 +};
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
-index 1da2550..bd32c2f 100644
+index 1da2550..4672149 100644
 --- a/src/hle/rt64_rsp.cpp
 +++ b/src/hle/rt64_rsp.cpp
 @@ -4,7 +4,9 @@
@@ -427,6 +427,20 @@ index 1da2550..bd32c2f 100644
      void RSP::setVertexColorPD(uint32_t address) {
          vertexColorPDAddress = fromSegmentedMasked(address);
      }
+@@ -841,7 +992,12 @@ namespace RT64 {
+         const uint32_t globalIndex = indices[vtxIndex];
+         const float screenZ = workload.drawData.posScreen[globalIndex][2] * DepthRange;
+         const float zValueFloat = zValue / 65536.0f;
+-        if (forceBranch || (screenZ < zValueFloat)) {
++        // A vertex behind the camera has a meaningless screen depth. The RSP's depth of
++        // such a vertex is out of range, which takes the branch (like GLideN64 does):
++        // otherwise a model whose test vertex is behind the camera, like a bridge
++        // being walked over, falls to its far version, often nothing.
++        const bool behindCamera = workload.drawData.posTransformed[globalIndex][3] <= 0.0f;
++        if (forceBranch || behindCamera || (screenZ < zValueFloat)) {
+             const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
+             *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
+         }
 diff --git a/src/hle/rt64_rsp.h b/src/hle/rt64_rsp.h
 index 61bb3b1..313f93a 100644
 --- a/src/hle/rt64_rsp.h

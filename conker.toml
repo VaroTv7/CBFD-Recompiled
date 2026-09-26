@@ -288,6 +288,20 @@ func = "func_15006234"
 before_vram = 0x15006288
 text = "{ extern void conker_create_eeprom_timer_queue(uint8_t*); conker_create_eeprom_timer_queue(rdram); }"
 
+# func_150FB4C0 (hand-written, drawing small coloured rectangles, for example when
+# leaving the mansion's hub) writes its display list through the uncached address
+# (| 0x20000000), which isn't mapped here. Write it through the cached one: the
+# same memory.
+[[patches.instruction]]
+func = "func_150FB4C0"
+vram = 0x150FB654
+value = 0x00000000  # nop (was or $a0, $a0, $t0: KSEG0 to KSEG1)
+
+[[patches.instruction]]
+func = "func_150FB4C0"
+vram = 0x150FB8A8
+value = 0x00000000  # nop (was xor $a0, $a0, $t0: back to KSEG0)
+
 # Widescreen: screen-space sprites (bubbles, bees, sparkles) are culled to the 4:3
 # screen and drawn with G_TEXRECT, which can't reach left of x = 0. Widen the cull
 # bounds and emit the rectangle as RT64's extended one (host/src/widescreen.cpp).
