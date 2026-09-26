@@ -1,0 +1,123 @@
+# Builds ready-to-play Windows and Linux packages. Players still supply their own ROM:
+# they pick it in the launcher the first time. The packages contain no ROM and no assets.
+#
+# Building needs the ROM (the game's code is recompiled from it), so the workflow reads it
+# from a private repository, the way BanjoRecomp's does. Setup, once:
+#   1. Make a private repository holding only baserom.us.z64 (the US ROM) at its root.
+#   2. Make a fine-grained personal access token with read-only "Contents" access to that
+#      repository alone.
+#   3. In this repository's Settings > Secrets and variables > Actions, add the secrets
+#      ROM_REPO (owner/name of the private repository) and ROM_REPO_TOKEN (the token).
+#
+# Runs when a tag like v0.2.0 is pushed (and then publishes a release with the packages),
+# or by hand from the Actions tab (packages as downloadable artifacts only). It has no
+# pull request trigger, so the ROM token is never exposed to code from forks.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get the ROM
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.ROM_REPO }}
+          token: ${{ secrets.ROM_REPO_TOKEN }}
+          path: rom-src
+
+      - name: Build
+        shell: cmd
+        run: build.cmd rom-src\baserom.us.z64
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "package\ConkerRecompiled"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $build = "host\build-win"
+          Copy-Item "$build\ConkerRecomp.exe", "$build\SDL2.dll", "$build\dxcompiler.dll", "$build\dxil.dll" $out
+          Copy-Item -Recurse "$build\assets" "$out\assets"
+          Copy-Item .github\release\README.txt, LICENSE $out
+          $name = "ConkerRecompiled-${{ github.ref_name }}-Windows.zip" -replace '/', '-'
+          Compress-Archive -Path "$out\*" -DestinationPath "package\$name"
+          "PACKAGE=package\$name" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows
+          path: ${{ env.PACKAGE }}
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.PACKAGE }}
+          body_path: .github/release/notes.md
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get the ROM
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.ROM_REPO }}
+          token: ${{ secrets.ROM_REPO_TOKEN }}
+          path: rom-src
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git python3 cmake ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev
+
+      - name: Build
+        run: ./build.sh rom-src/baserom.us.z64 < /dev/null
+
+      - name: Package
+        run: |
+          out=package/ConkerRecompiled
+          mkdir -p "$out"
+          cp host/build/ConkerRecomp "$out/"
+          strip "$out/ConkerRecomp"
+          cp -r host/build/assets "$out/assets"
+          cp .github/release/README.txt LICENSE "$out/"
+          name="ConkerRecompiled-$(echo '${{ github.ref_name }}' | tr / -)-Linux.tar.gz"
+          tar -czf "package/$name" -C package ConkerRecompiled
+          echo "PACKAGE=package/$name" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux
+          path: ${{ env.PACKAGE }}
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.PACKAGE }}
+          body_path: .github/release/notes.md
