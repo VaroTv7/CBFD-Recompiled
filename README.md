@@ -22,9 +22,9 @@ instead, read on.
 
 ## Features
 
-- Runs natively on Windows (Direct3D 12 or Vulkan) and Linux (Vulkan), rendered
-  by RT64. Supports higher resolutions, widescreen, anti-aliasing and high
-  frame-rate presentation.
+- Runs natively on Windows (Direct3D 12 or Vulkan), Linux (Vulkan) and macOS
+  (Metal), rendered by RT64. Supports higher resolutions, widescreen,
+  anti-aliasing and high frame-rate presentation.
 - Game controllers and keyboard, with remappable controls and rumble.
 - Full audio: music, sound effects and the voice acting.
 - Saving (EEPROM), stored per user.
@@ -45,10 +45,13 @@ The game is playable, and has been played through to the end. Known issues:
   software Vulkan (llvmpipe) and sound. It hasn't been played on Linux with a
   real GPU driver yet, so reports are welcome, especially about performance or
   audio (under WSL the sound crackles while the software renderer loads the CPU).
+- macOS: the build has been tested on an Apple M3 Pro with macOS 27 and Xcode 27,
+  and the game starts and runs with Metal. It hasn't been played through on
+  macOS yet, and Intel Macs haven't been tried.
 
 If the game crashes on Windows, a report is written to `crash.log` next to the
-executable and shown in a message box. On Linux, the crash report is printed to the
-terminal. Please include it when reporting a problem.
+executable and shown in a message box. On Linux and macOS, the crash report is printed
+to the terminal. Please include it when reporting a problem.
 
 ## What you need to build it
 
@@ -58,9 +61,10 @@ terminal. Please include it when reporting a problem.
 - A folder path without an apostrophe (`'`) to clone into. Some of RT64's build
   steps break on one.
 
-Then follow the guide for your system: [Windows](#building-on-windows) or
-[Linux](#building-on-linux). Each is one command once the tools are installed. The
-first full build takes a while, because the recompiled game is a lot of C code.
+Then follow the guide for your system: [Windows](#building-on-windows),
+[Linux](#building-on-linux) or [macOS](#building-on-macos). Each is one command
+once the tools are installed. The first full build takes a while, because the
+recompiled game is a lot of C code.
 
 ## Building on Windows
 
@@ -116,6 +120,52 @@ yourself. When it's done, run `host/build/ConkerRecomp` (see [Playing](#playing)
 
 To update: `git pull`, then `./build.sh` again.
 
+## Building on macOS
+
+macOS on Apple Silicon or Intel. The game renders with Metal. `build.sh` does all
+of it, as on Linux.
+
+### 1. Install the tools (once)
+
+- **Xcode**, from the App Store. The Command Line Tools alone aren't enough: RT64
+  compiles its shaders with Xcode's Metal compiler. Open Xcode once to finish its
+  setup. If `xcode-select -p` doesn't print a path inside `Xcode.app`, run
+  `sudo xcode-select -s /Applications/Xcode.app`.
+- [**Homebrew**](https://brew.sh).
+- Optionally, for building mods: `brew install llvm` (Apple's clang can't compile
+  for the N64's MIPS processor).
+
+### 2. Get the code and build
+
+In Terminal, in the folder you want it in, with the path to your ROM. The macOS
+support is on the `macos-port` branch of
+[CBFD-Recompiled-mac](https://github.com/nitrostemp/CBFD-Recompiled-mac):
+
+```sh
+git clone --recursive -b macos-port https://github.com/nitrostemp/CBFD-Recompiled-mac.git
+cd CBFD-Recompiled-mac
+./build.sh ~/path/to/your/conker.z64
+```
+
+Put the ROM's path in quotes if it has spaces or an apostrophe, for example
+`./build.sh "$HOME/Downloads/Conker's Bad Fur Day (USA).z64"`.
+
+The first build takes a while. If some tools are missing, the script lists the
+Homebrew packages (`cmake ninja pkg-config sdl2 freetype`) and offers to install
+them. It also offers to download Xcode's Metal Toolchain (about 850 MB), which
+Xcode 26 and later install separately. When it's done, the game is
+`host/build/ConkerRecomp` (see [Playing](#playing)).
+
+### Updating
+
+```sh
+git pull
+./build.sh
+```
+
+The script updates the submodules and their patches, and only rebuilds what
+changed.
+
 ## What the build does
 
 `build.sh` holds the full sequence, if you'd rather run the steps yourself:
@@ -134,14 +184,22 @@ To update: `git pull`, then `./build.sh` again.
 `recomp/conker.us.syms.toml` (and `mods/syms/`) are generated from the
 decompilation in `conker/`, which needs its own Linux tools: IDO, which runs
 through the MIPS binutils, and the Python packages in `requirements.txt`. On
-Linux, or in WSL on Windows, `./build.sh --decomp` builds the decompilation too,
-checks that it rebuilds your ROM's code byte for byte, and regenerates those files
-from it (`recomp/run.sh`). The decompilation is a work in progress: about 9% of the
-code is C so far, and the rest is still the original assembly.
+Linux, macOS, or in WSL on Windows, `./build.sh --decomp` builds the decompilation
+too, checks that it rebuilds your ROM's code byte for byte, and regenerates those
+files from it (`recomp/run.sh`). The decompilation is a work in progress: about 9%
+of the code is C so far, and the rest is still the original assembly.
+
+On macOS, `--decomp` also needs `coreutils` and `mips-linux-gnu-binutils` from
+Homebrew (the script offers to install them). The decompilation comes with two
+Linux programs, the IDO compiler and a patched gzip that compresses exactly as the
+original game's did, so the script puts macOS replacements in `tools/macos/`:
+IDO's macOS build from
+[ido-static-recomp](https://github.com/decompals/ido-static-recomp), and GNU gzip
+1.10 built with the same one-line change.
 
 ## Playing
 
-Run `host/build/ConkerRecomp` (Linux) or `host\build-win\ConkerRecomp.exe`
+Run `host/build/ConkerRecomp` (Linux and macOS) or `host\build-win\ConkerRecomp.exe`
 (Windows). The first time, pick **Load ROM** in the launcher and select your ROM
 (the same `baserom.us.z64` works). After that it's remembered, so just choose
 **Start Game**.
@@ -150,8 +208,9 @@ Run `host/build/ConkerRecomp` (Linux) or `host\build-win\ConkerRecomp.exe`
   has graphics (resolution, aspect ratio, anti-aliasing, frame rate), controls,
   sound and mod options.
 - Saves, settings and the stored ROM live in `~/.config/ConkerRecompiled` on
-  Linux and `%LOCALAPPDATA%\ConkerRecompiled` on Windows. Put an empty
-  `portable.txt` next to the executable to keep them there instead.
+  Linux, `~/Library/Application Support/ConkerRecompiled` on macOS and
+  `%LOCALAPPDATA%\ConkerRecompiled` on Windows. Put an empty `portable.txt` next
+  to the executable to keep them there instead.
 - Default keyboard controls: move with WASD, A = Space, B = Left Shift,
   Z = Q, L = E, R = R, Start = Enter, C buttons = arrow keys, D-pad = IJKL.
   Everything can be remapped in Controls.
@@ -162,7 +221,8 @@ Mods are `.nrm` files. Install one by copying it into the `mods` folder of the
 data folder above (or dropping it onto the Mods menu), then enable it in the
 **Mods** menu. Some mods have options there too.
 
-The included mods are in `mods/`. Build one on Linux (or in WSL), from the
+The included mods are in `mods/`. Build one on Linux, macOS (which also needs
+`brew install llvm`, as Apple's clang can't compile for MIPS) or in WSL, from the
 repository root, after `recomp/run.sh`:
 
 ```sh

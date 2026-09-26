@@ -5,11 +5,16 @@ cmake_minimum_required(VERSION 3.20)
 #
 # Windows (RT64 window, keyboard and controllers) with MSVC:
 #   host\build_windows.cmd   (sets up MSVC, then configures and builds host/build-win)
-# Linux/WSL (headless, null renderer):
+# Linux/WSL and macOS (Metal; use Apple's clang, /usr/bin/clang):
 #   cmake -S host -B host/build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
 #   cmake --build host/build
 
 project(ConkerRecomp C CXX)
+if (APPLE)
+    # RT64 and RecompFrontend have Objective-C++ sources (Metal, Cocoa); rt64 enables
+    # the languages only in its own directory.
+    enable_language(OBJC OBJCXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -97,9 +102,10 @@ if (CONKER_RT64)
     # RT64 only needs zstd's library. Its programs also copy man pages with a shell
     # command that breaks on a path with an apostrophe.
     set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
-    if (NOT WIN32)
-        # Outside Windows, RT64 renders with Vulkan into an SDL window (as in
+    if (NOT WIN32 AND NOT APPLE)
+        # On Linux, RT64 renders with Vulkan into an SDL window (as in
         # Banjo: Recompiled): the window is created with SDL_WINDOW_VULKAN.
+        # On macOS it renders with Metal into the window's CAMetalLayer.
         set(RT64_SDL_WINDOW_VULKAN ON CACHE BOOL "" FORCE)
         add_compile_definitions(PLUME_SDL_VULKAN_ENABLED RT64_SDL_WINDOW_VULKAN)
     endif()
@@ -122,10 +128,18 @@ if (CONKER_RT64)
     set(DXC_SPV_OPTS "-spirv" "-fspv-target-env=vulkan1.0" "-fvk-use-dx-layout")
     set(DXC_PS_OPTS "${DXC_COMMON_OPTS}" "-E" "PSMain" "-T ps_6_0" "-D DYNAMIC_RENDER_PARAMS")
     set(DXC_VS_OPTS "${DXC_COMMON_OPTS}" "-E" "VSMain" "-T vs_6_0" "-D DYNAMIC_RENDER_PARAMS" "-fvk-invert-y")
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        set(DXC_ARCH x64)
+    else()
+        set(DXC_ARCH arm64)
+    endif()
     if (WIN32)
         set(DXC "${RT64_DIR}/src/contrib/dxc/bin/x64/dxc.exe")
+    elseif (APPLE)
+        # recompui's shaders also go through spirv_cross_msl (rt64's target) and xcrun metal.
+        set(DXC "DYLD_LIBRARY_PATH=${RT64_DIR}/src/contrib/dxc/lib/${DXC_ARCH}" "${RT64_DIR}/src/contrib/dxc/bin/${DXC_ARCH}/dxc-macos")
     else()
-        set(DXC "LD_LIBRARY_PATH=${RT64_DIR}/src/contrib/dxc/lib/x64" "${RT64_DIR}/src/contrib/dxc/bin/x64/dxc-linux")
+        set(DXC "LD_LIBRARY_PATH=${RT64_DIR}/src/contrib/dxc/lib/${DXC_ARCH}" "${RT64_DIR}/src/contrib/dxc/bin/${DXC_ARCH}/dxc-linux")
     endif()
     add_subdirectory("${REPO_ROOT}/tools/RecompFrontend" "${CMAKE_CURRENT_BINARY_DIR}/RecompFrontend")
     if (MSVC)

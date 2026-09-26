@@ -27,3 +27,4 @@ __pycache__/
 /host/user_save.bin
 /.claude/
 /.venv/
+/tools/macos/

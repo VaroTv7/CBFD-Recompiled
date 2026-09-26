@@ -8,11 +8,13 @@
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
-#if defined(_WIN32)
-// Only Windows needs the native window handle. On Linux this header brings in
-// X11's, whose None macro breaks ultramodern's Device::None.
+#if defined(_WIN32) || defined(__APPLE__)
+// Only Windows and macOS need the native window handle. On Linux this header brings
+// in X11's, whose None macro breaks ultramodern's Device::None.
 #include <SDL_syswm.h>
 #endif
+
+#include "nfd.h"
 
 #include "librecomp/game.hpp"
 #include "recompinput/input_events.h"
@@ -50,6 +52,10 @@ namespace {
         if (SDL_Init(subsystems) != 0) {
             std::fprintf(stderr, "[frontend] SDL_Init failed: %s\n", SDL_GetError());
         }
+        // The file dialogs (Load ROM, mods). Only after SDL: on macOS, NFD_Init creates the
+        // application object if it doesn't exist yet and makes it an accessory app, and SDL
+        // then leaves it that way (no Dock icon, and the window opens behind the terminal).
+        NFD_Init();
         return nullptr;
     }
 
@@ -57,6 +63,8 @@ namespace {
         uint32_t flags = SDL_WINDOW_RESIZABLE;
 #if defined(RT64_SDL_WINDOW_VULKAN)
         flags |= SDL_WINDOW_VULKAN;
+#elif defined(__APPLE__)
+        flags |= SDL_WINDOW_METAL;
 #endif
         window = SDL_CreateWindow(conker::program_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             1600, 900, flags);
@@ -69,6 +77,13 @@ namespace {
         SDL_VERSION(&info.version);
         SDL_GetWindowWMInfo(window, &info);
         return ultramodern::renderer::WindowHandle{ info.info.win.window, GetCurrentThreadId() };
+#elif defined(__APPLE__)
+        // RT64 renders with Metal into the CAMetalLayer of a view added to the window.
+        SDL_SysWMinfo info;
+        SDL_VERSION(&info.version);
+        SDL_GetWindowWMInfo(window, &info);
+        SDL_MetalView view = SDL_Metal_CreateView(window);
+        return ultramodern::renderer::WindowHandle{ info.info.cocoa.window, SDL_Metal_GetLayer(view) };
 #else
         return ultramodern::renderer::WindowHandle{ window };
 #endif

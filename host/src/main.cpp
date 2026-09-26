@@ -37,10 +37,13 @@
 // The game's RDRAM, for reporting fault addresses as N64 addresses.
 static uint8_t* crash_rdram = nullptr;
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 #include <csignal>
 #include <execinfo.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 
 // Debugging aid: report where a crash happened (the recompiled functions are
 // named after their vram, so the backtrace maps straight back to game code).
@@ -310,6 +313,16 @@ namespace {
         if (!error) {
             return exe.parent_path();
         }
+#elif defined(__APPLE__)
+        char buffer[4096];
+        uint32_t size = sizeof(buffer);
+        if (_NSGetExecutablePath(buffer, &size) == 0) {
+            std::error_code error;
+            std::filesystem::path exe = std::filesystem::canonical(buffer, error);
+            if (!error) {
+                return exe.parent_path();
+            }
+        }
 #endif
         return std::filesystem::absolute(argv0).parent_path();
     }
@@ -400,7 +413,7 @@ int main(int argc, char** argv) {
     std::filesystem::path old_data_dir = exe_directory(argv[0]) / "conker_data";
 #if defined(CONKER_RT64)
     if (!headless) {
-        NFD_Init();
+        // NFD_Init() is called once SDL is up (frontend.cpp's create_gfx).
         // recompui loads assets/ (and looks for portable.txt) relative to the working
         // directory: make that the executable's folder, wherever the game is started from.
         std::filesystem::current_path(exe_directory(argv[0]));
