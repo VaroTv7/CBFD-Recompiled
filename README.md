@@ -52,8 +52,8 @@ and shown in a message box. Please include it when reporting a problem.
 ### 1. Clone, with submodules
 
 ```sh
-git clone --recursive https://github.com/sciaschi/conkerrecomp.git
-cd conkerrecomp
+git clone --recursive https://github.com/sciaschi/CBFD-Recompiled.git
+cd CBFD-Recompiled
 ```
 
 If you cloned without `--recursive`, run `git submodule update --init --recursive`.
@@ -86,7 +86,7 @@ sudo apt install $(cat conker/packages.txt) cmake ninja-build clang
 python3 -m pip install --user -r conker/requirements.txt
 ```
 
-Then, from the repository root inside WSL (for example `cd /mnt/d/path/to/conkerrecomp`):
+Then, from the repository root inside WSL (for example `cd /mnt/d/path/to/CBFD-Recompiled`):
 
 ```sh
 cd conker
@@ -190,6 +190,11 @@ Writing your own is covered in [recomp/README.md](recomp/README.md#mods).
   [Banjo: Recompiled mod template](https://github.com/BanjoRecomp/BKRecompModTemplate).
 - Fonts: [Inter](https://rsms.me/inter/), [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji)
   and [promptfont](https://shinmera.github.io/promptfont/).
+
+## License
+
+This project's own code is under the [MIT License](LICENSE). The submodules keep
+their own licenses. The game itself is not included and not covered by it.
 
 Conker's Bad Fur Day is © Rare Ltd. This project is not affiliated with or
 endorsed by Rare, Microsoft or Nintendo.
