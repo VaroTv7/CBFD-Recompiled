@@ -250,13 +250,17 @@ void __n_resetPerfChanState(N_ALSeqPlayer *seqp, s32 chan) {
 //     return sp18;
 // }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/init_1AAE0/func_1001BE1C.s")
-// void func_1001BE1C(void *arg0, s32 arg1, s32 arg2) {
-//     if (arg2 == -1) {
-//         arg0->unk30(arg1);
-//     } else {
-//         arg0->unk30((arg1 + (arg2 * 4))->unk10);
-//     }
-// }
+// Calls a callback: the function pointer at 0x30 of `handler`, with either `data`
+// itself (index == -1) or the index-th word of an array at 0x10 in `data`. Its
+// one caller, _n_handleEvent, passes D_8002BA2C->unk38 as the handler and a
+// sound's unk3C->unkC and (s16) unk4C as data and index (func_10017100 sets those
+// two fields when it allocates the sound).
+void func_1001BE1C(void *handler, s32 data, s32 index) {
+    if (index == -1) {
+        (*(s32 (**)(s32))((char *)(handler) + 0x30))(data);
+    } else {
+        (*(s32 (**)(s32))((char *)(handler) + 0x30))(((s32 *)((char *)data + 0x10))[index]);
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_1AAE0/__n_seqpStopOsc.s")

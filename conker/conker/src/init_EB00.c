@@ -246,7 +246,22 @@ void func_1000F9D4( u16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FA64.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FC18.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FD38.s")
+// Stops the sounds placed at a point: for each of the first D_80042760 entries of
+// D_80041FE0 whose position (unk14, unk18, unk1C) is (x, y, z), stops the sound it
+// is playing (handle unk24, see func_100111C8) and sets its flag 0x80.
+void func_1000FD38(s32 x, s32 y, s32 z) {
+    s32 i;
+
+    for (i = 0; i < D_80042760; i++) {
+        if ((x == D_80041FE0[i].unk14) && (y == D_80041FE0[i].unk18) && (z == D_80041FE0[i].unk1C)) {
+            if (D_80041FE0[i].unk24 != 0) {
+                func_100111C8(D_80041FE0[i].unk24);
+            }
+            D_80041FE0[i].unk10 |= 0x80;
+        }
+    }
+}
+
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FDF4.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FE88.s")
 // ? func_1000FE88(s32 arg0, s32 arg1, void *arg2) {
@@ -433,8 +448,8 @@ void func_10010AA8(struct127 *arg0) {
 
 // Starts a sound effect: func_10010BE8(arg0, sound, volume, pan, pitch, flags, D_80041FD9)
 // with volume 0..0x7FFF and pan 0..0x7F. The meaning of arg0 (0 from both wrappers
-// below) and of D_80041FD9 isn't known yet. Returns a u16, 0 when nothing played
-// (probably a handle for the playing sound).
+// below) and of D_80041FD9 isn't known yet. Returns a handle for the playing sound
+// (see func_100111C8), or 0 when nothing played.
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010BE8.s")
 
 // Plays a sound effect at a point in the world. func_1000F6B8 turns the point and
@@ -466,14 +481,18 @@ s32 func_10010F88(s32 sound, u16 volume, s16 pitch, u8 flags, s32 listener, s16 
 }
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010FFC.s")
 
-void func_100111C8( u16 arg0) {
-    struct120 *tmp = &D_800425E0[arg0 & 0xF];
+// Stops a playing sound, given the handle func_10010BE8 returned for it. The
+// handle's low 4 bits select one of the 16 sound slots at D_800425E0; the slot is
+// only freed (its sound stopped with func_10017594) if it still holds this handle,
+// so a handle whose sound has already ended, and whose slot was reused, does nothing.
+void func_100111C8(u16 handle) {
+    struct120 *slot = &D_800425E0[handle & 0xF];
 
-    if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
-        tmp->unk0 = 0;
-        tmp->unk4 = 0;
-        func_10017594(tmp->unk8);
-        tmp->unk8 = 0;
+    if ((slot->unk8 != 0) && (slot->unk0 == handle)) {
+        slot->unk0 = 0;
+        slot->unk4 = 0;
+        func_10017594(slot->unk8);
+        slot->unk8 = 0;
     }
 }
 
