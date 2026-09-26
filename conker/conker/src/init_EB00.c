@@ -54,7 +54,7 @@ s32 func_1000EC24(struct251 *arg0, s32 arg1, s32 *arg2, struct11 *arg3, struct04
 
     if (temp_v1 <= 0) {
         if (*arg2 != 0) {
-            func_10010F30(arg0->unk1C, *arg2 & 0xFFFF, arg3->unk3, arg4->unk2, *arg5);
+            func_10010F30(arg0->unk1C, *arg2, arg3->unk3, arg4->unk2, *arg5);
         }
         return 1;
     }
@@ -434,7 +434,7 @@ void func_10010AA8(struct127 *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010BE8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010E78.s")
 
-s32 func_10010F30(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
+s32 func_10010F30(s32 arg0, u16 arg1, u8 arg2, s16 arg3, u8 arg4) {
     return func_10010BE8(0, arg0, arg1, arg2, arg3, arg4, D_80041FD9);
 }
 
