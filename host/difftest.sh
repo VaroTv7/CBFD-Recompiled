@@ -17,7 +17,7 @@ cat > $HOME/difftest.gdb <<EOF
 set pagination off
 set print thread-events off
 break $FUNC
-run --rom ../../baserom.us.z64
+run --rom ../../conker/baserom.us.z64
 EOF
 i=1
 while [ "$i" -lt "$HIT" ]; do echo "continue" >> $HOME/difftest.gdb; i=$((i + 1)); done

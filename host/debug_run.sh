@@ -8,7 +8,7 @@ cat > /tmp/conker_gdb <<EOF
 set pagination off
 set print thread-events off
 handle SIGINT stop print
-run --rom ../../baserom.us.z64
+run --rom ../../conker/baserom.us.z64
 bt 16
 thread apply all bt 8
 kill

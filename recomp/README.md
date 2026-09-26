@@ -23,7 +23,7 @@ git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
 sh recomp/run.sh                 # -> RecompiledFuncs/ (gitignored)
 cmake -S host -B host/build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build host/build
-cd host/build && ./ConkerRecomp --rom ../../baserom.us.z64 --seconds 30
+cd host/build && ./ConkerRecomp --rom ../../conker/baserom.us.z64 --seconds 30
 ```
 
 `run.sh` records hashes of the files that shape `RecompiledFuncs/` (`conker.toml`,

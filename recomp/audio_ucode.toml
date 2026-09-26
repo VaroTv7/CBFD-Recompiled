@@ -11,7 +11,7 @@
 text_offset = 0x291A0
 text_size = 0xF70
 text_address = 0x04001080
-rom_file_path = "../baserom.us.z64"
+rom_file_path = "../conker/baserom.us.z64"
 output_file_path = "../RecompiledFuncs/rsp/audio_ucode.cpp"
 output_function_name = "conker_audio_ucode"
 
