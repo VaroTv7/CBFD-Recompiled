@@ -92,9 +92,13 @@ Then, from the repository root inside WSL (for example `cd /mnt/d/path/to/conker
 cd conker
 make extract              # checks the ROM and splits it into conker/assets/
 make -C conker extract    # splits the game code
-make -C conker -j8        # compiles the decompilation -> conker/conker/build/conker.us.elf
+make -C conker -j8 NON_MATCHING=1   # compiles it -> conker/conker/build/conker.us.elf
 cd ..
 ```
+
+`NON_MATCHING=1` skips the check that the rebuilt ROM is identical to yours. The
+decompilation isn't finished, and the recompiler uses your ROM's original code
+wherever the decompiled code differs.
 
 ### 5. Recompile the game (in WSL)
 

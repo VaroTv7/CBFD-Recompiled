@@ -201,8 +201,15 @@ replace: $(VERIFY) $(TARGET).header.bin $(TARGET).boot.bin $(TARGET).init.bin $(
 $(BUILD_DIR)/$(LD_SCRIPT): $(LD_SCRIPT)
 	$(CPP) -P -DBUILD_DIR=$(BUILD_DIR) -o $@ $<
 
-$(TARGET).elf: $(O_FILES) $(BUILD_DIR)/$(LD_SCRIPT) $(GLOBAL_ASM_O_FILES)
+# The link needs only the objects the linker script places. src/ also holds
+# decompilation drafts that aren't linked yet and don't always compile; build
+# them with `make drafts`.
+LINKED_O_FILES = $(filter $(shell grep -o '$(BUILD_DIR)/[A-Za-z0-9_./-]*\.o' $(LD_SCRIPT) 2>/dev/null),$(O_FILES) $(GLOBAL_ASM_O_FILES))
+
+$(TARGET).elf: $(LINKED_O_FILES) $(BUILD_DIR)/$(LD_SCRIPT)
 	$(LD) $(LDFLAGS) -o $@
+
+drafts: $(O_FILES) $(GLOBAL_ASM_O_FILES)
 
 ifndef PERMUTER
 $(GLOBAL_ASM_O_FILES): $(BUILD_DIR)/%.c.o: %.c include/variables.h include/structs.h include/functions.h
@@ -309,5 +316,5 @@ progress.debugger.csv: $(TARGET).elf
 
 
 # settings
-.PHONY: all clean default
+.PHONY: drafts all clean default
 SHELL = /bin/bash -e -o pipefail
