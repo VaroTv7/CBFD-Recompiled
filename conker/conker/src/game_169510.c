@@ -3,9 +3,6 @@
 #include "functions.h"
 #include "variables.h"
 
-// Prototyped here, not in functions.h: some callers elsewhere still pass it a
-// third argument. The calls below need the prototype to match.
-void func_100043B4(void *arg0, s32 arg1);
 
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_169510/func_1513C060.s")

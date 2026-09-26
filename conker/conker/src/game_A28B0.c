@@ -1188,18 +1188,17 @@ void func_150791F0(void) {
 }
 
 void func_15079228(void) {
-    s32 idx;
     s16 *entry;
-    s16 tx;
-    s16 tz;
+    f32 x;
+    f32 z;
     u16 v0;
     s32 a2;
 
-    idx = gCurrentObject->unk251;
-    entry = (s16 *) ((char *) D_800D3098 + idx * 52);
-    tx = entry[0];
-    tz = entry[2];
-    v0 = func_1505A630(gCurrentObject->x_position - (f32) tx, gCurrentObject->z_position - (f32) tz, 0);
+    // D_800D3098 is read here as a pointer to the 52-byte entries.
+    entry = (s16 *) (*(char **) &D_800D3098 + gCurrentObject->unk251 * 52);
+    x = entry[0];
+    z = entry[2];
+    v0 = func_1505A630(gCurrentObject->x_position - x, z - gCurrentObject->z_position, 0);
     a2 = v0 & 0xFFFF;
     if (v0 == 0) {
         a2 = 1;
@@ -1232,7 +1231,8 @@ void func_15079390(void) {
     u16 tmp0 = D_800D1890;
     u8 tmp1 = D_800D1891;
     u8 tmp2 = D_800D1892;
-    func_1514D3B0(gCurrentObject, (s16) tmp0, tmp1, tmp2);
+
+    func_1514D3B0(gCurrentObject, tmp0, tmp1, tmp2);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_A28B0/func_150793D8.s")

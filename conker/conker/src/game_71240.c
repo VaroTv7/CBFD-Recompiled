@@ -49,7 +49,7 @@ void func_15043EC8(f32 mtx[4][4], f32 x, f32 y, f32 z, f32 arg4, f32 arg5, f32 a
 }
 
 void func_15043F6C(f32 arg0[4][4], f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, f32 arg8, f32 arg9) {
-    func_150A9B0C(arg0, *(s32 *) &arg1, *(s32 *) &arg2, *(s32 *) &arg3, *(s32 *) &arg4, *(s32 *) &arg5, *(s32 *) &arg6);
+    func_150A9B0C(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     arg0[3][0] = arg7;
     arg0[3][1] = arg8;
     arg0[3][2] = arg9;
