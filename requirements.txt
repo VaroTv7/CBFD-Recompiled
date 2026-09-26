@@ -1,0 +1,7 @@
+# Python packages for building the decompilation (splat, asm-processor and the
+# decomp's own scripts): pip install -r requirements.txt
+-r conker/requirements.txt
+-r conker/tools/n64splat/requirements.txt
+# splat accepts newer versions, but from 1.34 on spimdisasm writes `nonmatching`
+# directives that the pinned asm-processor can't read.
+spimdisasm==1.33.0
