@@ -28,9 +28,8 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 The game is playable, and has been played through its first chapters and the hub
 without problems. It hasn't been played to the end yet. Known issues:
 
-- Widescreen: the circle wipe (when Conker spawns or dies) only grows until it
-  covers the 4:3 area, so the last moment of opening pops to the full width. The
-  pause menu's blurred background is the 4:3 frame stretched to the full width.
+- Widescreen: the pause menu's blurred background is the 4:3 frame stretched to
+  the full width.
 - Environment-mapped (reflective) surfaces render without their reflection texture.
 - Only the US ROM is supported.
 - Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with

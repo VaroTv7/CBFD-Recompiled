@@ -332,3 +332,15 @@ text = "{ extern void conker_frame_copy_begin(uint8_t*, recomp_context*); conker
 func = "func_151D6418"
 before_vram = 0x151D66E8
 text = "{ extern void conker_frame_copy_end(uint8_t*, recomp_context*); conker_frame_copy_end(rdram, ctx); }"
+
+# Widescreen: the circle wipe (spawn, death, level changes) is redrawn with pieces
+# that reach the window's edges (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "func_15180580"
+before_vram = 0x15180584
+text = "{ extern void conker_iris_begin(uint8_t*, recomp_context*); conker_iris_begin(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15180580"
+before_vram = 0x151814F4
+text = "{ extern void conker_iris_end(uint8_t*, recomp_context*); conker_iris_end(rdram, ctx); }"
