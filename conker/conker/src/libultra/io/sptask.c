@@ -1,6 +1,37 @@
 #include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/io/sptask/_VirtualToPhysicalTask.s")
+// libultra's tmp_task: the copy of a task that osSpTaskLoad gives the RSP.
+extern OSTask D_80036B60;
+
+// Copies a task into D_80036B60 with its buffer pointers converted to physical
+// addresses, which is what the RSP reads (libultra's sptask.c). Returns the copy.
+OSTask *_VirtualToPhysicalTask(OSTask *intp) {
+    OSTask *tp = &D_80036B60;
+
+    bcopy(intp, tp, sizeof(OSTask));
+    if (tp->t.ucode != NULL) {
+        tp->t.ucode = (u64 *) osVirtualToPhysical(tp->t.ucode);
+    }
+    if (tp->t.ucode_data != NULL) {
+        tp->t.ucode_data = (u64 *) osVirtualToPhysical(tp->t.ucode_data);
+    }
+    if (tp->t.dram_stack != NULL) {
+        tp->t.dram_stack = (u64 *) osVirtualToPhysical(tp->t.dram_stack);
+    }
+    if (tp->t.output_buff != NULL) {
+        tp->t.output_buff = (u64 *) osVirtualToPhysical(tp->t.output_buff);
+    }
+    if (tp->t.output_buff_size != NULL) {
+        tp->t.output_buff_size = (u64 *) osVirtualToPhysical(tp->t.output_buff_size);
+    }
+    if (tp->t.data_ptr != NULL) {
+        tp->t.data_ptr = (u64 *) osVirtualToPhysical(tp->t.data_ptr);
+    }
+    if (tp->t.yield_data_ptr != NULL) {
+        tp->t.yield_data_ptr = (u64 *) osVirtualToPhysical(tp->t.yield_data_ptr);
+    }
+    return tp;
+}
 
 void osSpTaskLoad(OSTask *intp)
 {

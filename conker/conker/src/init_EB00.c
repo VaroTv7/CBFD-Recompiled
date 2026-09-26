@@ -431,14 +431,39 @@ void func_10010AA8(struct127 *arg0) {
     arg0->unk8E = 0;
 }
 
+// Starts a sound effect: func_10010BE8(arg0, sound, volume, pan, pitch, flags, D_80041FD9)
+// with volume 0..0x7FFF and pan 0..0x7F. The meaning of arg0 (0 from both wrappers
+// below) and of D_80041FD9 isn't known yet. Returns a u16, 0 when nothing played
+// (probably a handle for the playing sound).
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010BE8.s")
+
+// Plays a sound effect at a point in the world. func_1000F6B8 turns the point and
+// the two distances into an attenuation (full at `near` or closer, fading out to
+// `far`) and a pan; the volume is scaled by the attenuation, and if nothing is left
+// the sound isn't started and this returns 0. Otherwise it starts the sound with
+// func_10010BE8, adding bit 7 of func_1000F6B8's pan result to `flags`.
+// Arguments: (arg0, sound, volume, pitch, flags, listener, x, y, z, near, far), where
+// listener is passed on to func_1000F6B8 as its first argument (func_1000F9D4 gives
+// it -1).
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010E78.s")
 
-s32 func_10010F30(s32 arg0, u16 arg1, u8 arg2, s16 arg3, u8 arg4) {
-    return func_10010BE8(0, arg0, arg1, arg2, arg3, arg4, D_80041FD9);
+// Plays a sound effect without a position: volume 0..0x7FFF, pan 0..0x7F (the
+// middle is 0x40), pitch and flags as func_10010BE8 takes them.
+s32 func_10010F30(s32 sound, u16 volume, u8 pan, s16 pitch, u8 flags) {
+    return func_10010BE8(0, sound, volume, pan, pitch, flags, D_80041FD9);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010F88.s")
+s32 func_10010E78(s32, s32, u16, s16, s32, s32, s32, s32, s32, s32, s32); /* extern */
+
+// Plays a sound effect at a point in the world (see func_10010E78): its volume is
+// full within `near` of the listener and fades out to silence at `far`. For
+// example func_15055A2C plays a random one of six sounds at 32700 with a random
+// pitch offset of 0-499, near 100 or 1000 and far 3000.
+s32 func_10010F88(s32 sound, u16 volume, s16 pitch, u8 flags, s32 listener, s16 x, s16 y, s16 z, s16 near,
+                  s16 far) {
+    return func_10010E78(0, sound, volume, pitch, (s32) flags, listener, (s32) x, (s32) y, (s32) z, (s32) near,
+                         (s32) far);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010FFC.s")
 
 void func_100111C8( u16 arg0) {

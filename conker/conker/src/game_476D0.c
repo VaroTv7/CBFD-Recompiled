@@ -150,68 +150,72 @@ void func_150A7A00(f32 arg0, f32 arg1, s32 arg2, f32 arg3, f32 arg4, f32 arg5, f
 //     return 1;
 // }
 
-void func_1501AF44(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3) {
-    f32 temp_f0;
-    f32 temp_f0_2;
-    f32 temp_f0_3;
-    f32 temp_f0_4;
-    f32 temp_f2;
-    f32 temp_f2_2;
-    f32 temp_f2_3;
-    f32 temp_f2_4;
-    f32 var_f12;
-    f32 var_f12_2;
-    f32 var_f12_3;
-    f32 var_f12_4;
+// Clamps a screen rectangle (upper-left and lower-right corners, in pixels) to the
+// frame: x to [2, width - 2], leaving the same 2-pixel side borders as the 3D view's
+// scissor, and y to [0, height]. D_800BE620 and D_800BE624 are the frame's width
+// and height (292 x 216 in play).
+void func_1501AF44(f32 *ulx, f32 *uly, f32 *lrx, f32 *lry) {
+    f32 ulxValue;
+    f32 lrxValue;
+    f32 ulyValue;
+    f32 lryValue;
+    f32 ulxMax;
+    f32 lrxMax;
+    f32 ulyMax;
+    f32 lryMax;
+    f32 ulxClamped;
+    f32 lrxClamped;
+    f32 ulyClamped;
+    f32 lryClamped;
 
-    temp_f0 = *arg0;
-    if (temp_f0 < 2.0f) {
-        *arg0 = 2.0f;
+    ulxValue = *ulx;
+    if (ulxValue < 2.0f) {
+        *ulx = 2.0f;
     } else {
-        temp_f2 = (f32) D_800BE620 - 2.0f;
-        if (temp_f2 < temp_f0) {
-            var_f12 = temp_f2;
+        ulxMax = (f32) D_800BE620 - 2.0f;
+        if (ulxMax < ulxValue) {
+            ulxClamped = ulxMax;
         } else {
-            var_f12 = temp_f0;
+            ulxClamped = ulxValue;
         }
-        *arg0 = var_f12;
+        *ulx = ulxClamped;
     }
-    temp_f0_2 = *arg2;
-    if (temp_f0_2 < 2.0f) {
-        *arg2 = 2.0f;
+    lrxValue = *lrx;
+    if (lrxValue < 2.0f) {
+        *lrx = 2.0f;
     } else {
-        temp_f2_2 = (f32) D_800BE620 - 2.0f;
-        if (temp_f2_2 < temp_f0_2) {
-            var_f12_2 = temp_f2_2;
+        lrxMax = (f32) D_800BE620 - 2.0f;
+        if (lrxMax < lrxValue) {
+            lrxClamped = lrxMax;
         } else {
-            var_f12_2 = temp_f0_2;
+            lrxClamped = lrxValue;
         }
-        *arg2 = var_f12_2;
+        *lrx = lrxClamped;
     }
-    temp_f0_3 = *arg1;
-    if (temp_f0_3 < 0.0f) {
-        *arg1 = 0.0f;
+    ulyValue = *uly;
+    if (ulyValue < 0.0f) {
+        *uly = 0.0f;
     } else {
-        temp_f2_3 = (f32) D_800BE624;
-        if (temp_f2_3 < temp_f0_3) {
-            var_f12_3 = temp_f2_3;
+        ulyMax = (f32) D_800BE624;
+        if (ulyMax < ulyValue) {
+            ulyClamped = ulyMax;
         } else {
-            var_f12_3 = temp_f0_3;
+            ulyClamped = ulyValue;
         }
-        *arg1 = var_f12_3;
+        *uly = ulyClamped;
     }
-    temp_f0_4 = *arg3;
-    if (temp_f0_4 < 0.0f) {
-        *arg3 = 0.0f;
+    lryValue = *lry;
+    if (lryValue < 0.0f) {
+        *lry = 0.0f;
         return;
     }
-    temp_f2_4 = (f32) D_800BE624;
-    if (temp_f2_4 < temp_f0_4) {
-        var_f12_4 = temp_f2_4;
+    lryMax = (f32) D_800BE624;
+    if (lryMax < lryValue) {
+        lryClamped = lryMax;
     } else {
-        var_f12_4 = temp_f0_4;
+        lryClamped = lryValue;
     }
-    *arg3 = var_f12_4;
+    *lry = lryClamped;
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501B0A0.s")
