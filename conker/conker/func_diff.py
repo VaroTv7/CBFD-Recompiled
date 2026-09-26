@@ -7,7 +7,8 @@ import re, struct, subprocess, sys
 
 name = sys.argv[1]
 context = int(sys.argv[2]) if len(sys.argv) > 2 else 3
-pat = re.compile(r'^\s*0x([0-9a-fA-F]{8})\s+(func_[0-9A-Fa-f]{8})\s*$')
+# Every symbol in the code segments (func_*, libultra names, ...), not just func_*.
+pat = re.compile(r'^\s*0x(1[0-6][0-9a-fA-F]{6})\s+([A-Za-z_][A-Za-z0-9_]*)\s*$')
 syms = sorted((int(m.group(1), 16), m.group(2))
               for l in open('build/conker.us.map', encoding='utf-8', errors='replace') if (m := pat.match(l)))
 start = next(a for a, n in syms if n == name)

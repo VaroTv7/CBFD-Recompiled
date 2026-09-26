@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Tries m2c on #pragma GLOBAL_ASM functions and keeps the ones that match:
-#   python auto_decomp.py [--limit N] [--max-size N] [--resume] [func_... ...]
+#   python auto_decomp.py [--limit N] [--max-size N] [--resume] [--apply] [func_... ...]
+# --apply leaves m2c's output in place even when it doesn't match, to finish by hand.
 # For each candidate (by default find_fresh_candidates.py's list, smallest first,
 # in files the linker script builds), the pragma is replaced by m2c's output with
 # the file's own declarations as context, and `make` checks the whole ROM against
@@ -13,7 +14,8 @@ import os, re, subprocess, sys
 args = sys.argv[1:]
 limit = int(args[args.index('--limit') + 1]) if '--limit' in args else None
 max_size = int(args[args.index('--max-size') + 1]) if '--max-size' in args else 10 ** 9
-names = [a for a in args if a.startswith('func_')]
+flag_values = {args[i + 1] for i, a in enumerate(args[:-1]) if a in ('--limit', '--max-size')}
+names = [a for a in args if not a.startswith('--') and a not in flag_values]
 LOG = 'build/tmp/auto_decomp.log'
 
 linked = set(re.findall(r'build/(src/[A-Za-z0-9_/]*\.c)\.o', open('conker.ld').read()))
@@ -118,6 +120,9 @@ def differing_words(func):
 todo = list(candidates())
 if names:
     todo = [(p, r) for p, r in todo if os.path.basename(r)[:-2] in names]
+    found = {os.path.basename(r)[:-2] for _, r in todo}
+    if set(names) - found:
+        sys.exit(f'not candidates (no fresh #pragma GLOBAL_ASM in a linked file): {" ".join(sorted(set(names) - found))}')
 elif '--resume' in args and os.path.exists(LOG):
     # Skip the functions an earlier run already tried.
     tried = {line.split('\t')[0] for line in open(LOG)}
@@ -147,11 +152,12 @@ for path, rel in todo:
         else:
             words, total = differing_words(func)
             result = f'{words} words differ ({total} functions differ)'
-        if not ok:
+        if not ok and '--apply' not in args:
             open(path, 'wb').write(original)
     print(f'{func} ({path}): {result}', flush=True)
     log.write(f'{func}\t{path}\t{result}\n')
     log.flush()
 # Leave the build in the committed state.
-wsl('make -j8 >/dev/null 2>&1')
+if '--apply' not in args:
+    wsl('make -j8 >/dev/null 2>&1')
 print(f'{kept} of {len(todo)} kept')

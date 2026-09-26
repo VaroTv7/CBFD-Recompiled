@@ -175,7 +175,52 @@ void __n_CSPHandleMetaMsg(N_ALCSPlayer *seqp, N_ALEvent *event)
   }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/n_csplayer/__n_CSPRepostEvent.s")
+// Puts an event back in a sequence player's event queue. The queue is sorted by
+// time, each event's delta being relative to the one before it, so the event goes
+// in front of the first one whose delta is larger than what's left of its own,
+// which that one's delta then shrinks by (libultra's n_csplayer.c; this version
+// doesn't mask interrupts around it).
+void __n_CSPRepostEvent(ALEventQueue *evtq, N_ALEventListItem *item) {
+    ALLink *node;
+    N_ALEventListItem *nextItem;
+
+    for (node = &evtq->allocList; node != NULL; node = node->next) {
+        if (node->next == NULL) {
+            {
+                // alLink(item, node), written out inline.
+                ALLink *element = (ALLink *) item;
+                ALLink *after = node;
+
+                element->next = after->next;
+                element->prev = after;
+                if (after->next != NULL) {
+                    after->next->prev = element;
+                }
+                after->next = element;
+            }
+            break;
+        } else {
+            nextItem = (N_ALEventListItem *) node->next;
+            if (item->delta < nextItem->delta) {
+                nextItem->delta -= item->delta;
+                {
+                    // alLink(item, node), written out inline.
+                    ALLink *element = (ALLink *) item;
+                    ALLink *after = node;
+
+                    element->next = after->next;
+                    element->prev = after;
+                    if (after->next != NULL) {
+                        after->next->prev = element;
+                    }
+                    after->next = element;
+                }
+                break;
+            }
+            item->delta -= nextItem->delta;
+        }
+    }
+}
 
 void __n_setUsptFromTempo (N_ALCSPlayer *seqp, f32 tempo)
 {

@@ -6,7 +6,8 @@
 import re, struct, bisect, subprocess
 for s in ('init', 'game', 'debugger'):
     subprocess.run("wsl mips-linux-gnu-objcopy -O binary --only-section=.%s build/conker.us.elf build/tmp/sec_%s.bin" % (s, s), shell=True, check=True)
-pat=re.compile(r'^\s*0x([0-9a-fA-F]{8})\s+((?:func)_([0-9A-Fa-f]{8}))\s*$')
+# Every symbol in the code segments (func_*, libultra names, ...), not just func_*.
+pat=re.compile(r'^\s*0x(1[0-6][0-9a-fA-F]{6})\s+([A-Za-z_][A-Za-z0-9_]*)\s*$')
 syms=sorted((int(m.group(1),16),m.group(2)) for l in open('build/conker.us.map',encoding='utf-8',errors='replace') if (m:=pat.match(l)))
 addrs=[a for a,_ in syms]
 def rel(x,y):
