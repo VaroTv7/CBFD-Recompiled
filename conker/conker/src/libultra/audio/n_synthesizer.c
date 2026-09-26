@@ -206,7 +206,27 @@ void _n_freeParam(ALParam *param)
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/n_synthesizer/_n_collectPVoices.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/n_synthesizer/_n_freePVoice.s")
+void _n_freePVoice(N_PVoice *pvoice) {
+    N_PVoice *spC;
+    N_PVoice *sp8;
+    ALLink *sp4;
+
+    spC = pvoice;
+    if (spC->node.next != NULL) {
+        spC->node.next->prev = spC->node.prev;
+    }
+    if (spC->node.prev != NULL) {
+        spC->node.prev->next = spC->node.next;
+    }
+    sp8 = pvoice;
+    sp4 = &n_syn->pLameList;
+    sp8->node.next = sp4->next;
+    sp8->node.prev = sp4;
+    if (sp4->next != NULL) {
+        sp4->next->prev = &sp8->node;
+    }
+    sp4->next = &sp8->node;
+}
 
 s32 _n_timeToSamplesNoRound(s32 micros) {
     f32 tmp = (((f32) micros * (f32) n_syn->outputRate) / D_8002C750) + 0.5f; // 1000000.0f
