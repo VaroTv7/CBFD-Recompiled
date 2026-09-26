@@ -25,8 +25,7 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 
 ## Status
 
-The game is playable, and has been played through its first chapters and the hub
-without problems. It hasn't been played to the end yet. Known issues:
+The game is playable, and has been played through to the end. Known issues:
 
 - Widescreen: the pause menu's blurred background is the 4:3 frame stretched to
   the full width.
