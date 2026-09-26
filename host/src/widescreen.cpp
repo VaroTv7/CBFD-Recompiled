@@ -90,3 +90,65 @@ extern "C" void conker_emit_sprite_texrect(uint8_t* rdram, recomp_context* ctx) 
     put_command(rdram, dl, (s << 16) | t, (dsdx << 16) | dtdy);
     MEM_W(0x100, sp) = (int32_t)dl;
 }
+
+// func_151D5E90 (and func_151D6418) draw a saved copy of the frame, such as the
+// pause menu's blurred background, as 42 textured tiles. The copy only holds the
+// 4:3 frame, so RT64 draws the tiles in the 4:3 area and the widened sides show
+// the game frozen behind them. Stretch the tiles over the whole width instead,
+// with RT64's rect aspect. The tiles are full of load and pipe syncs, which RT64
+// doesn't need: before the first rectangle, the first sync becomes the enable of
+// RT64's extended GBI and the second the stretch; the last sync, after the last
+// rectangle, returns to the automatic aspect. The display list doesn't grow.
+namespace {
+    constexpr uint32_t g_ex_setrectaspect_v1 = 0x000033;
+    constexpr uint32_t g_ex_aspect_auto = 0x0;
+    constexpr uint32_t g_ex_aspect_stretch = 0x1;
+    constexpr uint32_t g_texrect = 0xE4;
+
+    gpr frame_copy_dl_start = 0;
+
+    bool is_sync(uint8_t* rdram, gpr cmd) {
+        uint32_t w0 = (uint32_t)MEM_W(0, cmd);
+        return (w0 == 0xE6000000 || w0 == 0xE7000000 || w0 == 0xE8000000) && MEM_W(4, cmd) == 0;
+    }
+}
+
+// At the start of the function: $a0 is where it writes its first command.
+extern "C" void conker_frame_copy_begin(uint8_t* rdram, recomp_context* ctx) {
+    frame_copy_dl_start = ctx->r4;
+}
+
+// At its return: $v0 is the end of what it wrote.
+extern "C" void conker_frame_copy_end(uint8_t* rdram, recomp_context* ctx) {
+    gpr start = frame_copy_dl_start;
+    gpr end = ctx->r2;
+    frame_copy_dl_start = 0;
+    if (start == 0 || end <= start || end - start > 0x10000) {
+        return;
+    }
+    gpr syncs_before[2] = { 0, 0 };
+    int before_count = 0;
+    gpr last_rect = 0;
+    gpr last_sync = 0;
+    for (gpr cmd = start; cmd < end; cmd += 8) {
+        if (((uint32_t)MEM_W(0, cmd) >> 24) == g_texrect) {
+            last_rect = cmd;
+            cmd += 16; // its two RDPHALF words
+        }
+        else if (is_sync(rdram, cmd)) {
+            if (last_rect == 0 && before_count < 2) {
+                syncs_before[before_count++] = cmd;
+            }
+            last_sync = cmd;
+        }
+    }
+    if (before_count < 2 || last_rect == 0 || last_sync < last_rect) {
+        return;
+    }
+    gpr dl = syncs_before[0];
+    put_command(rdram, dl, (rt64_hook_opcode << 24) | rt64_hook_magic, (rt64_hook_op_enable << 28) | rt64_extended_opcode);
+    dl = syncs_before[1];
+    put_command(rdram, dl, (rt64_extended_opcode << 24) | g_ex_setrectaspect_v1, g_ex_aspect_stretch);
+    dl = last_sync;
+    put_command(rdram, dl, (rt64_extended_opcode << 24) | g_ex_setrectaspect_v1, g_ex_aspect_auto);
+}
