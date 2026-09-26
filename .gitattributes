@@ -1,0 +1,6 @@
+# Check out with LF line endings everywhere, whatever core.autocrlf says: the
+# decomp is compiled in WSL by IDO, which can't read CRLF sources, and the shell
+# scripts run there too. Batch files are the exception: cmd.exe wants CRLF.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
