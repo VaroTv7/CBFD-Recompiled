@@ -1111,7 +1111,7 @@ struct210 *func_1513C350(struct210 *arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, s
 void *func_1513D2F0(s32 arg0, s32 arg1, u8 arg2, u8 arg3, u8 arg4, u8 arg5, u8 arg6, s32 arg7, s32 arg8, s32 arg9, u8 arg10, s32 arg11);
 s32  func_1513D6FC(void *arg0, s32 arg1, f32 arg2, f32 arg3, s32 arg4, s32 arg5, s32 arg6);
 void  func_1513E13C(void *arg0, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, s32 arg6);
-s32  func_1513E2AC();
+s32  func_1513E2AC(s32 arg0, s32 arg1, s32 arg2, f32 arg3, f32 arg4, f32 arg5, f32 arg6, f32 arg7, u8 arg8);
 f32  func_151423D8(u8 arg0);
 f32  func_15144598();
 f32  func_1514462C();

@@ -604,7 +604,7 @@ void func_15125628(void) {
 }
 
 void func_15125690(struct108 *arg0, s32 arg1) {
-    u8 *temp_v0 = D_800DBFF4[arg0->unk23D];
+    u8 *temp_v0 = &D_800DBFF4[arg0->unk23D];
 
     if (*temp_v0 < arg1) {
         *temp_v0 = arg1;
