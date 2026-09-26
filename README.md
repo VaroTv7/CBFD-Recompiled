@@ -103,13 +103,14 @@ python3 -m venv .venv
 cd conker
 make extract              # checks the ROM and splits it into conker/assets/
 make -C conker extract    # splits the game code
-make -C conker -j8 NON_MATCHING=1
+make -C conker -j8
 cd ..
 ```
 
-This builds `conker/conker/build/conker.us.elf`. `NON_MATCHING=1` skips the check
-that the rebuilt ROM is byte-for-byte identical to yours: the decompilation isn't
-finished, and the recompiler uses your ROM's original code anyway.
+This builds `conker/conker/build/conker.us.elf` and checks that the rebuilt code
+is byte-for-byte identical to your ROM's (`build/conker.us.bin: OK`). The
+decompilation is a work in progress: about 9% of the code is C so far, and the
+rest is still the original assembly.
 
 ### 7. Recompile the game
 
@@ -219,13 +220,14 @@ Build the decompilation:
 cd conker
 make extract              # checks the ROM and splits it into conker/assets/
 make -C conker extract    # splits the game code
-make -C conker -j8 NON_MATCHING=1
+make -C conker -j8
 cd ..
 ```
 
-This builds `conker/conker/build/conker.us.elf`. `NON_MATCHING=1` skips the check
-that the rebuilt ROM is byte-for-byte identical to yours: the decompilation isn't
-finished, and the recompiler uses your ROM's original code anyway.
+This builds `conker/conker/build/conker.us.elf` and checks that the rebuilt code
+is byte-for-byte identical to your ROM's (`build/conker.us.bin: OK`). The
+decompilation is a work in progress: about 9% of the code is C so far, and the
+rest is still the original assembly.
 
 Then build the recompiler and run it:
 

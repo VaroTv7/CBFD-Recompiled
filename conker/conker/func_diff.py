@@ -26,7 +26,8 @@ def rel(x, y):
     if op in (2, 3):
         return True
     if op in (15, 9, 35, 32, 36, 37, 33, 40, 41, 43, 49, 57, 53, 61):
-        return (x & 0xFFFF0000) == (y & 0xFFFF0000)
+        # Offsets from $sp are stack layout, not relocations.
+        return (x & 0xFFFF0000) == (y & 0xFFFF0000) and (x >> 21) & 31 != 29
     return False
 
 

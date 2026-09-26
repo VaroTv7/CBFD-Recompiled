@@ -13,7 +13,8 @@ def rel(x,y):
     op=x>>26
     if op!=(y>>26): return False
     if op in (2,3): return True
-    if op in (15,9,35,32,36,37,33,40,41,43,49,57,53,61): return (x&0xFFFF0000)==(y&0xFFFF0000)
+    # Offsets from $sp are stack layout, not relocations.
+    if op in (15,9,35,32,36,37,33,40,41,43,49,57,53,61): return (x&0xFFFF0000)==(y&0xFFFF0000) and (x>>21)&31!=29
     return False
 tot=0
 for sec,base,rom in [('init',0x10001000,'init'),('game',0x15000000,'game'),('debugger',0x16000000,'debugger')]:
