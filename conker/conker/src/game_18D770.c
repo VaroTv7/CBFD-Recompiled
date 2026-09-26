@@ -7,7 +7,7 @@ f32 random_float();                                /* extern */
 s32 func_151149AC(u8 arg0);
 
 struct225 *func_151602C0();
-struct225 *func_1516037C();
+struct225 *func_1516037C(Header *header, struct226 *arg1, s32 offset, u8 arg3, s32 arg4);
 void func_151603FC();
 s32  lightEffectScale_15160600();
 s32  func_1516065C();
@@ -21,7 +21,7 @@ struct225 *func_15161408(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161494(s32 arg0, u8 arg1, s32 arg2);
 struct225 *func_15161540();
 struct225 *func_151615F8(s32 arg0, s32 arg1, u8 arg2, s32 arg3, s32 arg4, s32 arg5);
-void func_151616D0(u8 arg0, s32 arg1, s32 arg2);
+void func_151616D0(u8 arg0, u8 arg1, s32 arg2);
 void func_15161714();
 void func_15161740();
 void func_1516176C();
@@ -42,9 +42,9 @@ void func_15162EF8();
 void func_15162F50();
 struct225 *func_15162FAC();
 struct225 *func_15163414();
-struct225 *func_15163604(s32 arg0, u8 arg1, s8 arg2, s16 arg3, s8 arg4, s32 arg5, s32 arg6, s32 arg7);
+struct225 *func_15163604(s32 arg0, u8 arg1, u8 arg2, s16 arg3, u8 arg4, s32 arg5, s32 arg6, s32 arg7);
 s32  func_15163704();
-void func_1516381C();
+void func_1516381C(s32 arg0, u8 arg1, u8 arg2, s32 arg3);
 void func_1516387C();
 s32  func_151639D0(struct225 *arg0, s32 arg1, u8 arg2);
 void func_15163A18(struct225 *arg0, s32 arg1, u8 arg2);
@@ -55,7 +55,7 @@ s32  func_15163CD0();
 void func_15163CF8();
 void func_15163DEC();
 s32  func_15163F50();
-struct225 *func_15164208();
+struct225 *func_15164208(s32 arg0, u8 arg1, u8 arg2, s32 arg3);
 s32  func_1516429C();
 void func_151643A8(struct225 *arg0, s32 arg1, u8 arg2);
 void func_151644F4(struct242 *arg0, struct17 *arg1, s32 arg2, f32 arg3, f32 arg4);
@@ -89,13 +89,7 @@ struct225 *func_151602C0(header, header2, arg2, arg3, arg4, arg5, arg6, arg7, of
     return ret;
 }
 
-struct225 *func_1516037C(header, arg1, offset, arg3, arg4)
-    Header *header;
-    struct226 *arg1;
-    s32 offset;
-    u8 arg3;
-    s32 arg4;
-{
+struct225 *func_1516037C(Header *header, struct226 *arg1, s32 offset, u8 arg3, s32 arg4) {
     struct225 *ret = func_15167A68(53, arg4, offset + 24, 1, arg3, 1);
     if (ret == 0) {
         return NULL;
@@ -441,7 +435,7 @@ struct225 *func_151615F8(arg0, arg1, arg2, arg3, arg4, arg5)
     return temp_v0;
 }
 
-void func_151616D0( u8 arg0, s32 arg1, s32 arg2) {
+void func_151616D0(u8 arg0, u8 arg1, s32 arg2) {
     struct234 tmp;
 
     tmp.unk0 = arg0;
@@ -1074,7 +1068,7 @@ struct225 *func_15163414(header, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8,
 //     }
 // }
 
-struct225 *func_15163604(s32 arg0, u8 arg1, s8 arg2, s16 arg3, s8 arg4, s32 arg5, s32 arg6, s32 arg7) {
+struct225 *func_15163604(s32 arg0, u8 arg1, u8 arg2, s16 arg3, u8 arg4, s32 arg5, s32 arg6, s32 arg7) {
     struct225 *temp_v0;
     Header header;
     f32 src[4];
@@ -1121,7 +1115,7 @@ s32 func_15163704(struct225 *arg0) {
     return 1;
 }
 
-void func_1516381C(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+void func_1516381C(s32 arg0, u8 arg1, u8 arg2, s32 arg3) {
     Header tmp;
     tmp.unk0 = 0;
     tmp.unk1 = -1;
@@ -1321,7 +1315,7 @@ s32 func_15163F50(struct225 *arg0, struct225 *arg1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_18D770/func_15164134.s")
 
-struct225 *func_15164208(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+struct225 *func_15164208(s32 arg0, u8 arg1, u8 arg2, s32 arg3) {
     struct225 *temp_v0;
     Header header;
     struct243 src;

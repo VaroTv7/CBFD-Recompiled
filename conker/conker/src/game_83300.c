@@ -621,7 +621,7 @@ void func_150593C4(struct127 *arg0, u16 arg1, f32 arg2, f32 arg3) {
 
 void func_15059444(struct127 *arg0) {
     s32 sp1C;
-    u8 phi_v0;
+    s32 phi_v0;
     s32 tmp;
 
     sp1C = -1;
@@ -643,7 +643,7 @@ void func_15059444(struct127 *arg0) {
             } else {
                 phi_v0 = 6;
             }
-            sp1C = func_15083E0C(phi_v0);
+            sp1C = func_15083E0C((u8) phi_v0);
             // FIXME: fakematch to force regalloc
             dummy_label_858530:;
             break;
@@ -656,7 +656,7 @@ void func_15059444(struct127 *arg0) {
             } else {
                 phi_v0 = 26;
             }
-            sp1C = func_15083E0C(phi_v0);
+            sp1C = func_15083E0C((u8) phi_v0);
             break;
     }
 

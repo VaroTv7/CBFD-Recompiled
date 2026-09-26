@@ -961,7 +961,7 @@ void func_15077DA0(void) {
 // }
 
 void func_15077E9C(void) {
-    u16 tmp = ((D_800D1890 << 8) + D_800D1891);
+    s32 tmp = ((D_800D1890 << 8) + D_800D1891);
     func_10012718(tmp, gCurrentObject, 0x5DC0, 0x1F4, 0x9C4);
 }
 
