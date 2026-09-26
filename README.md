@@ -12,6 +12,14 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 > copy of the US ROM. Everything from the game is extracted from that ROM on
 > your machine during the build.
 
+## Download
+
+Ready-to-play Windows and Linux builds are on the
+[Releases page](https://github.com/sciaschi/CBFD-Recompiled/releases). Unpack one
+anywhere, run `ConkerRecomp`, and pick your US ROM in the launcher the first time.
+The packages contain no game data: you still need your own ROM. To build it yourself
+instead, read on.
+
 ## Features
 
 - Runs natively on Windows (Direct3D 12 or Vulkan) and Linux (Vulkan), rendered
@@ -42,7 +50,7 @@ If the game crashes on Windows, a report is written to `crash.log` next to the
 executable and shown in a message box. On Linux, the crash report is printed to the
 terminal. Please include it when reporting a problem.
 
-## What you need
+## What you need to build it
 
 - The **US** ROM of Conker's Bad Fur Day in big-endian `.z64` format, with
   SHA-1 `4cbadd3c4e0729dec46af64ad018050eada4f47a`. It is never committed: the
