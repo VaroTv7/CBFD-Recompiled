@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Host application for the N64Recomp output of Conker's Bad Fur Day (US).
-# RecompiledFuncs/ must exist first (`sh recomp/run.sh`).
+# RecompiledFuncs/ must exist first (`python recomp/recompile.py`; build.cmd / build.sh run it).
 #
 # Windows (RT64 window, keyboard and controllers) with MSVC:
 #   host\build_windows.cmd   (sets up MSVC, then configures and builds host/build-win)
@@ -31,12 +31,12 @@ if (MSVC)
         PROPERTIES COMPILE_OPTIONS "/Od")
 endif()
 
-# The recompiled game code. recomp/run.sh records hashes of the files that shape it; stop if
+# The recompiled game code. recomp/recompile.py records hashes of the files that shape it; stop if
 # any has changed since, as the build would otherwise quietly use stale code.
-set(RECOMP_INPUTS conker.toml recomp/prepare_elf.py recomp/n64recomp.patch recomp/emit_tlb_pages.py recomp/audio_ucode.toml)
+set(RECOMP_INPUTS conker.toml recomp/conker.us.syms.toml recomp/code_rewrites.txt recomp/n64recomp.patch recomp/unpack_rom.py recomp/emit_tlb_pages.py recomp/audio_ucode.toml)
 set(RECOMP_STAMP "${REPO_ROOT}/RecompiledFuncs/inputs.sha256")
 if (NOT EXISTS "${RECOMP_STAMP}")
-    message(FATAL_ERROR "RecompiledFuncs/ is missing or predates input tracking: run `sh recomp/run.sh` (in WSL on Windows).")
+    message(FATAL_ERROR "RecompiledFuncs/ is missing or predates input tracking: run build.cmd / build.sh, or `python recomp/recompile.py`.")
 endif()
 file(READ "${RECOMP_STAMP}" RECOMP_STAMP_TEXT)
 set(RECOMP_EXPECTED "")
@@ -49,7 +49,7 @@ foreach(input ${RECOMP_INPUTS})
 endforeach()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${RECOMP_STAMP}")
 if (NOT RECOMP_STAMP_TEXT STREQUAL RECOMP_EXPECTED)
-    message(FATAL_ERROR "RecompiledFuncs/ is out of date (${RECOMP_INPUTS} changed since it was generated): run `sh recomp/run.sh` (in WSL on Windows), then build again.")
+    message(FATAL_ERROR "RecompiledFuncs/ is out of date (${RECOMP_INPUTS} changed since it was generated): run build.cmd / build.sh, or `python recomp/recompile.py`, then build again.")
 endif()
 file(GLOB RECOMPILED_FUNCS CONFIGURE_DEPENDS "${REPO_ROOT}/RecompiledFuncs/funcs_*.c")
 add_library(RecompiledFuncs STATIC ${RECOMPILED_FUNCS} "${REPO_ROOT}/RecompiledFuncs/tlb_pages.c")
@@ -80,7 +80,7 @@ add_executable(ConkerRecomp
     src/ultra_extras.cpp
     src/mod_api.cpp
     src/widescreen.cpp
-    # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/run.sh).
+    # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/recompile.py).
     "${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp"
 )
 if (MSVC)

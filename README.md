@@ -56,18 +56,15 @@ first full build takes a while, because the recompiled game is a lot of C code.
 
 ## Building on Windows
 
-Windows 10 or 11 (x64). The decompilation and the recompiler are Linux programs,
-so they run in WSL; the game itself is built with Visual Studio. `build.cmd` does
-all of it.
+Windows 10 or 11 (x64). Everything builds natively; `build.cmd` does all of it.
 
 ### 1. Install the tools (once)
 
 - [Git for Windows](https://git-scm.com/download/win).
+- [Python 3](https://www.python.org/downloads/). In the installer, tick *Add
+  python.exe to PATH*.
 - **Visual Studio 2022 or later** with the *Desktop development with C++*
   workload. The free *Build Tools for Visual Studio* edition is enough.
-- **WSL with Ubuntu**: in an administrator PowerShell, run
-  `wsl --install -d Ubuntu`, restart, and finish Ubuntu's first-run setup (it
-  asks for a user name and password).
 
 ### 2. Get the code and build
 
@@ -80,9 +77,8 @@ cd CBFD-Recompiled
 build.cmd "C:\path\to\your\conker.z64"
 ```
 
-The first build takes a while. If Ubuntu is missing some packages, the script
-lists them and offers to install them (it asks for your Ubuntu password). When
-it's done, the game is `host\build-win\ConkerRecomp.exe` (see [Playing](#playing)).
+The first build takes a while. When it's done, the game is
+`host\build-win\ConkerRecomp.exe` (see [Playing](#playing)).
 
 ### Updating
 
@@ -106,10 +102,9 @@ cd CBFD-Recompiled
 ```
 
 On Ubuntu and Debian, the script lists the packages it's missing and offers to
-install them. On other distributions, install the equivalents of
-`build-essential git python3 python3-venv binutils-mips-linux-gnu cmake
-ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev` yourself.
-When it's done, run `host/build/ConkerRecomp` (see [Playing](#playing)).
+install them. On other distributions, install the equivalents of `git python3
+cmake ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev`
+yourself. When it's done, run `host/build/ConkerRecomp` (see [Playing](#playing)).
 
 To update: `git pull`, then `./build.sh` again.
 
@@ -119,14 +114,22 @@ To update: `git pull`, then `./build.sh` again.
 
 1. Checks your ROM (copied to `conker/baserom.us.z64`) and applies the patches in
    `recomp/` to N64Recomp, N64ModernRuntime and RT64.
-2. Sets up the decompilation's Python packages in `.venv`.
-3. Extracts the game from your ROM and builds the decompilation, which checks
-   that the rebuilt code is byte-for-byte identical to your ROM's. The
-   decompilation is a work in progress: about 9% of the code is C so far, and
-   the rest is still the original assembly.
-4. Builds N64Recomp and runs `recomp/run.sh`, which writes the recompiled game to
-   `RecompiledFuncs/` along with the symbol files mods are built against.
-5. Builds the game (`host/`) with CMake.
+2. Builds N64Recomp.
+3. Runs `recomp/recompile.py`, which unpacks the game's code from your ROM and
+   recompiles it into `RecompiledFuncs/`. Which functions there are, and where,
+   comes from `recomp/conker.us.syms.toml`: names, addresses and sizes, but no
+   code. The code itself only ever comes from your ROM.
+4. Builds the game (`host/`) with CMake.
+
+### Working on the decompilation
+
+`recomp/conker.us.syms.toml` (and `mods/syms/`) are generated from the
+decompilation in `conker/`, which needs its own Linux tools: IDO, which runs
+through the MIPS binutils, and the Python packages in `requirements.txt`. On
+Linux, or in WSL on Windows, `./build.sh --decomp` builds the decompilation too,
+checks that it rebuilds your ROM's code byte for byte, and regenerates those files
+from it (`recomp/run.sh`). The decompilation is a work in progress: about 9% of the
+code is C so far, and the rest is still the original assembly.
 
 ## Playing
 
