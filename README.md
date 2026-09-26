@@ -1,3 +1,5 @@
+<img width="1360" height="768" alt="image" src="https://github.com/user-attachments/assets/abb979d7-24a5-44f8-98d3-088ba2054a74" />
+
 # Conker's Bad Fur Day: Recompiled
 
 A native PC port of **Conker's Bad Fur Day** (N64, US version). It's built by
