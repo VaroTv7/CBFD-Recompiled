@@ -564,8 +564,7 @@ void func_15059140(struct127 *arg0) {
         }
     }
     if (arg0->unkB0 != 0) {
-        f32 temp_f8 = arg0->unkB0 * D_800994A8;
-        func_15058F24(arg0, temp_f8, 1.0f);
+        func_15058F24(arg0, arg0->unkB0 * D_800994A8, 1.0f);
     }
     if (arg0->unkF8 & 0x20000) {
         func_15056258(arg0);
@@ -614,7 +613,7 @@ void func_150593C4(struct127 *arg0, u16 arg1, f32 arg2, f32 arg3) {
     f32 sp28;
     f32 sp24;
 
-    func_1505A184(arg1, *(s32 *) &arg2, 0, &sp2C, &sp28, &sp24);
+    func_1505A184(arg1, arg2, 0.0f, &sp2C, &sp28, &sp24);
     arg0->unk16C += (sp2C - arg0->unk16C) * arg3;
     arg0->unk170 += (sp28 - arg0->unk170) * arg3;
 }

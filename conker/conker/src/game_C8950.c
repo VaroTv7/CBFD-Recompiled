@@ -28,7 +28,7 @@ void func_1509B4A0(s32 arg0, s32 arg1) {
     D_8003C8E0 = 0;
 }
 
-u16 *func_1509B570(s16 arg0) {
+u16 *func_1509B570(s32 arg0) {
     struct248 *temp_v0;
     u16 res;
 
