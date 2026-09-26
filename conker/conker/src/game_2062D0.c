@@ -235,8 +235,7 @@ void func_151D9FC0(u8 arg0, f32 arg1, u8 arg2, s32 arg3, s32 arg4, u8 arg5, s32 
     f32 temp_f8 = arg1 * 0.5f;
     func_151DBCBC(arg0, temp_f8, arg2, arg3, arg4, arg5, arg6);
     if ((arg0 != 5) && (arg0 != 2)) {
-        f32 temp_f18 = arg1 * D_800AB46C;
-        func_151DA08C(arg0, temp_f18, 1.01f, arg2, 100, arg3, arg4, arg5, arg6);
+        func_151DA08C(arg0, arg1 * D_800AB46C, 1.01f, arg2, 100, arg3, arg4, arg5, arg6);
     }
 }
 
@@ -540,7 +539,6 @@ void func_151DB4CC(struct218 *arg0) {
 void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, u8 arg3, s32 arg4) {
     struct17 tmp;
     struct217 tmp2;
-    f32 temp_f10;
 
     tmp.unk0 = arg0->unk0;
     tmp.unk4 = arg0->unk4 + 5.0f;
@@ -550,8 +548,7 @@ void func_151DBBD4(struct17 *arg0, s32 arg1, u8 *arg2, u8 arg3, s32 arg4) {
     tmp2.unk0 = random_float();
     tmp2.unk4 = random_u32();
 
-    temp_f10 = (tmp2.unk0 * 25.0f) + 10.0f;
-    func_151D9B8C(tmp2.unkF, temp_f10, ((tmp2.unk4 % 0x38U) + 200), (void *) (arg1 + 4), &tmp, (random_u32() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
+    func_151D9B8C(tmp2.unkF, (tmp2.unk0 * 25.0f) + 10.0f, ((tmp2.unk4 % 0x38U) + 200), (void *) (arg1 + 4), &tmp, (random_u32() % 0x97U) + 150, 0, 1, 0, arg3, arg4);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_2062D0/func_151DBCBC.s")

@@ -4,7 +4,9 @@
 #include "variables.h"
 
 
-void func_10017870( s32 arg0) {
+void func_10017870(arg0)
+    u8 arg0;
+{
     s32 i;
 
     D_800428C0 = (u8)0;

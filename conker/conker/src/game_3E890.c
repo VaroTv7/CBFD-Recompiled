@@ -173,7 +173,11 @@ f32 D_8009650C = 5.8676557540893555;
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_3E890/func_1501175C.s")
 
-void func_15011A78(struct127 *arg0, s32 arg1, s32 arg2) {
+void func_15011A78(arg0, arg1, arg2)
+    struct127 *arg0;
+    u8 arg1;
+    s32 arg2;
+{
     struct182 tmp;
     struct37 *temp_v0;
 

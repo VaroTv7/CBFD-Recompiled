@@ -14,13 +14,14 @@ void func_15042D78( u8 arg0) {
 }
 
 void func_15042D94(s32 arg0, s32 arg1, u8 arg2, s32 arg3, ...) {
-    char *va = (char *) &arg3 + sizeof(arg3);
+    char *va;
     s32 buf[16];
     s32 i;
 
     D_800CBD74 = arg2;
     D_800CBD70 = arg0;
     D_800CBD72 = arg1;
+    va = (char *) &arg3 + sizeof(arg3);
     for (i = 0; i < 16; i++) {
         va = (char *) (((int) va + 3) & ~3) + 4;
         buf[i] = *(s32 *) (va - 4);

@@ -46,7 +46,10 @@ void func_15018DFC(void) {
     func_1507C8FC();
 }
 
-void func_15018E88(void *arg0, s32 arg1) {
+void func_15018E88(arg0, arg1)
+    void *arg0;
+    s16 arg1;
+{
     if (D_800BE616 == 0) {
         func_1517D7B0(&arg0, 1);
     }
@@ -55,7 +58,10 @@ void func_15018E88(void *arg0, s32 arg1) {
     func_15174AA4(arg0, D_800BE9F0, arg1);
 }
 
-void *func_15018F08(void *arg0, s32 arg1) {
+void *func_15018F08(arg0, arg1)
+    void *arg0;
+    s16 arg1;
+{
     arg0 = func_15174B48(arg0, D_800BE9F0, arg1);
     arg0 = func_151674F8(arg0, 1, arg1, 0);
     arg0 = func_151674F8(arg0, 1, arg1, 1);

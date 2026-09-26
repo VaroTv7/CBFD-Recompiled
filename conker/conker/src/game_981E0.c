@@ -1548,29 +1548,32 @@ void func_15071A34(s32 arg0) {
     func_151D09A8(gCurrentObject, 0xFF, 1);
 }
 
-void func_15071A64(s32 arg0) {
-    char buf2[0xC];
-    char buf1[0x24];
-
-    if ((func_150ADA20() & 1) != 0) {
-        return;
-    }
-    if (gCurrentObject->unk1D4 == 0) {
-        return;
-    }
-    if ((gCurrentObject->unk74 & 0xF) == 0xF) {
-        return;
-    }
-    if (gObjects[0].stunned == 0) {
-        return;
-    }
-    if (gObjects[0].health <= 0) {
-        return;
-    }
-    func_1504715C(buf1);
-    func_15143134(&D_80099BBC, buf2, (s32) gCurrentObject->unk1D4 + 0x3C0);
-    func_151DC484(buf2, buf1, 0, 0xFF, 1);
-}
+#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071A64.s")
+// NON-MATCHING: the C below matches except that the original keeps gCurrentObject in $a1
+// instead of $v0 for the first three tests (register allocation only, 4 words).
+// void func_15071A64(s32 arg0) {
+//     char buf2[0xC];
+//     char buf1[0x24];
+//
+//     if ((func_150ADA20() & 1) != 0) {
+//         return;
+//     }
+//     if (gCurrentObject->unk1D4 == 0) {
+//         return;
+//     }
+//     if ((gCurrentObject->unk74 & 0xF) == 0xF) {
+//         return;
+//     }
+//     if (gObjects[0].stunned == 0) {
+//         return;
+//     }
+//     if (gObjects[0].health <= 0) {
+//         return;
+//     }
+//     func_1504715C(buf1);
+//     func_15143134(&D_80099BBC, buf2, (s32) gCurrentObject->unk1D4 + 0x3C0);
+//     func_151DC484(buf2, buf1, 0, 0xFF, 1);
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15071B18.s")
 
 void func_15071D08(s32 arg0) {
@@ -1684,14 +1687,19 @@ struct127 *func_150721E8(struct127 *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_15072208.s")
 
-void func_150722F0(void) {
-    struct127 *temp_v0 = func_150721E8(gCurrentObject);
-    if (temp_v0 != 0) {
-        u8 tmp0 = D_800D1580 >> 8;
-        u8 tmp1 = D_800D1580;
-        func_1506160C(temp_v0, 2, tmp0, tmp1, 0);
-    }
-}
+#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_150722F0.s")
+// NON-MATCHING: the C below matches except that the original loads D_800D1580 into $t0
+// instead of $v0 (register allocation only, 3 words). Variants with s32 locals,
+// inline masks, a u8 prototype for func_1506160C or an early return change the
+// size; other orderings of the u8 locals don't move the register.
+// void func_150722F0(void) {
+//     struct127 *temp_v0 = func_150721E8(gCurrentObject);
+//     if (temp_v0 != 0) {
+//         u8 tmp0 = D_800D1580 >> 8;
+//         u8 tmp1 = D_800D1580;
+//         func_1506160C(temp_v0, 2, tmp0, tmp1, 0);
+//     }
+// }
 
 void func_1507233C(void) {
     gCurrentObject->unk94 = (s32) ~(D_800D1580 | 1);
