@@ -1,8 +1,9 @@
 # N64Recomp configuration for Conker's Bad Fur Day (US).
 #
-# Regenerate with `wsl sh recomp/run.sh` from the repo root. That runs
-# recomp/prepare_elf.py on the decomp's conker/conker/build/conker.us.elf first
-# (function sizes, fall-through, mid-function branch targets); see recomp/README.md.
+# recomp/recompile.py runs it on the code unpacked from your ROM, with the functions
+# listed in recomp/conker.us.syms.toml. That file is generated from the decompilation
+# by recomp/run.sh (developers: recomp/prepare_elf.py sizes the functions, handles
+# fall-through and mid-function branch targets); see recomp/README.md.
 #
 # Memory layout:
 #   .header/.boot  rom 0x000000
@@ -20,7 +21,8 @@
 
 [input]
 entrypoint = 0x80001000
-elf_path = "recomp/conker.us.recomp.elf"
+symbols_file_path = "recomp/conker.us.syms.toml"
+rom_file_path = "recomp/build/conker.us.code.bin"
 output_func_path = "RecompiledFuncs"
 # Boot sets Status.FR (func_10001050: SR |= 0x24000000), and the hand-written
 # math code uses odd FPRs ($f23, $f25, ...) as independent singles.

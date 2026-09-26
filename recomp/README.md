@@ -1,8 +1,10 @@
 # Static recompilation (N64Recomp)
 
-Turns the decomp's US ELF into C with [N64Recomp](../tools/N64Recomp) and runs
-it on [N64ModernRuntime](../tools/N64ModernRuntime) through the host
-application in [`host/`](../host).
+Turns the game's code into C with [N64Recomp](../tools/N64Recomp) and runs it on
+[N64ModernRuntime](../tools/N64ModernRuntime) through the host application in
+[`host/`](../host). The code comes from your ROM; which functions there are, and
+where, comes from the decompilation, through the committed
+[`conker.us.syms.toml`](conker.us.syms.toml).
 
 **Status:** the game runs on Windows in a window, rendered by
 [RT64](../tools/rt64), and can be played with a game controller or the
@@ -13,39 +15,50 @@ runs on Linux; it has been tested under WSL with software Vulkan.
 
 ## Building and running
 
-On Linux (or in WSL), from the repo root, after building the decomp (`make` in
-`conker/conker`, see the main README):
+`build.cmd` (Windows) and `build.sh` (Linux) in the repo root do everything; see the
+main README. The recompilation step is [`recompile.py`](recompile.py), which only
+needs Python's standard library, N64Recomp and RSPRecomp:
+
+1. [`unpack_rom.py`](unpack_rom.py) unpacks the code from `conker/baserom.us.z64`
+   into `recomp/build/`: the header, boot code and `.init` as they are, `.game`
+   decompressed (Rare's rzip: an XORed table of raw deflate blocks, then the data),
+   and `.debugger`. That's the same image the decompilation's extraction makes, and
+   its SHA-1 is checked. A copy gets the words in
+   [`code_rewrites.txt`](code_rewrites.txt) (see `prepare_elf.py` below).
+2. N64Recomp recompiles it with `conker.toml`, which reads the functions from
+   `conker.us.syms.toml`.
+3. `emit_tlb_pages.py` writes `RecompiledFuncs/tlb_pages.c` (see the memory layout).
+4. RSPRecomp recompiles the audio microcode.
+
+It records hashes of the files that shape `RecompiledFuncs/` (`conker.toml`, the
+symbols, the N64Recomp patch, ...), and CMake stops with "RecompiledFuncs/ is out of
+date" when any of them has changed since: run the build script again after pulling.
+
+### Developers: regenerating the symbols
+
+`conker.us.syms.toml`, `code_rewrites.txt` and `mods/syms/` are generated from the
+decompilation, on Linux or in WSL, after building it (`make` in `conker/conker`,
+or `./build.sh --decomp`, which does all of this):
 
 ```sh
-git -C tools/N64Recomp apply ../../recomp/n64recomp.patch
-git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
-(cd tools/N64Recomp/build && ninja N64Recomp)
-
-sh recomp/run.sh                 # -> RecompiledFuncs/ (gitignored)
-cmake -S host -B host/build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build host/build
-cd host/build && ./ConkerRecomp --rom ../../conker/baserom.us.z64 --seconds 30
+sh recomp/run.sh
 ```
 
-`run.sh` records hashes of the files that shape `RecompiledFuncs/` (`conker.toml`,
-`prepare_elf.py`, the N64Recomp patch, ...), and CMake stops with "RecompiledFuncs/
-is out of date" when any of them has changed since: rerun `sh recomp/run.sh` after
-pulling, then build.
+It runs `prepare_elf.py` on the decomp's ELF, has N64Recomp dump the prepared ELF's
+functions and data symbols (`--dump-context`, with `conker.toml` pointed at the
+ELF), and turns those into the symbols file with [`make_syms.py`](make_syms.py):
+every ELF section in the ELF's order, so the section indices stay the same;
+`recomp_entrypoint`, at the KSEG0 alias 0x80001000 of `.init`'s first function,
+with its ROM address given directly (the N64Recomp patch reads a `rom` field for
+that); and where two names share an address, the descriptive one first. The
+rewrites are the words where the prepared ELF's code differs from the ROM's. Then
+it recompiles with `recompile.py`. Recompiling from the symbols file gives the same
+code as from the ELF, function for function
+([`compare_recomp_output.py`](compare_recomp_output.py) compares two outputs).
+Commit the regenerated files.
 
 `tools/N64Recomp` (ffb39cd) and `tools/N64ModernRuntime` (cdf5abb) are
 untracked checkouts, so their changes live in the patch files here.
-
-### Windows, with RT64
-
-`RecompiledFuncs/` comes from the WSL step above. Then, from the repo root, with
-Visual Studio 2022 or later (Build Tools is enough, with the C++ workload), CMake and Ninja:
-
-```bat
-git -C tools/N64ModernRuntime apply ../../recomp/n64modernruntime.patch
-git -C tools/rt64 apply ../../recomp/rt64.patch
-host\build_windows.cmd
-host\build-win\ConkerRecomp.exe
-```
 
 `tools/rt64` is an untracked checkout of rt64/rt64 at 4337374, and
 `tools/RecompFrontend` one of N64Recomp/RecompFrontend at b1a1477, both with their
@@ -237,7 +250,7 @@ text is at ROM 0x291A0 and its data at 0x2C960. The first 0xF70 bytes are the
 main code (IMEM 0x1080). The 0x9C0-byte MP3 overlay (text offset 0xF70) is
 DMAed over the main code from IMEM 0x1238 and swaps it back when it's done.
 [`audio_ucode.toml`](audio_ucode.toml) describes this to RSPRecomp, which
-`run.sh` runs to produce `RecompiledFuncs/rsp/audio_ucode.cpp`.
+`recompile.py` runs to produce `RecompiledFuncs/rsp/audio_ucode.cpp`.
 
 The output is 22020 Hz stereo. `host/src/audio_output.cpp` queues it on an SDL
 device. The audio thread (`func_100095A0`) sizes each buffer from AI_LEN: 736
@@ -278,9 +291,9 @@ sources in `src/`; build one in WSL from the repo root with
 
 which compiles for MIPS with clang, links with `mips-linux-gnu-ld` (`ld.lld`
 isn't needed) and runs RecompModTool, leaving the `.nrm` in the mod's `build/`.
-Mods link against `mods/syms/conker.us.{syms,datasyms}.toml`, which
-`recomp/run.sh` regenerates with N64Recomp's `--dump-context`; rebuild mods
-after the game's function layout changes.
+Mods link against `mods/syms/conker.us.{syms,datasyms}.toml`, which are
+committed and which `recomp/run.sh` regenerates with N64Recomp's `--dump-context`;
+rebuild mods after the game's function layout changes.
 
 Mods can replace a game function (`RECOMP_PATCH`) or run code before it or
 when it returns (`RECOMP_HOOK`, `RECOMP_HOOK_RETURN`). Patching rewrites the
@@ -291,7 +304,7 @@ real ROM, so `conker::decompress_rom` (`host/src/overlays.cpp`) builds the ROM
 the recompiler saw instead: the original `.game` and `.debugger` code (which
 the exe already carries for the TLB pages) at their ROM addresses in the
 recompiled layout, plus the words `prepare_elf.py` rewrote
-(`emit_tlb_pages.py` emits both). Limits of hooks: a function with a jump
+(`code_rewrites.txt`; `emit_tlb_pages.py` emits both). Limits of hooks: a function with a jump
 table can't be hooked (its table is in `.game_data`, which the regenerated
 code can't see), and hooking a function that `conker.toml` hooks drops the
 toml hook. `func_1501BBB8` (reads the controllers once per game frame) makes

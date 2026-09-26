@@ -7,8 +7,8 @@
 # template uses ld.lld; mips-linux-gnu-ld takes the same flags but --no-nmagic), then runs
 # N64Recomp's RecompModTool with the mod's mod.toml. The .nrm ends up in the mod's
 # build/ folder; copy it into the game's mods folder (the launcher's Mods menu can
-# open it) to install it. mods/syms/ must match the game build (recomp/run.sh
-# regenerates it).
+# open it) to install it. mods/syms/ (committed) must match the game build
+# (recomp/run.sh regenerates it).
 set -e
 MOD_DIR=$1
 ROOT=$(pwd)
