@@ -11,7 +11,7 @@ param(
     [switch]$Launcher,
     [string]$Exe = "ConkerRecomp.exe"
 )
-$shotTimes = $Shots.Split(",") | ForEach-Object { [int]$_ }
+$shotTimes = $Shots.Split(",") | ForEach-Object { [double]$_ }
 # PS/2 set-1 scancodes; the E0-prefixed arrow keys are marked with 0x100.
 $scancodes = @{ Escape = 0x01; Enter = 0x1C; Space = 0x39; Shift = 0x2A; Q = 0x10; E = 0x12; Tab = 0x0F;
     W = 0x11; A = 0x1E; S = 0x1F; D = 0x20; Up = 0x148; Down = 0x150; Left = 0x14B; Right = 0x14D }
