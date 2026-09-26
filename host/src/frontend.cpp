@@ -8,7 +8,11 @@
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#if defined(_WIN32)
+// Only Windows needs the native window handle. On Linux this header brings in
+// X11's, whose None macro breaks ultramodern's Device::None.
 #include <SDL_syswm.h>
+#endif
 
 #include "librecomp/game.hpp"
 #include "recompinput/input_events.h"
@@ -50,16 +54,20 @@ namespace {
     }
 
     ultramodern::renderer::WindowHandle create_window(void*) {
+        uint32_t flags = SDL_WINDOW_RESIZABLE;
+#if defined(RT64_SDL_WINDOW_VULKAN)
+        flags |= SDL_WINDOW_VULKAN;
+#endif
         window = SDL_CreateWindow(conker::program_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            1600, 900, SDL_WINDOW_RESIZABLE);
+            1600, 900, flags);
         if (window == nullptr) {
             std::fprintf(stderr, "[frontend] SDL_CreateWindow failed: %s\n", SDL_GetError());
             return {};
         }
+#if defined(_WIN32)
         SDL_SysWMinfo info;
         SDL_VERSION(&info.version);
         SDL_GetWindowWMInfo(window, &info);
-#if defined(_WIN32)
         return ultramodern::renderer::WindowHandle{ info.info.win.window, GetCurrentThreadId() };
 #else
         return ultramodern::renderer::WindowHandle{ window };

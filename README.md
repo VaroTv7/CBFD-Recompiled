@@ -12,8 +12,9 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 
 ## Features
 
-- Runs natively on Windows (Direct3D 12 or Vulkan through RT64). Supports higher
-  resolutions, widescreen, anti-aliasing and high frame-rate presentation.
+- Runs natively on Windows (Direct3D 12 or Vulkan) and Linux (Vulkan), rendered
+  by RT64. Supports higher resolutions, widescreen, anti-aliasing and high
+  frame-rate presentation.
 - Game controllers and keyboard, with remappable controls and rumble.
 - Full audio: music, sound effects and the voice acting.
 - Saving (EEPROM), stored per user.
@@ -30,22 +31,31 @@ without problems. It hasn't been played to the end yet. Known issues:
 - Widescreen: some full-screen effects are still 4:3, such as the pause-screen
   blur and the circle wipe when Conker dies.
 - Environment-mapped (reflective) surfaces render without their reflection texture.
-- Only the US ROM is supported. Linux builds run headless only (no window, input
-  or sound yet).
+- Only the US ROM is supported.
+- Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with
+  software Vulkan (llvmpipe) and sound. It hasn't been played on Linux with a
+  real GPU driver yet, so reports are welcome, especially about performance or
+  audio (under WSL the sound crackles while the software renderer loads the CPU).
 
-If the game crashes, a report is written to `crash.log` next to the executable
-and shown in a message box. Please include it when reporting a problem.
+If the game crashes on Windows, a report is written to `crash.log` next to the
+executable and shown in a message box. On Linux, the crash report is printed to the
+terminal. Please include it when reporting a problem.
 
 ## Requirements
 
-- Windows 10 or 11 (x64).
-- **WSL** with Ubuntu (20.04 or later). It builds the decompilation and runs the
-  recompiler.
-- **Visual Studio 2022 or later**, with the *Desktop development with C++*
-  workload (which includes CMake and Ninja). The free Build Tools edition is enough.
-- Git.
 - The **US** ROM of Conker's Bad Fur Day in big-endian `.z64` format, with
   SHA-1 `4cbadd3c4e0729dec46af64ad018050eada4f47a`.
+- Git.
+- **Linux** (x86-64; tested on Ubuntu 24.04): a Vulkan driver (Mesa, or NVIDIA's)
+  and the packages in step 4. The whole build happens on Linux.
+- **Windows 10 or 11** (x64):
+  - **WSL** with Ubuntu. The decompilation and the recompiler are built there
+    (steps 4 and 5).
+  - **Visual Studio 2022 or later**, with the *Desktop development with C++*
+    workload (which includes CMake and Ninja), for the game itself (step 6). The
+    free Build Tools edition is enough.
+
+Clone into a path without an apostrophe (`'`): some of RT64's build steps break on one.
 
 ## Building
 
@@ -76,19 +86,31 @@ git -C tools/rt64 apply ../../recomp/rt64.patch
 
 Copy your ROM to `conker/baserom.us.z64`. It is ignored by git and never committed.
 
-### 4. Build the decompilation (in WSL)
+### 4. Build the decompilation (Linux, or WSL on Windows)
 
-Install the build dependencies once:
+Install the build dependencies once. The last three packages are only needed to
+build the game on Linux (step 6):
 
 ```sh
 sudo apt update
-sudo apt install $(cat conker/packages.txt) cmake ninja-build clang
-python3 -m pip install --user -r conker/requirements.txt
+sudo apt install build-essential git python3 python3-venv binutils-mips-linux-gnu \
+    cmake ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev
 ```
 
-Then, from the repository root inside WSL (for example `cd /mnt/d/path/to/CBFD-Recompiled`):
+The decompilation's tools need some Python packages. Recent Ubuntu versions don't
+allow installing them system-wide, so use a virtual environment. Create it once,
+from the repository root:
 
 ```sh
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Then, from the repository root (on Windows, in WSL: for example
+`cd /mnt/d/path/to/CBFD-Recompiled`), activate it and build:
+
+```sh
+. .venv/bin/activate      # in every new shell before building
 cd conker
 make extract              # checks the ROM and splits it into conker/assets/
 make -C conker extract    # splits the game code
@@ -100,7 +122,7 @@ cd ..
 decompilation isn't finished, and the recompiler uses your ROM's original code
 wherever the decompiled code differs.
 
-### 5. Recompile the game (in WSL)
+### 5. Recompile the game (Linux, or WSL on Windows)
 
 Build the recompiler, then run it on the decompilation:
 
@@ -111,47 +133,58 @@ sh recomp/run.sh
 ```
 
 `run.sh` writes the recompiled C code to `RecompiledFuncs/`, along with the symbol
-files mods are built against. Rerun it after pulling changes: the Windows build
+files mods are built against. Rerun it after pulling changes: the game's build
 stops with "RecompiledFuncs/ is out of date" when its inputs have changed.
 
-### 6. Build the game (Windows)
+### 6. Build the game
 
-From a normal Command Prompt in the repository root:
+The first build takes a while, because the recompiled game is a lot of C code.
+
+**Linux**, from the repository root:
+
+```sh
+cmake -S host -B host/build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build host/build
+```
+
+This builds `host/build/ConkerRecomp`.
+
+**Windows**, from a normal Command Prompt in the repository root:
 
 ```bat
 host\build_windows.cmd
 ```
 
 The script finds Visual Studio, sets up the compiler environment and builds
-`host\build-win\ConkerRecomp.exe`. The first build takes a while, because the
-recompiled game is a lot of C code.
+`host\build-win\ConkerRecomp.exe`.
 
 ## Playing
 
-Run `host\build-win\ConkerRecomp.exe`. The first time, pick **Load ROM** in the
-launcher and select your ROM (the same `baserom.us.z64` works). After that it's
-remembered, so just choose **Start Game**.
+Run `host/build/ConkerRecomp` (Linux) or `host\build-win\ConkerRecomp.exe`
+(Windows). The first time, pick **Load ROM** in the launcher and select your ROM
+(the same `baserom.us.z64` works). After that it's remembered, so just choose
+**Start Game**.
 
 - **Settings** (in the launcher, or Esc / the controller's menu button in game)
   has graphics (resolution, aspect ratio, anti-aliasing, frame rate), controls,
   sound and mod options.
-- Saves, settings and the stored ROM live in `%LOCALAPPDATA%\ConkerRecompiled`.
-  Put an empty `portable.txt` next to the exe to keep them there instead.
+- Saves, settings and the stored ROM live in `~/.config/ConkerRecompiled` on
+  Linux and `%LOCALAPPDATA%\ConkerRecompiled` on Windows. Put an empty
+  `portable.txt` next to the executable to keep them there instead.
 - Default keyboard controls: move with WASD, A = Space, B = Left Shift,
   Z = Q, L = E, R = R, Start = Enter, C buttons = arrow keys, D-pad = IJKL.
   Everything can be remapped in Controls.
 
 ## Mods
 
-Mods are `.nrm` files. Install one by copying it into
-`%LOCALAPPDATA%\ConkerRecompiled\mods` (or dropping it onto the Mods menu), then
-enable it in the **Mods** menu. Some mods have options there too.
+Mods are `.nrm` files. Install one by copying it into the `mods` folder of the
+data folder above (or dropping it onto the Mods menu), then enable it in the
+**Mods** menu. Some mods have options there too.
 
-The included mods are in `mods/`. Build one in WSL, from the repository root,
-after `recomp/run.sh`:
+The included mods are in `mods/`. Build one on Linux (or in WSL), from the
+repository root, after `recomp/run.sh`:
 
 ```sh
-sudo apt install clang binutils-mips-linux-gnu   # once
 sh mods/build_mod.sh mods/skip_cutscenes
 ```
 

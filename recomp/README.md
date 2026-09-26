@@ -8,12 +8,13 @@ application in [`host/`](../host).
 [RT64](../tools/rt64), and can be played with a game controller or the
 keyboard. The boot screens, the 3D intro, the attract-mode cutscenes and the
 menus render correctly, and there is sound: music, effects and the MP3
-voice acting. On Linux/WSL the host still builds headless only (null renderer,
-no input, no sound output).
+voice acting. The same window build (RT64 over Vulkan, input and sound) also
+runs on Linux; it has been tested under WSL with software Vulkan.
 
 ## Building and running
 
-In WSL, from the repo root, after building the decomp (`make` in `conker/conker`):
+On Linux (or in WSL), from the repo root, after building the decomp (`make` in
+`conker/conker`, see the main README):
 
 ```sh
 git -C tools/N64Recomp apply ../../recomp/n64recomp.patch
@@ -259,7 +260,10 @@ recompui declares extern). `conker_config.cpp` sets up the settings tabs and
 Conker's control descriptions, and `audio_output.cpp` plays the sound at the
 Sound tab's volume. `patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
-`--headless` and on Linux. A crash prints a backtrace (SIGSEGV on Linux; on
+`--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input
+or sound). On Linux the window build creates the SDL window with
+`SDL_WINDOW_VULKAN` for RT64 (`RT64_SDL_WINDOW_VULKAN`, as in Banjo: Recompiled),
+and the recompiled audio microcode is compiled with `-msse4.1`. A crash prints a backtrace (SIGSEGV on Linux; on
 Windows an unhandled-exception filter with DbgHelp, which also writes
 `crash.log` next to the exe and shows a message box).
 
@@ -305,4 +309,5 @@ health, infinite lives and a full wallet, each an option.
 
 1. Texture generation for CBFD (pass the CPU-computed normals through to RT64).
 2. Play further into the game: saves (EEPROM), rumble, the other microcode build.
-3. An RT64 window and sound on Linux.
+3. Play-testing on Linux with a real GPU driver (so far only WSL with software
+   Vulkan, where the sound crackles while rendering loads the CPU).

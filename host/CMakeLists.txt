@@ -17,11 +17,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # MSVC compiles C as C89 unless told otherwise; o1heap needs C99.
 set(CMAKE_C_STANDARD 11)
 
-if (WIN32)
-    option(CONKER_RT64 "Render with RT64 in an SDL window" ON)
-else()
-    option(CONKER_RT64 "Render with RT64 in an SDL window" OFF)
-endif()
+# OFF builds a headless host (null renderer, no input or sound), for tests.
+option(CONKER_RT64 "Render with RT64 in an SDL window" ON)
 
 set(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(RT64_DIR "${REPO_ROOT}/tools/rt64")
@@ -97,12 +94,24 @@ target_link_libraries(ConkerRecomp PRIVATE RecompiledFuncs librecomp ultramodern
 
 if (CONKER_RT64)
     set(RT64_STATIC ON CACHE BOOL "" FORCE)
+    # RT64 only needs zstd's library. Its programs also copy man pages with a shell
+    # command that breaks on a path with an apostrophe.
+    set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+    if (NOT WIN32)
+        # Outside Windows, RT64 renders with Vulkan into an SDL window (as in
+        # Banjo: Recompiled): the window is created with SDL_WINDOW_VULKAN.
+        set(RT64_SDL_WINDOW_VULKAN ON CACHE BOOL "" FORCE)
+        add_compile_definitions(PLUME_SDL_VULKAN_ENABLED RT64_SDL_WINDOW_VULKAN)
+    endif()
     add_subdirectory("${RT64_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/rt64")
 
     # RecompFrontend: the launcher, config and mod menus (recompui, on RmlUi) and
     # remappable input (recompinput). tools/RecompFrontend is an untracked checkout.
     if (WIN32)
         set(sdl2_SOURCE_DIR "${RT64_DIR}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3")
+    else()
+        # The system SDL2; RecompFrontend takes its headers from SDL2_INCLUDE_DIRS.
+        find_package(SDL2 REQUIRED)
     endif()
     set(RECOMP_FRONTEND_N64MODERNRUNTIME_PATH "${REPO_ROOT}/tools/N64ModernRuntime")
     set(RECOMP_FRONTEND_RT64_PATH "${RT64_DIR}")
@@ -159,10 +168,15 @@ if (CONKER_RT64)
                 "${RT64_DIR}/src/contrib/dxc/bin/x64/dxil.dll"
                 "$<TARGET_FILE_DIR:ConkerRecomp>")
     else()
-        find_package(SDL2 REQUIRED)
         target_include_directories(ConkerRecomp PRIVATE ${SDL2_INCLUDE_DIRS})
         target_link_libraries(ConkerRecomp PRIVATE ${SDL2_LIBRARIES})
     endif()
+endif()
+
+if (NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    # The recompiled audio microcode's vector unit uses SSSE3 and SSE4.1 intrinsics,
+    # which GCC and Clang only allow when targeting them (MSVC always does).
+    target_compile_options(ConkerRecomp PRIVATE -msse4.1)
 endif()
 
 if (UNIX)
