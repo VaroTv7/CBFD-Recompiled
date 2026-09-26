@@ -11,7 +11,12 @@ path, func, variants = spec['FILE'], spec['FUNC'], spec['VARIANTS']
 original = open(path, 'rb').read()
 text = original.decode()
 m = re.search(r'^[A-Za-z][^;\n]*\b' + func + r'\([^;{]*\{', text, re.M)
-start, end = m.start(), text.index('\n}\n', m.start()) + 3
+if m:
+    start, end = m.start(), text.index('\n}\n', m.start()) + 3
+else:
+    # Still assembly: the variants replace its #pragma GLOBAL_ASM line.
+    m = re.search(r'^#pragma GLOBAL_ASM\("[^"]*/' + func + r'\.s"\)\n', text, re.M)
+    start, end = m.start(), m.end()
 try:
     for name, body in variants:
         open(path, 'wb').write((text[:start] + body.strip('\n') + '\n' + text[end:]).encode())

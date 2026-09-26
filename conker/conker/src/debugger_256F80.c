@@ -4,6 +4,56 @@
 #include "variables.h"
 
 
+// The debugger's own blocking controller read, polling instead of using libultra's
+// message queues. If the last PIF command wasn't a read, it packs one
+// (func_160018BC, libultra's __osPackReadData), writes the PIF RAM
+// (func_160019A8(1, ...), with __osSiRawStartDma's arguments: 1 = write, 0 = read)
+// and waits 200000 count ticks (about 4 ms). Then it fills the 16-word PIF RAM
+// buffer with 0xFF, clears its last word (pifstatus, D_80042A4C), starts the read,
+// records the read as the last command, and waits 800000 ticks for it to finish.
+// Returns the read's result. func_160016F4 only returns its argument: the wait
+// loops call it so they aren't optimised away.
+// NON-MATCHING: the C below differs only in the order of the two address loads
+// before the fill loop (the original loads the end, &__osContPifRam[16], first).
+// Indexed and for loops are further off; pointer loops with the end in a variable,
+// in the condition or reversed all give the same two-instruction difference.
+// (Tested with `extern u32 __osContPifRam[16];` and separate state/end variables
+// for the two waits.)
+// s32 func_16001700(void) {
+//     s32 result;
+//     u32 *word;
+//     s32 state;
+//     u32 end;
+//
+//     if (__osContLastCmd != 1) {
+//         func_160018BC();
+//         func_160019A8(1, __osContPifRam);
+//         state = 0;
+//         end = osGetCount() + 200000;
+//         if (osGetCount() < end) {
+//             do {
+//                 state = func_160016F4(state);
+//             } while (osGetCount() < end);
+//         }
+//         func_160016F4(state);
+//     }
+//     word = __osContPifRam;
+//     do {
+//         *word++ = 0xFF;
+//     } while (word < &__osContPifRam[16]);
+//     D_80042A4C = 0;
+//     result = func_160019A8(0, __osContPifRam);
+//     __osContLastCmd = 1;
+//     state = 0;
+//     end = osGetCount() + 800000;
+//     if (osGetCount() < end) {
+//         do {
+//             state = func_160016F4(state);
+//         } while (osGetCount() < end);
+//     }
+//     func_160016F4(state);
+//     return result;
+// }
 #pragma GLOBAL_ASM("asm/nonmatchings/debugger_256F80/func_16001700.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/debugger_256F80/func_16001830.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/debugger_256F80/func_160018BC.s")

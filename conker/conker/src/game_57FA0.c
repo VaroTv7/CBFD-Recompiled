@@ -43,7 +43,44 @@ void func_1502AAF8(s32 arg0) {
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B020.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B110.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B224.s")
+// Loads data from the ROM into `dest` and returns its size. The low 28 bits of
+// sizeAndFlags are the size, rounded up to an even number of bytes and capped at
+// maxSize when that's given (non-zero). If its flags (bits 28-30) are 1, the data
+// is compressed: it is read into a temporary buffer, decompressed into `dest`
+// (func_10006240, with the work area D_8003809C, as the boot code does for the game
+// code), and the buffer freed. The first word of compressed data holds its
+// decompressed size (bit 31 aside); if the decompressor produced a different size,
+// the error code 0x0C000036 goes in D_8003C8E0 and func_150AD770 is called. Returns
+// 0 if the buffer couldn't be allocated. The DMA (func_10004514) always moves a
+// multiple of 16 bytes.
+u32 func_1502B224(s32 romAddr, s32 *dest, s32 sizeAndFlags, u32 maxSize) {
+    s32 *buffer;
+    u32 size;
+
+    size = ((sizeAndFlags & 0x0FFFFFFF) + 1) & ~1;
+    if ((maxSize != 0) && (maxSize < size)) {
+        size = maxSize;
+    }
+    if ((sizeAndFlags & 0x70000000) == 0x10000000) {
+        s32 expectedSize;
+
+        buffer = allocate_memory(size, 1, 2, 2);
+        if (buffer == NULL) {
+            return 0;
+        }
+        func_10004514(romAddr, buffer, (size + 0xF) & ~0xF, 1);
+        expectedSize = *buffer & 0x7FFFFFFF;
+        if ((size = func_10006240(buffer, dest, D_8003809C)) != expectedSize) {
+            D_8003C8E0 = 0x0C000036;
+            func_150AD770();
+        }
+        func_10004074(buffer);
+    } else {
+        func_10004514(romAddr, dest, (size + 0xF) & ~0xF, 1);
+    }
+    return size;
+}
+
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B350.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B4A8.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/game_57FA0/func_1502B5C8.s")

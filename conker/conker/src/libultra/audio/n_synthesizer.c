@@ -206,26 +206,32 @@ void _n_freeParam(ALParam *param)
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/libultra/audio/n_synthesizer/_n_collectPVoices.s")
+// Frees a physical voice: moves it to the synthesizer's "lame" list, which holds the
+// voices freed during this audio frame until they go back on the free list at the
+// start of the next one (libultra's n_synthesizer.c, with its alUnlink and alLink
+// written out inline).
 void _n_freePVoice(N_PVoice *pvoice) {
-    N_PVoice *spC;
-    N_PVoice *sp8;
-    ALLink *sp4;
+    N_PVoice *unlinked;
+    N_PVoice *linked;
+    ALLink *after;
 
-    spC = pvoice;
-    if (spC->node.next != NULL) {
-        spC->node.next->prev = spC->node.prev;
+    // alUnlink(pvoice): take it off the list it's on.
+    unlinked = pvoice;
+    if (unlinked->node.next != NULL) {
+        unlinked->node.next->prev = unlinked->node.prev;
     }
-    if (spC->node.prev != NULL) {
-        spC->node.prev->next = spC->node.next;
+    if (unlinked->node.prev != NULL) {
+        unlinked->node.prev->next = unlinked->node.next;
     }
-    sp8 = pvoice;
-    sp4 = &n_syn->pLameList;
-    sp8->node.next = sp4->next;
-    sp8->node.prev = sp4;
-    if (sp4->next != NULL) {
-        sp4->next->prev = &sp8->node;
+    // alLink(pvoice, &n_syn->pLameList): insert it at the head of the lame list.
+    linked = pvoice;
+    after = &n_syn->pLameList;
+    linked->node.next = after->next;
+    linked->node.prev = after;
+    if (after->next != NULL) {
+        after->next->prev = &linked->node;
     }
-    sp4->next = &sp8->node;
+    after->next = &linked->node;
 }
 
 s32 _n_timeToSamplesNoRound(s32 micros) {

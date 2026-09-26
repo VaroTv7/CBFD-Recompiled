@@ -889,8 +889,8 @@ extern u8   D_800BE615;
 extern u8   D_800BE616;
 extern u8   D_800BE617;
 extern s8   D_800BE618;
-extern s32  D_800BE620;
-extern s32  D_800BE624;
+extern s32  D_800BE620; // frame width in pixels (292 in play)
+extern s32  D_800BE624; // frame height in pixels (216 in play)
 extern s32  D_800BE628; //[]; // contains structs size 0x180
 extern s32  D_800BE62C;
 extern u8   D_800BE635;

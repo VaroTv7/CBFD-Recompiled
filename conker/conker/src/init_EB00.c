@@ -246,30 +246,38 @@ void func_1000F9D4( u16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FA64.s")
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FC18.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FD38.s")
+// Stops the sounds placed at a point: for each of the first D_80042760 entries of
+// D_80041FE0 whose position (unk14, unk18, unk1C) is (x, y, z), stops the sound it
+// is playing (handle unk24, see func_100111C8) and sets its flag 0x80.
+void func_1000FD38(s32 x, s32 y, s32 z) {
+    s32 i;
+
+    for (i = 0; i < D_80042760; i++) {
+        if ((x == D_80041FE0[i].unk14) && (y == D_80041FE0[i].unk18) && (z == D_80041FE0[i].unk1C)) {
+            if (D_80041FE0[i].unk24 != 0) {
+                func_100111C8(D_80041FE0[i].unk24);
+            }
+            D_80041FE0[i].unk10 |= 0x80;
+        }
+    }
+}
+
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FDF4.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FE88.s")
-// ? func_1000FE88(s32 arg0, s32 arg1, void *arg2) {
-//     void *sp1C;
-//     s32 temp_t7;
-//     u16 temp_a0;
-//     void *temp_v1;
-//     ? phi_return;
-//
-//     phi_return = 1;
-//     if (arg1 < *arg2) {
-//         temp_t7 = arg1 * 0x30;
-//         temp_v1 = arg0 + temp_t7;
-//         temp_a0 = temp_v1->unk24;
-//         if (temp_a0 != 0) {
-//             sp1C = temp_v1;
-//             func_100111C8(temp_a0);
-//         }
-//         (arg0 + temp_t7)->unk10 = (s32) ((arg0 + temp_t7)->unk10 | 0x80);
-//         phi_return = 0;
-//     }
-//     return phi_return;
-// }
+// Stops the sound of entry `index` of an array of positional sound entries (the
+// 0x30-byte entries of D_80041FE0; see func_1000FD38), and sets its flag 0x80, if
+// the index is below *count. Returns 0 when it did, 1 when the index was out of
+// range. Its caller, func_10011624, calls it for an entry when the entry's own
+// callback returns non-zero.
+s32 func_1000FE88(struct15 *entries, s32 index, s32 *count) {
+    if (index < *count) {
+        if (entries[index].unk24 != 0) {
+            func_100111C8(entries[index].unk24);
+        }
+        entries[index].unk10 |= 0x80;
+        return 0;
+    }
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_1000FEF0.s")
 // NON-MATCHING: needs a re-work
@@ -431,24 +439,53 @@ void func_10010AA8(struct127 *arg0) {
     arg0->unk8E = 0;
 }
 
+// Starts a sound effect: func_10010BE8(arg0, sound, volume, pan, pitch, flags, D_80041FD9)
+// with volume 0..0x7FFF and pan 0..0x7F. The meaning of arg0 (0 from both wrappers
+// below) and of D_80041FD9 isn't known yet. Returns a handle for the playing sound
+// (see func_100111C8), or 0 when nothing played.
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010BE8.s")
+
+// Plays a sound effect at a point in the world. func_1000F6B8 turns the point and
+// the two distances into an attenuation (full at `near` or closer, fading out to
+// `far`) and a pan; the volume is scaled by the attenuation, and if nothing is left
+// the sound isn't started and this returns 0. Otherwise it starts the sound with
+// func_10010BE8, adding bit 7 of func_1000F6B8's pan result to `flags`.
+// Arguments: (arg0, sound, volume, pitch, flags, listener, x, y, z, near, far), where
+// listener is passed on to func_1000F6B8 as its first argument (func_1000F9D4 gives
+// it -1).
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010E78.s")
 
-s32 func_10010F30(s32 arg0, u16 arg1, u8 arg2, s16 arg3, u8 arg4) {
-    return func_10010BE8(0, arg0, arg1, arg2, arg3, arg4, D_80041FD9);
+// Plays a sound effect without a position: volume 0..0x7FFF, pan 0..0x7F (the
+// middle is 0x40), pitch and flags as func_10010BE8 takes them.
+s32 func_10010F30(s32 sound, u16 volume, u8 pan, s16 pitch, u8 flags) {
+    return func_10010BE8(0, sound, volume, pan, pitch, flags, D_80041FD9);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010F88.s")
+s32 func_10010E78(s32, s32, u16, s16, s32, s32, s32, s32, s32, s32, s32); /* extern */
+
+// Plays a sound effect at a point in the world (see func_10010E78): its volume is
+// full within `near` of the listener and fades out to silence at `far`. For
+// example func_15055A2C plays a random one of six sounds at 32700 with a random
+// pitch offset of 0-499, near 100 or 1000 and far 3000.
+s32 func_10010F88(s32 sound, u16 volume, s16 pitch, u8 flags, s32 listener, s16 x, s16 y, s16 z, s16 near,
+                  s16 far) {
+    return func_10010E78(0, sound, volume, pitch, (s32) flags, listener, (s32) x, (s32) y, (s32) z, (s32) near,
+                         (s32) far);
+}
 #pragma GLOBAL_ASM("asm/nonmatchings/init_EB00/func_10010FFC.s")
 
-void func_100111C8( u16 arg0) {
-    struct120 *tmp = &D_800425E0[arg0 & 0xF];
+// Stops a playing sound, given the handle func_10010BE8 returned for it. The
+// handle's low 4 bits select one of the 16 sound slots at D_800425E0; the slot is
+// only freed (its sound stopped with func_10017594) if it still holds this handle,
+// so a handle whose sound has already ended, and whose slot was reused, does nothing.
+void func_100111C8(u16 handle) {
+    struct120 *slot = &D_800425E0[handle & 0xF];
 
-    if ((tmp->unk8 != 0) && (tmp->unk0 == arg0)) {
-        tmp->unk0 = 0;
-        tmp->unk4 = 0;
-        func_10017594(tmp->unk8);
-        tmp->unk8 = 0;
+    if ((slot->unk8 != 0) && (slot->unk0 == handle)) {
+        slot->unk0 = 0;
+        slot->unk4 = 0;
+        func_10017594(slot->unk8);
+        slot->unk8 = 0;
     }
 }
 

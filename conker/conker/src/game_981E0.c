@@ -550,7 +550,35 @@ void func_1506D570(void) {
 //     func_1506D584();
 // }
 #pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506D6B4.s")
-#pragma GLOBAL_ASM("asm/nonmatchings/game_981E0/func_1506D74C.s")
+// Handler 22 of the table at D_800863FC, which func_1506AD30 calls with D_800D1580
+// set to a value from the entry that triggered it. For the current object: unless
+// it's in water, sets its gravity to 5 and stops its vertical speed; raises it 70
+// units; clears the byte at 0x137 and disable_run; moves it D_800D1580 units along
+// its angle unk76 (func_1505A184 turns an angle and a distance into x/z offsets);
+// calls func_1505E650(object, 15, 1.0f, ...) (what 15 selects isn't identified
+// yet); and sets unk100 bit 1, unk28 = 0, unk83 = 20 and two fields of unk31C.
+void func_1506D74C(void) {
+    f32 dx;
+    f32 dz;
+    f32 dy;
+
+    if (gCurrentObject->in_water == 0) {
+        gCurrentObject->gravity = 5.0f;
+        gCurrentObject->y_velocity = 0.0f;
+    }
+    gCurrentObject->y_position += 70.0f;
+    (*(s8 *)((char *)(gCurrentObject) + 0x137)) = 0;
+    gCurrentObject->disable_run = 0;
+    func_1505A184((s32) gCurrentObject->unk76, (f32) D_800D1580, 0.0f, &dx, &dz, &dy);
+    func_1505E650(gCurrentObject, 0xFU, 1.0f, 0.0f, 0.0f, 0.0f, 0);
+    gCurrentObject->x_position += dx;
+    gCurrentObject->z_position += dz;
+    gCurrentObject->unk100 |= 2;
+    gCurrentObject->unk28 = 0.0f;
+    gCurrentObject->unk83 = 0x14;
+    gCurrentObject->unk31C->unk44 = 0xC;
+    gCurrentObject->unk31C->unk54 = 0xA;
+}
 
 void func_1506D898(void) {
     gCurrentObject->y_position -= 80.0f;
