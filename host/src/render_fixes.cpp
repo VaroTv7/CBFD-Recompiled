@@ -1,5 +1,9 @@
-// Light glows (such as the two lights over the Feral Reserve's doors), called from a hook in
+// Rendering fixes for things the game did that RT64 draws differently, called from hooks in
 // conker.toml.
+
+#include <SDL.h>
+
+// Light glows (such as the two lights over the Feral Reserve's doors).
 //
 // func_151408A4 draws a glow over a light, fading it out while something stands in front
 // of it. It finds that by having the RDP copy the one pixel of the depth buffer under the
@@ -28,4 +32,16 @@ extern "C" void conker_light_glow_depth(uint8_t* rdram, recomp_context* ctx) {
         }
     }
     ctx->r11 = 0;
+}
+
+// func_1510FEA0 at 0x1510FFA4 (it starts each frame's display list): $t8 is D_800BE635, which
+// decides whether the frame is cleared to black before it is drawn. Level setup clears the
+// flag, since the level and sky are meant to cover the screen; where they don't (such as with
+// the mouse camera in a wall), the last frame's picture repeated. Clear every frame.
+extern "C" void conker_frame_clear(uint8_t* rdram, recomp_context* ctx) {
+    // TEMP-DEBUG: CONKER_NO_FRAME_CLEAR leaves the game's own choice, to compare.
+    static const bool disabled = SDL_getenv("CONKER_NO_FRAME_CLEAR") != nullptr;
+    if (!disabled) {
+        ctx->r24 = 1;
+    }
 }

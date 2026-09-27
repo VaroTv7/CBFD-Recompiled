@@ -472,15 +472,15 @@ text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); 
 # list) clears the depth buffer, then clears the colour buffer only while D_800BE635 is
 # set, and level setup (func_1501A220) clears that flag: the game relies on the level and
 # sky covering the whole screen. Where they don't, such as with the mouse camera inside or
-# under a wall, the last frame's picture stayed there and repeated. $t8 is the flag, just read.
+# under a wall, the last frame's picture stayed there and repeated (host/src/render_fixes.cpp).
 [[patches.hook]]
 func = "func_1510FEA0"
 before_vram = 0x1510FFA4
-text = "{ ctx->r24 = 1; }"
+text = "{ extern void conker_frame_clear(uint8_t*, recomp_context*); conker_frame_clear(rdram, ctx); }"
 
 # Light glows: func_151408A4 hides a glow when the depth buffer sample under its light is
 # nearer than the light, and on RT64 that sample isn't real depth. Skip the comparison
-# (host/src/light_glows.cpp).
+# (host/src/render_fixes.cpp).
 [[patches.hook]]
 func = "func_151408A4"
 before_vram = 0x15140DB4
