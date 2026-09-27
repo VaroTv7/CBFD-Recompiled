@@ -87,6 +87,8 @@ add_executable(ConkerRecomp
     src/rom_versions.cpp
     src/widescreen.cpp
     src/interpolation.cpp
+    src/mouse_camera.cpp
+    src/debug_ram_dump.cpp
     # The audio microcode, recompiled by RSPRecomp (recomp/audio_ucode.toml, run by recomp/recompile.py).
     "${REPO_ROOT}/RecompiledFuncs/rsp/audio_ucode.cpp"
 )

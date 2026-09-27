@@ -36,6 +36,8 @@ std::vector<recomp::GameEntry> supported_games;
 // The game window, which recompui also uses (ui_state.cpp declares it extern).
 SDL_Window* window = nullptr;
 
+void conker_mouse_camera_init();
+
 namespace {
     std::vector<char> thumbnail;
 
@@ -66,6 +68,8 @@ namespace {
         // application object if it doesn't exist yet and makes it an accessory app, and SDL
         // then leaves it that way (no Dock icon, and the window opens behind the terminal).
         NFD_Init();
+        // The mouse camera's scroll wheel zoom (mouse_camera.cpp).
+        conker_mouse_camera_init();
         return nullptr;
     }
 
