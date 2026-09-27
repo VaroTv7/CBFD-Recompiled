@@ -477,3 +477,11 @@ text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); 
 func = "func_1510FEA0"
 before_vram = 0x1510FFA4
 text = "{ ctx->r24 = 1; }"
+
+# Light glows: func_151408A4 hides a glow when the depth buffer sample under its light is
+# nearer than the light, and on RT64 that sample isn't real depth. Skip the comparison
+# (host/src/light_glows.cpp).
+[[patches.hook]]
+func = "func_151408A4"
+before_vram = 0x15140DB4
+text = "{ extern void conker_light_glow_depth(uint8_t*, recomp_context*); conker_light_glow_depth(rdram, ctx); }"
