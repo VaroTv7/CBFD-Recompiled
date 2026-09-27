@@ -76,8 +76,10 @@ namespace {
 #elif defined(__APPLE__)
         flags |= SDL_WINDOW_METAL;
 #endif
+        const int width = conker::frontend::window_width > 0 ? conker::frontend::window_width : 1600;
+        const int height = conker::frontend::window_height > 0 ? conker::frontend::window_height : 900;
         window = SDL_CreateWindow(conker::program_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            1600, 900, flags);
+            width, height, flags);
         if (window == nullptr) {
             std::fprintf(stderr, "[frontend] SDL_CreateWindow failed: %s\n", SDL_GetError());
             return {};

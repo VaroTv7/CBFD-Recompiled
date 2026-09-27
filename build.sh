@@ -54,7 +54,7 @@ if [ -n "$MACOS" ]; then
     libs="sdl2 freetype2"
 else
     cmds="git python3 cmake ninja clang pkg-config"
-    libs="sdl2 gtk+-3.0 freetype2"
+    libs="sdl2 dbus-1 freetype2"
 fi
 for cmd in $cmds; do
     command -v "$cmd" >/dev/null 2>&1 || missing="$missing $cmd"
@@ -67,7 +67,7 @@ fi
 if [ -n "$MACOS" ]; then
     packages="git python3 cmake ninja pkg-config sdl2 freetype"
 else
-    packages="git python3 cmake ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev"
+    packages="git python3 cmake ninja-build clang pkg-config libsdl2-dev libdbus-1-dev libfreetype-dev"
 fi
 if [ -n "$DECOMP" ]; then
     for cmd in make mips-linux-gnu-as; do

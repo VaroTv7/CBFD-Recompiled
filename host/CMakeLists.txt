@@ -110,6 +110,11 @@ if (CONKER_RT64)
         # On macOS it renders with Metal into the window's CAMetalLayer.
         set(RT64_SDL_WINDOW_VULKAN ON CACHE BOOL "" FORCE)
         add_compile_definitions(PLUME_SDL_VULKAN_ENABLED RT64_SDL_WINDOW_VULKAN)
+        # The file dialogs (Load ROM, mods) ask the desktop for its own through
+        # xdg-desktop-portal (D-Bus) instead of opening a GTK one in the game: GTK
+        # crashed building its dialog, which the launcher opens from its own thread,
+        # not the one GTK started on.
+        set(NFD_PORTAL ON CACHE BOOL "" FORCE)
     endif()
     add_subdirectory("${RT64_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/rt64")
 

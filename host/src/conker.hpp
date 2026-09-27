@@ -59,6 +59,9 @@ namespace conker {
 
     // frontend.cpp: RecompFrontend's launcher and menus (recompui) and input (recompinput).
     namespace frontend {
+        // The window's size when it opens (main.cpp's --window); 1600 x 900 when 0.
+        inline int window_width = 0;
+        inline int window_height = 0;
         // Registers the game with the launcher and sets up the menus.
         void init(recomp::GameEntry& game);
         // The window, renderer, input and error callbacks.

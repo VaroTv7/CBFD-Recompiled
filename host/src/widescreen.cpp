@@ -22,10 +22,6 @@
 extern SDL_Window* window;
 
 namespace {
-    // How far past each 4:3 edge sprites are kept, in N64 screen pixels: enough
-    // for a 32:9 window. Sprites outside the actual window cost a draw, nothing more.
-    constexpr float cull_margin = 160.0f;
-
     // RT64's extended GBI (tools/rt64/include/rt64_extended_gbi.h) for F3DEX2,
     // whose no-op (0xE0) carries RT64's hooks.
     constexpr uint32_t rt64_hook_opcode = 0xE0;
@@ -69,6 +65,14 @@ namespace {
         return std::max(1.0f, (float)width / (float)height / (4.0f / 3.0f));
     }
 
+    // How far past each 4:3 edge sprites are kept, in N64 screen pixels: as far as
+    // the window reaches past it (half the frame's width, D_800BE620, for each 4:3
+    // width more), and a little more. A fixed 160 fell short on 32:9 screens.
+    float sprite_cull_margin(uint8_t* rdram) {
+        const float half_frame = (float)MEM_W(0, (gpr)(int32_t)0x800BE620) * 0.5f;
+        return half_frame * (widescreen_ratio() - 1.0f) + 8.0f;
+    }
+
     void put_command(uint8_t* rdram, gpr& dl, uint32_t w0, uint32_t w1) {
         MEM_W(0, dl) = (int32_t)w0;
         MEM_W(4, dl) = (int32_t)w1;
@@ -80,11 +84,11 @@ namespace {
 // and right sprite bounds (camera + 0x2C / + 0x30), about to be compared with the
 // sprite's right and left edges.
 extern "C" void conker_widen_sprite_cull_left(uint8_t* rdram, recomp_context* ctx) {
-    ctx->f6.fl -= cull_margin;
+    ctx->f6.fl -= sprite_cull_margin(rdram);
 }
 
 extern "C" void conker_widen_sprite_cull_right(uint8_t* rdram, recomp_context* ctx) {
-    ctx->f10.fl += cull_margin;
+    ctx->f10.fl += sprite_cull_margin(rdram);
 }
 
 // func_15130A9C at 0x15130DA0: the game has just written a G_RDPPIPESYNC at $v0,
@@ -410,4 +414,53 @@ extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
     }
     const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
     write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / ratio);
+}
+
+// Some levels' backdrop (sky and distant scenery) is a grid of cells: func_15110CFC splits
+// it down to the cells in view (sphere tests, func_150A6210, with the widened cull scale)
+// and writes 4 vertices per cell into a buffer func_15000AD0 allocates per camera, two
+// halves of 448 vertices, one per frame in flight. It never checks the end: Rare's 4:3
+// view can't hold more cells than that, but a wide one can, and the extra vertices
+// overran the next heap block (a crash in the heap walk, func_10004250, looking at the
+// sky on ultrawide screens and in the duct tape and exploding mouse cutscenes). At
+// 0x15000B80 $s1 holds the block's size and $v1 the second half's offset: make both
+// four times as big, enough for a 32:9 view with room to spare (43 KB more a camera).
+namespace {
+    constexpr uint32_t backdrop_buffer_scale = 4;
+}
+
+extern "C" void conker_widen_backdrop_buffers(uint8_t* rdram, recomp_context* ctx) {
+    ctx->r17 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r17 * backdrop_buffer_scale);
+    ctx->r3 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r3 * backdrop_buffer_scale);
+}
+
+// func_15111AF4 draws the backdrop (sky and distant scenery) in sectors around the
+// camera, and only those whose middle is within $f0 degrees of the way it looks: 95 (80
+// in split screen), room for Rare's 4:3 view (30 degrees each side), half a sector (45)
+// and some to spare. A wider view reaches further each side, and further still when
+// it looks up: its top corners sweep across more directions, and looking steeply up
+// it takes in nearly all of them. So the outermost sectors weren't drawn, and the sky's
+// edges showed at the sides. At 0x15111BC4, just after $f0 is set, let in every sector
+// the view's corners can reach: from the window's horizontal field of view, the
+// camera's vertical one and how far it looks up or down (its view matrix, D_800D9C10).
+extern "C" void conker_widen_backdrop_sectors(uint8_t* rdram, recomp_context* ctx) {
+    const float ratio = widescreen_ratio();
+    if (ratio <= 1.0f) {
+        return;
+    }
+    constexpr float degrees_to_radians = 3.14159265358979f / 180.0f;
+    constexpr float half_sector = 45.0f, spare = 10.0f;
+    const uint32_t camera_index = (uint32_t)MEM_W(0, (gpr)(int32_t)0x80082FA4); // D_80082FA4
+    const gpr camera = (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800BE628) + (gpr)(int32_t)(camera_index * 0x180);
+    const gpr view = (gpr)(int32_t)(0x800D9C10 + camera_index * 0x40);
+    const float half_x = std::atan(std::tan(read_float(rdram, camera, 0x74) * 0.5f * degrees_to_radians) * ratio);
+    const float half_y = read_float(rdram, camera, 0x78) * 0.5f * degrees_to_radians;
+    // The camera looks along -z of its view: the y part of that is its pitch.
+    const float pitch = std::asin(std::clamp(-read_float(rdram, view, 0x18), -1.0f, 1.0f));
+    const float corner_pitch = std::fabs(pitch) + half_y;
+    float reach = 180.0f;
+    if (corner_pitch < 89.0f * degrees_to_radians) {
+        reach = std::atan(std::tan(half_x) / std::cos(corner_pitch)) / degrees_to_radians + half_sector + spare;
+    }
+    ctx->f0.fl = std::max(ctx->f0.fl, std::min(reach, 180.0f));
 }
