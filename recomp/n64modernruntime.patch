@@ -36,6 +36,37 @@ index a4cf7e8..8bb9ad2 100644
          std::u8string stored_filename() const;
      };
      struct Version {
+diff --git a/librecomp/src/mods.cpp b/librecomp/src/mods.cpp
+index 0f7de83..42c9057 100644
+--- a/librecomp/src/mods.cpp
++++ b/librecomp/src/mods.cpp
+@@ -149,9 +149,11 @@ private:
+ 
+ void unprotect(void* target_func, uint64_t* old_flags) {
+     DWORD old_flags_dword;
++    // Keep the page executable while it's patched: other threads may be running code on the same page (an
++    // incrementally linked executable's jump thunks share pages), and without execute access they crash.
+     BOOL result = VirtualProtect(target_func,
+         16,
+-        PAGE_READWRITE,
++        PAGE_EXECUTE_READWRITE,
+         &old_flags_dword);
+     *old_flags = old_flags_dword;
+     (void)result;
+@@ -233,7 +235,13 @@ void unprotect(void* target_func, uint64_t* old_flags) {
+     int page_size = getpagesize();
+     page_start = (page_start / page_size) * page_size;
+ 
++#if defined(__APPLE__)
++    // Apple Silicon doesn't allow pages both writable and executable.
+     int result = mprotect((void*)page_start, page_size, PROT_READ | PROT_WRITE);
++#else
++    // Keep the page executable while it's patched: other threads may be running code on it.
++    int result = mprotect((void*)page_start, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);
++#endif
+     *old_flags = 0;
+     (void)result;
+ }
 diff --git a/librecomp/src/pi.cpp b/librecomp/src/pi.cpp
 index 43509ba..39b4a99 100644
 --- a/librecomp/src/pi.cpp

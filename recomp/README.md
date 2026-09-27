@@ -204,6 +204,10 @@ N64ModernRuntime (`n64modernruntime.patch`):
   `__osRunningThread` pointing at the running thread (Conker reads it
   directly).
 - GCC-only warning flags are skipped under MSVC.
+- A mod's patch keeps the patched page executable while it's written. It was
+  made read-write only, and another thread running code on the same page (RT64's
+  idle thread, every millisecond) crashed as the game started with mods on.
+  macOS keeps read-write only, as Apple Silicon doesn't allow both.
 
 RT64 (`rt64.patch`): Conker's graphics microcode, F3DEX2 with Rare's changes,
 as in GLideN64's `F3DEX2CBFD`. RT64 identifies a microcode by a hash of its
@@ -252,6 +256,36 @@ each sprite as RT64's extended texture rectangle with signed corners. It takes
 the same three commands as the game's `G_TEXRECT`. The enable goes where the
 sprite's pipe sync was, so the display lists don't grow; they're allocated to
 fit what the game writes.
+
+The patch also changes frame interpolation (a frame rate above the game's 30).
+RT64 draws frames between the game's by pairing each transform with last
+frame's; without help it guesses, from draw calls that look alike. Conker's
+characters were paired part with part at random, and the game batches their
+triangles differently from frame to frame, so they vibrated and came apart. The
+game now tells RT64 which is which (`host/src/interpolation.cpp`): each object
+drawn by `func_1502CCFC` is wrapped in a matrix group naming it, matched in the
+order drawn. In RT64:
+- a group with a different number of transforms than last frame isn't matched
+  for that frame (pairing in order would pair the parts after a change with
+  their neighbours'); the object is drawn as it is, and snaps once.
+- pushing or popping a group starts a new transform, even with the same matrix,
+  so the vertices drawn after a group don't count as its own.
+- a change of direction alone no longer counts as a teleport (`RigidBody`):
+  animations swing parts back and forth, and snapping them on each reversal
+  while the rest was interpolated made the model shake.
+- the camera is interpolated as a camera (the view matrix's inverse), not as a
+  view matrix: lerping the view's translation while the camera turns moves the
+  in-between camera off its path.
+- vertex motion is interpolated only if it's plausible (under 64 units a frame).
+
+A character's shadow (`func_15186794`) is the ground under it, clipped anew
+every frame and drawn with the shadow's texture projected onto it from the
+light. Its vertices can't be paired with last frame's, so it stepped at 30 fps.
+Its own group asks RT64 to interpolate only its texture coordinates: RT64 fits
+last frame's projection (a perspective map from world position to texture
+coordinates, by least squares) and takes each vertex's coordinates last frame
+from it, if the fit is close, covers the texture and moves no vertex more than
+a quarter of the texture.
 
 ## Audio
 
