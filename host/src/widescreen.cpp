@@ -397,3 +397,17 @@ extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
     write_float(rdram, camera, 0x98, 0.0f);
     write_float(rdram, camera, 0x9C, -s);
 }
+
+// updateCullScales_1510B958 sets the scale that the game's other culls (the level's
+// pieces among them: func_150A5378, func_150A6210, func_1510AEE0) multiply a
+// view-space x by before comparing it with the depth: a point is kept while
+// |x| * scale <= depth, the 4:3 view. At its return, divide it by how much wider
+// the window is, so they keep what the widened view shows.
+extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
+    const float ratio = widescreen_ratio();
+    if (ratio <= 1.0f) {
+        return;
+    }
+    const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
+    write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / ratio);
+}

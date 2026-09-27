@@ -221,7 +221,7 @@ void func_1501AF44(f32 *ulx, f32 *uly, f32 *lrx, f32 *lry) {
 #pragma GLOBAL_ASM("asm/nonmatchings/game_476D0/func_1501B0A0.s")
 
 // Camera frustum side planes: from the camera's horizontal and vertical fields
-// of view (unk74 and unk78, in degrees), writes the view-space normals of the
+// of view (fovX and fovY, in degrees), writes the view-space normals of the
 // four side planes that world and object culling test against:
 //   unk88..unk90 (cos h, 0, -sin h) and unk94..unk9C (-cos h, 0, -sin h),
 //   unkA0..unkA8 (0, -cos v, -sin v) and unkAC..unkB4 (0, cos v, -sin v),
@@ -246,9 +246,9 @@ void func_1501AF44(f32 *ulx, f32 *uly, f32 *lrx, f32 *lry) {
 //     struct259 *rec = (struct259 *) (arg0 * 0x180 + (char *) D_800BE628);
 //     f32 tmp0, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
 //
-//     tmp0 = rec->unk74 * 0.5f;
+//     tmp0 = rec->fovX * 0.5f;
 //     tmp7 = -tmp0;
-//     tmp5 = rec->unk78 * 0.5f;
+//     tmp5 = rec->fovY * 0.5f;
 //     tmp7 *= D_80096900;
 //     tmp3 = cosf(tmp7);
 //     tmp7 = sinf(tmp7);

@@ -335,6 +335,13 @@ func = "func_1501B22C"
 before_vram = 0x1501B308
 text = "{ extern void conker_widen_frustum(uint8_t*, recomp_context*); conker_widen_frustum(rdram, ctx); }"
 
+# Widescreen: the scale the level's culls compare view-space x with is set for
+# the 4:3 view too. Widen it to the window (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "updateCullScales_1510B958"
+before_vram = 0x1510B9C8
+text = "{ extern void conker_widen_cull_scale(uint8_t*, recomp_context*); conker_widen_cull_scale(rdram, ctx); }"
+
 # Widescreen: the pause menu's blurred background, a saved copy of the 4:3 frame
 # drawn as tiles, is stretched over the whole width (host/src/widescreen.cpp).
 [[patches.hook]]
