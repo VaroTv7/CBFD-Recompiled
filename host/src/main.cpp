@@ -4,12 +4,14 @@
 // remappable keyboard/controller input (frontend.cpp) and plays sound
 // (audio_output.cpp); otherwise, or with --headless, it runs with a null renderer,
 // no input and no sound output.
-// Usage: ConkerRecomp [--rom <baserom.us.z64>] [--seconds N] [--headless]
+// Usage: ConkerRecomp [--rom <baserom.us.z64>] [--seconds N] [--headless] [--window WxH]
 //   --rom PATH   the US ROM (a bare path works too, e.g. a ROM dropped onto the exe);
 //                only needed once, it is then kept with the game's data. The window
 //                build can also load it from the launcher.
 //   --seconds N  start the game right away (no launcher) and quit after N seconds
 //   --headless   null renderer, no window, input or sound
+//   --window WxH open the window at this size, e.g. 2520x1080 to try a 21:9 screen
+//                (the window mode, windowed or fullscreen, is still the setting's)
 
 #include <atomic>
 #include <chrono>
@@ -408,6 +410,15 @@ int main(int argc, char** argv) {
         else if (std::strcmp(argv[i], "--headless") == 0) {
             headless = true;
         }
+#if defined(CONKER_RT64)
+        else if (std::strcmp(argv[i], "--window") == 0 && i + 1 < argc) {
+            int width = 0, height = 0;
+            if (std::sscanf(argv[++i], "%dx%d", &width, &height) == 2 && width > 0 && height > 0) {
+                conker::frontend::window_width = width;
+                conker::frontend::window_height = height;
+            }
+        }
+#endif
         else if (argv[i][0] != '-' && rom_path.empty()) {
             rom_path = argv[i]; // e.g. a ROM dropped onto the executable
         }
