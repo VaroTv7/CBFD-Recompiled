@@ -354,6 +354,14 @@ func = "func_15000AD0"
 before_vram = 0x15000B80
 text = "{ extern void conker_widen_backdrop_buffers(uint8_t*, recomp_context*); conker_widen_backdrop_buffers(rdram, ctx); }"
 
+# Widescreen: the backdrop is drawn in sectors, only those near where the camera looks,
+# with room for the 4:3 view. Let in all the window's view can reach, looking up or down
+# too (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "func_15111AF4"
+before_vram = 0x15111BC4
+text = "{ extern void conker_widen_backdrop_sectors(uint8_t*, recomp_context*); conker_widen_backdrop_sectors(rdram, ctx); }"
+
 # Widescreen: the pause menu's blurred background, a saved copy of the 4:3 frame
 # drawn as tiles, is stretched over the whole width (host/src/widescreen.cpp).
 [[patches.hook]]

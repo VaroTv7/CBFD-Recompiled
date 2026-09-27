@@ -433,3 +433,34 @@ extern "C" void conker_widen_backdrop_buffers(uint8_t* rdram, recomp_context* ct
     ctx->r17 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r17 * backdrop_buffer_scale);
     ctx->r3 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r3 * backdrop_buffer_scale);
 }
+
+// func_15111AF4 draws the backdrop (sky and distant scenery) in sectors around the
+// camera, and only those whose middle is within $f0 degrees of the way it looks: 95 (80
+// in split screen), room for Rare's 4:3 view (30 degrees each side), half a sector (45)
+// and some to spare. A wider view reaches further each side, and further still when
+// it looks up: its top corners sweep across more directions, and looking steeply up
+// it takes in nearly all of them. So the outermost sectors weren't drawn, and the sky's
+// edges showed at the sides. At 0x15111BC4, just after $f0 is set, let in every sector
+// the view's corners can reach: from the window's horizontal field of view, the
+// camera's vertical one and how far it looks up or down (its view matrix, D_800D9C10).
+extern "C" void conker_widen_backdrop_sectors(uint8_t* rdram, recomp_context* ctx) {
+    const float ratio = widescreen_ratio();
+    if (ratio <= 1.0f) {
+        return;
+    }
+    constexpr float degrees_to_radians = 3.14159265358979f / 180.0f;
+    constexpr float half_sector = 45.0f, spare = 10.0f;
+    const uint32_t camera_index = (uint32_t)MEM_W(0, (gpr)(int32_t)0x80082FA4); // D_80082FA4
+    const gpr camera = (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800BE628) + (gpr)(int32_t)(camera_index * 0x180);
+    const gpr view = (gpr)(int32_t)(0x800D9C10 + camera_index * 0x40);
+    const float half_x = std::atan(std::tan(read_float(rdram, camera, 0x74) * 0.5f * degrees_to_radians) * ratio);
+    const float half_y = read_float(rdram, camera, 0x78) * 0.5f * degrees_to_radians;
+    // The camera looks along -z of its view: the y part of that is its pitch.
+    const float pitch = std::asin(std::clamp(-read_float(rdram, view, 0x18), -1.0f, 1.0f));
+    const float corner_pitch = std::fabs(pitch) + half_y;
+    float reach = 180.0f;
+    if (corner_pitch < 89.0f * degrees_to_radians) {
+        reach = std::atan(std::tan(half_x) / std::cos(corner_pitch)) / degrees_to_radians + half_sector + spare;
+    }
+    ctx->f0.fl = std::max(ctx->f0.fl, std::min(reach, 180.0f));
+}
