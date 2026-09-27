@@ -485,3 +485,14 @@ text = "{ extern void conker_frame_clear(uint8_t*, recomp_context*); conker_fram
 func = "func_151408A4"
 before_vram = 0x15140DB4
 text = "{ extern void conker_light_glow_depth(uint8_t*, recomp_context*); conker_light_glow_depth(rdram, ctx); }"
+
+# TEMP-DEBUG: switches for the game's mid-frame depth-buffer copies (host/src/render_fixes.cpp).
+[[patches.hook]]
+func = "func_1510B9D0"
+before_vram = 0x1510BE18
+text = "{ extern void conker_depth_copy_camera(uint8_t*, recomp_context*); conker_depth_copy_camera(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_151742EC"
+before_vram = 0x1517432C
+text = "{ extern void conker_depth_copy_probes(uint8_t*, recomp_context*); conker_depth_copy_probes(rdram, ctx); }"

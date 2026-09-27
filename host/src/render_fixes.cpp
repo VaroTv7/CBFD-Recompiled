@@ -45,3 +45,22 @@ extern "C" void conker_frame_clear(uint8_t* rdram, recomp_context* ctx) {
         ctx->r24 = 1;
     }
 }
+
+// TEMP-DEBUG: the game copies pixels of the depth buffer into small images mid-frame, then
+// reads them with the CPU (switching the colour image to them and back). In widescreen,
+// what RT64 drew after those copies lost pieces (doors among them). These switch the copies
+// off, to find which one does it.
+// func_1510B9D0 at 0x1510BE18: $t2 (camera +0x84 & 8) decides whether func_1512E5F0 samples.
+extern "C" void conker_depth_copy_camera(uint8_t* rdram, recomp_context* ctx) {
+    static const bool skip = SDL_getenv("CONKER_SKIP_DEPTH_CAMERA") != nullptr;
+    if (skip) {
+        ctx->r10 = 0;
+    }
+}
+// func_151742EC at 0x1517432C: $t6 (its camera argument) nonzero returns before any copy.
+extern "C" void conker_depth_copy_probes(uint8_t* rdram, recomp_context* ctx) {
+    static const bool skip = SDL_getenv("CONKER_SKIP_DEPTH_PROBES") != nullptr;
+    if (skip) {
+        ctx->r14 = 1;
+    }
+}
