@@ -120,7 +120,7 @@ cd CBFD-Recompiled
 
 On Ubuntu and Debian, the script lists the packages it's missing and offers to
 install them. On other distributions, install the equivalents of `git python3
-cmake ninja-build clang pkg-config libsdl2-dev libgtk-3-dev libfreetype-dev`
+cmake ninja-build clang pkg-config libsdl2-dev libdbus-1-dev libfreetype-dev`
 yourself. When it's done, run `host/build/ConkerRecomp` (see [Playing](#playing)).
 
 To update: `git pull`, then `./build.sh` again.

@@ -43,10 +43,12 @@ void conker::init_config() {
 
     recompui::config::GeneralTabOptions general_options{};
     general_options.has_rumble_strength = true;
-    general_options.has_gyro_sensitivity = false;
-    // Mouse camera (mouse_camera.cpp): the cursor is captured in play while this is above 0.
+    // Used by the look mode (look_aim.cpp). Mouse sensitivity defaults to 0, which leaves the
+    // mouse, and the cursor, alone.
+    general_options.has_gyro_sensitivity = true;
     general_options.has_mouse_sensitivity = true;
-    recompui::config::create_general_tab(general_options);
+    auto& general_config = recompui::config::create_general_tab(general_options);
+    conker::look_aim::add_options(general_config);
 
     recompui::config::create_graphics_tab();
 

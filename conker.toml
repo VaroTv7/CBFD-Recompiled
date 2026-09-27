@@ -355,7 +355,8 @@ before_vram = 0x15000B80
 text = "{ extern void conker_widen_backdrop_buffers(uint8_t*, recomp_context*); conker_widen_backdrop_buffers(rdram, ctx); }"
 
 # Widescreen: the backdrop is drawn in sectors, only those near where the camera looks,
-# with room for the 4:3 view. Widen it to the window's (host/src/widescreen.cpp).
+# with room for the 4:3 view. Let in all the window's view can reach, looking up or down
+# too (host/src/widescreen.cpp).
 [[patches.hook]]
 func = "func_15111AF4"
 before_vram = 0x15111BC4
@@ -420,6 +421,35 @@ func = "func_15180580"
 before_vram = 0x151814F4
 text = "{ extern void conker_iris_end(uint8_t*, recomp_context*); conker_iris_end(rdram, ctx); }"
 
+# The look mode (hold R): gyro and mouse, and smooth or direct response for each input
+# (host/src/look_aim.cpp). The first three can turn the stick's axes around, the fourth is
+# before the pitch clamp so the game's limits apply to the mouse and gyro too, and the last is
+# where both branches of the springs meet.
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A14
+text = "{ extern void conker_look_stick_yaw_a(uint8_t*, recomp_context*); conker_look_stick_yaw_a(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A44
+text = "{ extern void conker_look_stick_yaw_b(uint8_t*, recomp_context*); conker_look_stick_yaw_b(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A98
+text = "{ extern void conker_look_stick_pitch(uint8_t*, recomp_context*); conker_look_stick_pitch(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120B44
+text = "{ extern void conker_look_targets(uint8_t*, recomp_context*); conker_look_targets(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120E8C
+text = "{ extern void conker_look_currents(uint8_t*, recomp_context*); conker_look_currents(rdram, ctx); }"
+
 # Mouse camera: a free orbit camera (host/src/mouse_camera.cpp). func_1512D390 is the
 # C-buttons' turning, which runs while the follow camera does ($s0 is the camera until
 # 0x1512D54C restores it); func_151284C4 builds the view from the eye ($a0 the camera).
@@ -432,52 +462,3 @@ text = "{ extern void conker_mouse_camera_follow(uint8_t*, recomp_context*); con
 func = "func_151284C4"
 before_vram = 0x151284C8
 text = "{ extern void conker_mouse_camera(uint8_t*, recomp_context*); conker_mouse_camera(rdram, ctx); }"
-
-# TEMP-DEBUG: the game's own collision ray call (host/src/mouse_camera.cpp).
-[[patches.hook]]
-func = "func_15123A54"
-before_vram = 0x15123FA4
-text = "{ extern void conker_ray_debug_game_call(uint8_t*, recomp_context*); conker_ray_debug_game_call(rdram, ctx); }"
-
-# TEMP-DEBUG: how full the frame's display list gets (host/src/widescreen.cpp).
-[[patches.hook]]
-func = "func_151E8620"
-before_vram = 0x151E86A8
-text = "{ extern void conker_display_list_debug(uint8_t*, recomp_context*); conker_display_list_debug(rdram, ctx); }"
-
-# TEMP-DEBUG: the frame's display list after the level's geometry.
-[[patches.hook]]
-func = "func_1510B9D0"
-before_vram = 0x1510BD64
-text = "{ extern void conker_display_list_level_debug(uint8_t*, recomp_context*); conker_display_list_level_debug(rdram, ctx); }"
-
-[[patches.hook]]
-func = "func_1510B9D0"
-before_vram = 0x1510BE90
-text = "{ extern void conker_display_list_level_debug(uint8_t*, recomp_context*); conker_display_list_level_debug(rdram, ctx); }"
-
-# TEMP-DEBUG: check the heap's block list before the per-frame walk that crashed.
-[[patches.hook]]
-func = "func_10004250"
-before_vram = 0x10004254
-text = "{ extern void conker_heap_debug(uint8_t*, recomp_context*); conker_heap_debug(rdram, ctx); }"
-
-# TEMP-DEBUG: who allocates which heap block.
-[[patches.hook]]
-func = "allocate_memory"
-before_vram = 0x10003C60
-text = "{ extern void conker_alloc_debug(uint8_t*, recomp_context*); conker_alloc_debug(rdram, ctx); }"
-
-# TEMP-DEBUG: how much the cell object writes against its buffer.
-[[patches.hook]]
-func = "func_1503F4B0"
-before_vram = 0x1503F554
-text = "{ extern void conker_cell_buffer_debug(uint8_t*, recomp_context*); conker_cell_buffer_debug(rdram, ctx); }"
-
-# TEMP-DEBUG (test copy only): F9 saves a RAM snapshot (host/src/debug_ram_dump.cpp).
-# Not func_1501BBB8: mods hook it, and a mod hook recompiles it without this one.
-[[patches.hook]]
-func = "func_1510B690"
-before_vram = 0x1510B694
-text = "{ extern void conker_debug_ram_dump(uint8_t*, recomp_context*); conker_debug_ram_dump(rdram, ctx); }"
-

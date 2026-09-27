@@ -28,7 +28,6 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 
 #include <SDL.h>
@@ -52,10 +51,12 @@ namespace {
     constexpr float min_distance = 80.0f;
     constexpr float ease_out = 0.15f;
     constexpr uint32_t current_camera = 0x800DBFF0; // D_800DBFF0
-    // Scroll wheel zoom: each notch scales the distance by this, within these limits.
+    // Scroll wheel zoom: each notch scales the distance by this, between the nearest and
+    // farthest of the game's own camera distances (D_800A34B0: the controller's four,
+    // each a horizontal distance and a height from the pivot, 530 x 400 the farthest).
     constexpr float zoom_step = 1.12f;
-    constexpr float min_zoom = 0.35f;
-    constexpr float max_zoom = 1.6f;
+    constexpr uint32_t camera_distances = 0x800A34B0; // D_800A34B0, 4 x { horizontal, height }
+    constexpr int camera_distance_count = 4;
 
     // Scroll wheel notches since the view last read them (SDL event watch: the
     // frontend's own event loop consumes the events).
@@ -73,7 +74,7 @@ namespace {
         float yaw = 0.0f;               // radians, the eye's direction from the look-at point
         float pitch = 0.0f;
         float distance = 0.0f;          // current, after walls
-        float zoom = 1.0f;              // scroll wheel: the game's distance times this
+        float wanted = 0.0f;            // the scroll wheel's distance from the look-at point
     } orbit;
 
     float read_float(uint8_t* rdram, gpr base, int32_t offset) {
@@ -122,20 +123,6 @@ namespace {
         MEM_W(0x34, sp) = 0;
         write_float(rdram, sp, 0x38, max_length);
         func_150AC9C0(rdram, &call);
-        { // TEMP-DEBUG: ray_log.txt next to the exe.
-            static FILE* log = std::fopen("ray_log.txt", "w");
-            static int calls = 0, lines = 0;
-            calls++;
-            if (log != nullptr && lines < 1500 && (call.r2 != 0 || (calls % 20) == 0)) {
-                lines++;
-                std::fprintf(log, "from %.1f %.1f %.1f dir %.3f %.3f %.3f max %.1f -> v0=%d r=%.2f %.2f %.2f %.2f %.2f (raw %08X %08X)\n",
-                    x, y, z, dx, dy, dz, max_length, (int)call.r2,
-                    read_float(rdram, results, 0), read_float(rdram, results, 4), read_float(rdram, results, 8),
-                    read_float(rdram, results, 12), read_float(rdram, results, 16),
-                    (uint32_t)MEM_W(0, results), (uint32_t)MEM_W(16, results));
-                std::fflush(log);
-            }
-        }
         if (call.r2 == 0) {
             return max_length;
         }
@@ -197,13 +184,24 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
         orbit.yaw = std::atan2(ez, ex);
         orbit.pitch = std::atan2(ey, std::sqrt(ex * ex + ez * ez));
         orbit.distance = std::sqrt(ex * ex + ey * ey + ez * ez);
+        if (orbit.wanted == 0.0f) {
+            orbit.wanted = wanted_distance;
+        }
         orbit.engaged = true;
     }
 
-    const int notches = wheel_notches.exchange(0);
-    if (notches != 0) {
-        orbit.zoom = std::clamp(orbit.zoom * std::pow(zoom_step, (float)-notches), min_zoom, max_zoom);
+    // The controller's nearest and farthest distances from the look-at point.
+    const float look_height = cy - read_float(rdram, camera, 0x2A8);
+    float nearest = 0.0f, farthest = 0.0f;
+    for (int i = 0; i < camera_distance_count; i++) {
+        const gpr preset = (gpr)(int32_t)(camera_distances + i * 8);
+        const float h = read_float(rdram, preset, 0), v = read_float(rdram, preset, 4) - look_height;
+        const float d = std::sqrt(h * h + v * v);
+        nearest = (i == 0) ? d : std::min(nearest, d);
+        farthest = (i == 0) ? d : std::max(farthest, d);
     }
+    const int notches = wheel_notches.exchange(0);
+    orbit.wanted = std::clamp(orbit.wanted * std::pow(zoom_step, (float)-notches), nearest, farthest);
     orbit.yaw += mouse_x * degrees_per_pixel * degrees_to_radians;
     orbit.pitch = std::clamp(orbit.pitch + mouse_y * degrees_per_pixel * degrees_to_radians, min_pitch, max_pitch);
 
@@ -213,7 +211,9 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     const float dz = std::cos(orbit.pitch) * std::sin(orbit.yaw);
 
     // Keep out of walls: in at once, back out gently.
-    const float zoomed = wanted_distance * orbit.zoom;
+    // Where the game pulls its own camera in closer than the controller can (tight spots),
+    // so does the orbit.
+    const float zoomed = (wanted_distance < nearest) ? std::min(orbit.wanted, wanted_distance) : orbit.wanted;
     // Walls: a level ray the camera's way, from where the game casts its own (140 above
     // the pivot), limits how far out the eye may be along the ground.
     const float level = std::max(std::cos(orbit.pitch), 0.25f);
@@ -241,23 +241,4 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
 // frontend.cpp, once SDL is up: listen for the scroll wheel.
 void conker_mouse_camera_init() {
     SDL_AddEventWatch(watch_wheel, nullptr);
-}
-
-// TEMP-DEBUG: the game's own call of func_150AC9C0 in func_15123A54 (hook just after
-// it returns, at 0x15123FA4): its arguments on the stack, and its results.
-extern "C" void conker_ray_debug_game_call(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("game_ray_log.txt", "w");
-    static int lines = 0;
-    if (log == nullptr || lines++ > 600) {
-        return;
-    }
-    const gpr sp = ctx->r29;
-    const gpr camera = ctx->r16;
-    std::fprintf(log, "v0=%d pivot %.1f %.1f %.1f  a3=%08X dir(10,14) %.3f %.3f  18=%08X 30=%08X 34=%08X max(38) %.1f  out F0 %.2f  E4 %.2f %.2f %.2f  E0 %.2f  dist374 %.1f  ptrs %08X %08X\n",
-        (int)ctx->r2, read_float(rdram, camera, 0x2A4), read_float(rdram, camera, 0x2A8), read_float(rdram, camera, 0x2AC),
-        (uint32_t)MEM_W(0x104, sp), read_float(rdram, sp, 0x10), read_float(rdram, sp, 0x14),
-        (uint32_t)MEM_W(0x18, sp), (uint32_t)MEM_W(0x30, sp), (uint32_t)MEM_W(0x34, sp), read_float(rdram, sp, 0x38),
-        read_float(rdram, sp, 0xF0), read_float(rdram, sp, 0xE4), read_float(rdram, sp, 0xE8), read_float(rdram, sp, 0xEC),
-        read_float(rdram, sp, 0xE0), read_float(rdram, camera, 0x374), (uint32_t)MEM_W(0x1C, sp), (uint32_t)MEM_W(0x2C, sp));
-    std::fflush(log);
 }

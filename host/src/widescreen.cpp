@@ -10,18 +10,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 
 #include <SDL.h>
-
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#endif
 
 #include "recomp.h"
 #include "ultramodern/config.hpp"
@@ -257,19 +249,14 @@ namespace {
     }
 }
 
-extern "C" void conker_iris_debug_begin(uint8_t* rdram, recomp_context* ctx); // TEMP-DEBUG
-extern "C" void conker_iris_debug_end(uint8_t* rdram, recomp_context* ctx); // TEMP-DEBUG
-
 // At the start of the function: $a0 is where it writes its first command, $a1 the camera.
 extern "C" void conker_iris_begin(uint8_t* rdram, recomp_context* ctx) {
-    conker_iris_debug_begin(rdram, ctx); // TEMP-DEBUG
     iris_dl_start = ctx->r4;
     iris_camera = (int32_t)ctx->r5;
 }
 
 // At its return: $v0 is the end of what it wrote.
 extern "C" void conker_iris_end(uint8_t* rdram, recomp_context* ctx) {
-    conker_iris_debug_end(rdram, ctx); // TEMP-DEBUG
     gpr start = iris_dl_start;
     gpr end = ctx->r2;
     iris_dl_start = 0;
@@ -396,10 +383,6 @@ extern "C" void conker_iris_end(uint8_t* rdram, recomp_context* ctx) {
 // camera), rebuild the left and right planes from the horizontal field of view
 // as wide as the window shows it: tan(half angle) grows with the aspect ratio.
 extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
-    static const bool disabled = std::getenv("CONKER_NO_FRUSTUM_WIDEN") != nullptr; // TEMP-DEBUG
-    if (disabled) {
-        return;
-    }
     const float ratio = widescreen_ratio();
     if (ratio <= 1.0f) {
         return;
@@ -425,10 +408,6 @@ extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
 // |x| * scale <= depth, the 4:3 view. At its return, divide it by how much wider
 // the window is, so they keep what the widened view shows.
 extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
-    static const bool disabled = std::getenv("CONKER_NO_CULLSCALE_WIDEN") != nullptr; // TEMP-DEBUG
-    if (disabled) {
-        return;
-    }
     const float ratio = widescreen_ratio();
     if (ratio <= 1.0f) {
         return;
@@ -436,169 +415,6 @@ extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
     const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
     write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / ratio);
 }
-
-
-// TEMP-DEBUG: func_151E8620 at 0x151E86A8: $a0 is the frame's display list so far, $t1
-// its start, $t8 the budget. dl_log.txt records the fullest it gets.
-extern "C" void conker_display_list_debug(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("dl_log.txt", "w");
-    static int32_t most = 0;
-    static int32_t budget = 0;
-    const int32_t used = (int32_t)(((uint32_t)ctx->r4 - (uint32_t)ctx->r9) >> 3);
-    if ((int32_t)ctx->r24 != budget) {
-        budget = (int32_t)ctx->r24;
-        most = 0;
-        if (log != nullptr) { std::fprintf(log, "budget %d commands (ratio %.3f)\n", budget, widescreen_ratio()); std::fflush(log); }
-    }
-    if (used > most + 200 && log != nullptr) {
-        most = used;
-        std::fprintf(log, "used %d of %d (%.0f%%)\n", used, budget, 100.0 * used / (budget > 0 ? budget : 1));
-        std::fflush(log);
-    }
-}
-
-// TEMP-DEBUG: func_1510B9D0 just after the level's cullers return ($v0: the frame's
-// display list end after the level's geometry).
-extern "C" void conker_display_list_level_debug(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("dl_level_log.txt", "w");
-    static int32_t most = 0;
-    const uint32_t buffer = (uint32_t)MEM_BU(0, (gpr)(int32_t)0x800BE9C0);
-    const uint32_t start = (uint32_t)MEM_W(buffer * 4, (gpr)(int32_t)0x800BE9C8);
-    const int32_t budget = (int32_t)MEM_W(0, (gpr)(int32_t)0x800BEBA4);
-    const int32_t used = (int32_t)(((uint32_t)ctx->r2 - start) >> 3);
-    if (used > most + 200 && log != nullptr) {
-        most = used;
-        std::fprintf(log, "level drawn: %d of %d (%.0f%%)", used, budget, 100.0 * used / (budget > 0 ? budget : 1));
-        std::fputs("\n", log);
-        std::fflush(log);
-    }
-}
-
-// TEMP-DEBUG: does func_15180580 write past its display list's heap block? At its
-// return, find the first heap block header (the list from D_800380B4) after where it
-// started writing, and log to overflow_log.txt if what it wrote runs into it.
-namespace { uint32_t debug_iris_caller = 0; uint32_t debug_iris_start = 0; }
-extern "C" void conker_iris_debug_begin(uint8_t* rdram, recomp_context* ctx) {
-    debug_iris_caller = (uint32_t)ctx->r31;
-    debug_iris_start = (uint32_t)ctx->r4;
-}
-extern "C" void conker_iris_debug_end(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("overflow_log.txt", "w");
-    static unsigned calls = 0, biggest = 0;
-    const uint32_t start = debug_iris_start, end = (uint32_t)ctx->r2;
-    calls++;
-    uint32_t next_header = 0xFFFFFFFFu;
-    gpr block = (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800380B4);
-    for (int i = 0; i < 20000 && (uint32_t)block >= 0x80000000u && (uint32_t)block < 0x80800000u; i++) {
-        if ((uint32_t)block > start && (uint32_t)block < next_header) {
-            next_header = (uint32_t)block;
-        }
-        block = (gpr)(int32_t)MEM_W(0, block);
-    }
-    if (log == nullptr) {
-        return;
-    }
-    const unsigned bytes = end - start;
-    if (end > next_header) {
-        std::fprintf(log, "OVERFLOW call %u from %08X: wrote %08X..%08X (%u bytes), next block header at %08X (room %u)", calls, debug_iris_caller, start, end, bytes, next_header, next_header - start);
-        std::fputs("\n", log);
-        std::fflush(log);
-    }
-    else if (bytes > biggest) {
-        biggest = bytes;
-        std::fprintf(log, "call %u from %08X: %u bytes, room %u", calls, debug_iris_caller, bytes, next_header - start);
-        std::fputs("\n", log);
-        std::fflush(log);
-    }
-}
-
-// TEMP-DEBUG: at func_10004250's start (the per-frame heap walk that crashed), check
-// every block's next pointer; on a corrupt one, log the header and the 64 bytes before
-// it (the tail of whatever overran it) to heap_log.txt.
-extern "C" void conker_heap_debug(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("heap_log.txt", "w");
-    static bool reported = false;
-    if (log == nullptr || reported) {
-        return;
-    }
-    gpr block = (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800380B4);
-    gpr previous = 0;
-    for (int i = 0; i < 20000 && block != 0; i++) {
-        const uint32_t address = (uint32_t)block;
-        if (address < 0x80000000u || address >= 0x80800000u) {
-            reported = true;
-            std::fprintf(log, "corrupt next pointer %08X in header at %08X (block %d)", address, (uint32_t)previous, i);
-            std::fputs("\n", log);
-            for (int32_t off = -64; off < 24; off += 8) {
-                std::fprintf(log, "  %08X: %08X %08X", (uint32_t)previous + off, (uint32_t)MEM_W(off, previous), (uint32_t)MEM_W(off + 4, previous));
-                std::fputs("\n", log);
-            }
-            std::fflush(log);
-            return;
-        }
-        previous = block;
-        block = (gpr)(int32_t)MEM_W(0, block);
-    }
-}
-
-// TEMP-DEBUG: allocate_memory's return (0x10003C60): $v0 is the block. $ra isn't kept
-// by recompiled calls, so log the host's call stack (offsets in ConkerRecomp.exe, to look
-// up with its .pdb) to alloc_log.txt, once per (block, caller).
-extern "C" void conker_alloc_debug(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("alloc_log.txt", "w");
-    static unsigned lines = 0;
-    static uint64_t seen[8192];
-    static unsigned seen_count = 0;
-    if (log == nullptr || lines > 8000) {
-        return;
-    }
-    void* frames[8];
-    const unsigned short count = CaptureStackBackTrace(1, 8, frames, nullptr);
-    const uintptr_t base = (uintptr_t)GetModuleHandleW(nullptr);
-    const uint32_t block = (uint32_t)ctx->r2;
-    const uint64_t key = ((uint64_t)(uint32_t)((uintptr_t)(count > 2 ? frames[2] : nullptr) - base) << 32) | block;
-    for (unsigned i = 0; i < seen_count; i++) {
-        if (seen[i] == key) {
-            return;
-        }
-    }
-    if (seen_count < 8192) {
-        seen[seen_count++] = key;
-    }
-    lines++;
-    std::fprintf(log, "%08X", block);
-    for (unsigned short i = 0; i < count; i++) {
-        std::fprintf(log, " %llX", (unsigned long long)((uintptr_t)frames[i] - base));
-    }
-    std::fputs("\n", log);
-    std::fflush(log);
-}
-
-// TEMP-DEBUG: func_1503F4B0 just after func_150A81D0 wrote the object's quads ($s0 the
-// object, sp+0x38 how far it got, from the buffer at +0x3E8 + 4 * frame): how much it
-// wrote against the N * 64 bytes Rare allocated (N at +0x3F4). cells_log.txt.
-extern "C" void conker_cell_buffer_debug(uint8_t* rdram, recomp_context* ctx) {
-    static FILE* log = std::fopen("cells_log.txt", "w");
-    static double worst = 0.0;
-    const gpr object = ctx->r16;
-    const uint32_t frame = (uint32_t)MEM_BU(0, (gpr)(int32_t)0x800BE9C0);
-    const uint32_t start = (uint32_t)MEM_W(0x3E8 + (int32_t)frame * 4, object);
-    const uint32_t end = (uint32_t)MEM_W(0x38, ctx->r29);
-    const uint32_t cells = (uint32_t)MEM_BU(0x3F4, object);
-    const uint32_t room = cells * 64;
-    if (log == nullptr || room == 0 || end < start) {
-        return;
-    }
-    const double ratio = (double)(end - start) / room;
-    if (ratio > worst + 0.05) {
-        worst = ratio;
-        std::fprintf(log, "object %08X: wrote %u bytes, room %u (%u cells): %.2fx", (uint32_t)object, end - start, room, cells, ratio);
-        std::fputs("\n", log);
-        std::fflush(log);
-    }
-}
-
-
 
 // Some levels' backdrop (sky and distant scenery) is a grid of cells: func_15110CFC splits
 // it down to the cells in view (sphere tests, func_150A6210, with the widened cull scale)
