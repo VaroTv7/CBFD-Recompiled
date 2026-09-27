@@ -214,7 +214,9 @@ namespace {
     std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
         uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
         return recompui::renderer::create_render_context(rdram, window_handle,
-            ultramodern::renderer::PresentationMode::PresentEarly, developer_mode);
+            ultramodern::renderer::PresentationMode::PresentEarly,
+            // TEMP-DEBUG: CONKER_DEV_MODE turns on RT64's developer tools (F1: inspector).
+            developer_mode || SDL_getenv("CONKER_DEV_MODE") != nullptr);
     }
 
 }
