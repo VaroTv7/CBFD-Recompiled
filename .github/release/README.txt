@@ -1,5 +1,6 @@
 Conker's Bad Fur Day: Recompiled
 https://github.com/sciaschi/CBFD-Recompiled
+macOS fork (this package): https://github.com/nitrostemp/CBFD-Recompiled-mac
 
 This package contains no game data. You need your own copy of the US ROM of
 Conker's Bad Fur Day (N64).

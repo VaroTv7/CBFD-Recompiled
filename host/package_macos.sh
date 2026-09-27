@@ -61,7 +61,9 @@ done
 MIN_MACOS=$(for f in "$APP/Contents/MacOS/ConkerRecomp" "$APP"/Contents/Frameworks/*.dylib; do
     otool -l "$f" | awk '/LC_BUILD_VERSION/{b=1} b && $1=="minos"{print $2; exit}'
 done | sort -t. -k1,1n -k2,2n | tail -1)
-VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//')
+# The version, from the release tag: v0.1.1-mac is shown as 0.1.1 (macOS wants
+# numbers there). An untagged build is 0.
+VERSION=$(git describe --tags --match 'v[0-9]*' 2>/dev/null | sed -e 's/^v//' -e 's/[^0-9.].*//')
 
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
