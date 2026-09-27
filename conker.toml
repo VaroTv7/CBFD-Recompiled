@@ -468,13 +468,12 @@ func = "func_15120158"
 before_vram = 0x1512015C
 text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); conker_mouse_camera_look_mode(rdram, ctx); }"
 
-# TEMP-DEBUG: compare func_1512BB10's collision call with ours (host/src/mouse_camera.cpp).
+# Clear the frame to black before drawing it. func_1510FEA0 (starts each frame's display
+# list) clears the depth buffer, then clears the colour buffer only while D_800BE635 is
+# set, and level setup (func_1501A220) clears that flag: the game relies on the level and
+# sky covering the whole screen. Where they don't, such as with the mouse camera inside or
+# under a wall, the last frame's picture stayed there and repeated. $t8 is the flag, just read.
 [[patches.hook]]
-func = "func_1512BB10"
-before_vram = 0x1512BEBC
-text = "{ extern void conker_wall_compare_before(uint8_t*, recomp_context*); conker_wall_compare_before(rdram, ctx); }"
-
-[[patches.hook]]
-func = "func_1512BB10"
-before_vram = 0x1512BEC4
-text = "{ extern void conker_wall_compare_after(uint8_t*, recomp_context*); conker_wall_compare_after(rdram, ctx); }"
+func = "func_1510FEA0"
+before_vram = 0x1510FFA4
+text = "{ ctx->r24 = 1; }"

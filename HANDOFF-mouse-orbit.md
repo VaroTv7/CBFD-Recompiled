@@ -32,7 +32,30 @@ What the user has confirmed working:
 
 Multiplayer mouse is deferred on purpose; the user wants story mode stable first.
 
-## Open problem: the orbit camera goes through walls
+## Change of plan (user's idea): let it clip, clear the frame
+
+The orbit camera no longer tries to collide. The collision code and the compare hooks were
+removed (the notes below are kept for reference). They are still in commit 1f31ddf.
+
+What was really wrong on screen was the "hall of mirrors" in the void.
+- **What the game does:** it never clears the colour buffer. `func_1510FEA0` starts each
+  frame's display list and clears the depth buffer (`func_151106A8`). It clears the colour
+  buffer to black (`func_15110544(dl, 0, 0, width, height, 0, 0, 0)`) only while
+  `D_800BE635` is set.
+- **Why the flag is off:** level setup (`func_1501A220`) clears it, so the game relies on the
+  level and sky covering every pixel.
+- **The fix:** a toml hook in `func_1510FEA0` at 0x1510FFA4 forces `$t8` (the flag, just read) to 1,
+  so every frame starts black.
+- **Status:** built; waiting for the user to try it in game.
+- **Watch for:** any effect that depended on the old picture staying (none known), and whether
+  RT64's widescreen covers the full width with that fill (it fills the whole
+  framebuffer).
+
+Also related: `func_151103C8` (in a function table at 0x800891D8) clears one camera's viewport
+to the colour `D_800DBEA8` (RGB), probably the fog colour. That colour could be used instead
+of black.
+
+## Earlier problem (shelved): the orbit camera goes through walls
 
 ### Goal
 When a wall is between Conker and the orbit eye, pull the camera in toward Conker. When the
