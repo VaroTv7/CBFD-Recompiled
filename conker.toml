@@ -467,3 +467,14 @@ text = "{ extern void conker_mouse_camera(uint8_t*, recomp_context*); conker_mou
 func = "func_15120158"
 before_vram = 0x1512015C
 text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); conker_mouse_camera_look_mode(rdram, ctx); }"
+
+# TEMP-DEBUG: compare func_1512BB10's collision call with ours (host/src/mouse_camera.cpp).
+[[patches.hook]]
+func = "func_1512BB10"
+before_vram = 0x1512BEBC
+text = "{ extern void conker_wall_compare_before(uint8_t*, recomp_context*); conker_wall_compare_before(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_1512BB10"
+before_vram = 0x1512BEC4
+text = "{ extern void conker_wall_compare_after(uint8_t*, recomp_context*); conker_wall_compare_after(rdram, ctx); }"

@@ -15,10 +15,10 @@
 // point, just before the view is built (func_151284C4 builds it in func_1512C490), and
 // the rest of the game follows. The camera stays where the mouse leaves it.
 //
-// Walls: func_150AC9C0 (hand-written collision code) casts a ray through the level;
-// the game uses it to stop its own camera at walls. A ray from the look-at point to
-// the eye pulls the camera in to just before anything in between, and it eases back
-// out once the way is clear.
+// Walls: func_15044380 moves a collider through the level, stopping and sliding at
+// surfaces; func_1512BB10 moves the game's own camera with it each frame. The orbit moves
+// the camera's collider from the look-at point out to where the eye would be, and pulls
+// the eye in to as far as it got. It eases back out once the way is clear.
 //
 // The orbit only runs where the C-buttons turn the camera (func_1512D390 ran this
 // frame) and not in the look mode (func_15120158: hold R, aiming), so cutscenes, special
@@ -29,6 +29,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 
 #include <SDL.h>
@@ -36,7 +37,7 @@
 #include "recomp.h"
 #include "recompinput/input_state.h"
 
-extern "C" void func_150AC9C0(uint8_t* rdram, recomp_context* ctx);
+extern "C" void func_15044380(uint8_t* rdram, recomp_context* ctx);
 
 namespace {
     // Degrees per pixel of mouse movement at 100% sensitivity.
@@ -46,9 +47,8 @@ namespace {
     // look-at point.
     constexpr float min_pitch = -25.0f * degrees_to_radians;
     constexpr float max_pitch = 75.0f * degrees_to_radians;
-    // Walls: how far in front of a hit the camera stops, its closest distance, and how
-    // quickly it moves back out (per frame, as a fraction of the way left).
-    constexpr float wall_margin = 25.0f;
+    // Walls: the camera's closest distance, and how quickly it moves back out (per
+    // frame, as a fraction of the way left).
     constexpr float min_distance = 80.0f;
     constexpr float ease_out = 0.15f;
     constexpr uint32_t current_camera = 0x800DBFF0; // D_800DBFF0
@@ -98,41 +98,67 @@ namespace {
         return (gpr)(int64_t)word;
     }
 
-    // How far a level ray from (x, y, z) along (dx, 0, dz) goes before it hits a wall, up
-    // to max_length (func_150AC9C0). Returns max_length if it hits nothing. Called as
-    // func_15123A54 calls it for the game's own camera: level (a ray with a slope takes
-    // another path and returns other things), and the distance is its 5th result.
-    float wall_distance(uint8_t* rdram, const recomp_context* ctx, float x, float y, float z,
-                        float dx, float dz, float max_length) {
-        const float dy = 0.0f;
+    // Moves the camera's collider from (x0, y0, z0) toward *x, *y, *z through the level
+    // (func_15044380), as func_1512BB10 moves the game's own camera each frame, and leaves
+    // where it ends up in *x, *y, *z. The collider is a stand-in object on the game's
+    // stack, filled in as func_1512BB10 fills its own: type 0x2D (a camera; its size is
+    // the camera's +0x95C, which func_1512BB10 keeps up to date), its position at +0x14,
+    // and the camera at +0x318. Returns how many surfaces it met.
+    int collide_camera(uint8_t* rdram, const recomp_context* ctx, gpr camera,
+                       float x0, float y0, float z0, float* x, float* y, float* z) {
+        constexpr int32_t object_size = 0x32C;
         recomp_context call = *ctx;
-        // Its arguments and results go on the game's stack, below the current frame.
-        const gpr sp = (ctx->r29 & ~(gpr)0xF) - 0x100;
-        const gpr results = sp + 0xC0;
+        // Below the current frame: func_15044380's arguments, then the stand-in object.
+        const gpr sp = (ctx->r29 & ~(gpr)0xF) - 0x400;
+        const gpr object = sp + 0x40;
+        for (int32_t i = 0; i < object_size; i += 4) {
+            MEM_W(i, object) = 0;
+        }
+        MEM_W(0x0, object) = 0x2D;
+        write_float(rdram, object, 0x14, *x);
+        write_float(rdram, object, 0x18, *y);
+        write_float(rdram, object, 0x1C, *z);
+        write_float(rdram, object, 0x28, *y - read_float(rdram, camera, 0x354));
+        MEM_W(0x40, object) = MEM_W(0x37C, camera);
+        MEM_W(0x180, object) = MEM_W(0x354, camera);
+        MEM_W(0x188, object) = MEM_W(0x644, camera);
+        MEM_W(0x318, object) = (int32_t)camera;
+
+        // The same collision switches func_1512BB10 sets around its own call.
+        const gpr flags = (gpr)(int32_t)0x800CBDD2; // D_800CBDD2..D_800CBDD4
+        const gpr layers = (gpr)(int32_t)0x80089120; // D_80089120: which layers collide
+        const int8_t saved_flag2 = MEM_B(0, flags), saved_flag3 = MEM_B(1, flags), saved_flag4 = MEM_B(2, flags);
+        const int8_t saved_layer1 = MEM_B(1, layers), saved_layer2 = MEM_B(2, layers);
+        const uint32_t camera_flags = (uint32_t)MEM_W(0x84, camera);
+        if ((camera_flags & 0x80000000) != 0 || MEM_W(0, (gpr)(int32_t)0x800BE9F0) == 0x37) {
+            MEM_B(2, layers) = 0;
+        }
+        if ((camera_flags & 0x10000) != 0) {
+            MEM_B(1, layers) = 0;
+        }
+        MEM_B(0, flags) = 1;
+        const gpr target = (gpr)(int32_t)MEM_W(0x3D0, camera);
+        MEM_B(1, flags) = MEM_BU(0x102, target) != 0 ? 1 : 0;
+        MEM_B(2, flags) = 0;
+
         call.r29 = sp;
-        call.f12.fl = x;
-        call.f14.fl = y;
-        call.r6 = float_bits(z);
-        call.r7 = float_bits(dx);
-        write_float(rdram, sp, 0x10, dy);
-        write_float(rdram, sp, 0x14, dz);
-        MEM_W(0x18, sp) = 0;
-        for (int i = 0; i < 5; i++) {
-            MEM_W(0x1C + i * 4, sp) = (int32_t)(results + i * 4);
-            MEM_W(i * 4, results) = 0;
-        }
-        MEM_W(0x30, sp) = 0;
-        MEM_W(0x34, sp) = 0;
-        write_float(rdram, sp, 0x38, max_length);
-        func_150AC9C0(rdram, &call);
-        if (call.r2 == 0) {
-            return max_length;
-        }
-        const float distance = read_float(rdram, results, 16);
-        if (!(distance >= 0.0f) || distance > max_length) {
-            return max_length;
-        }
-        return distance;
+        call.f12.fl = x0;
+        call.f14.fl = y0;
+        call.r6 = float_bits(z0);
+        call.r7 = object;
+        MEM_W(0x10, sp) = 0;
+        MEM_W(0x14, sp) = 0;
+        func_15044380(rdram, &call);
+
+        MEM_B(0, flags) = saved_flag2;
+        MEM_B(1, flags) = saved_flag3;
+        MEM_B(2, flags) = saved_flag4;
+        MEM_B(1, layers) = saved_layer1;
+        MEM_B(2, layers) = saved_layer2;
+        *x = read_float(rdram, object, 0x14);
+        *y = read_float(rdram, object, 0x18);
+        *z = read_float(rdram, object, 0x1C);
+        return (int)call.r2;
     }
 }
 
@@ -220,22 +246,52 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     const float dy = std::sin(orbit.pitch);
     const float dz = std::cos(orbit.pitch) * std::sin(orbit.yaw);
 
-    // Keep out of walls: in at once, back out gently.
     // Where the game pulls its own camera in closer than the controller can (tight spots),
     // so does the orbit.
     const float zoomed = (wanted_distance < nearest) ? std::min(orbit.wanted, wanted_distance) : orbit.wanted;
-    // Walls: a level ray the camera's way, from where the game casts its own (140 above
-    // the pivot), limits how far out the eye may be along the ground.
-    const float level = std::max(std::cos(orbit.pitch), 0.25f);
-    const float horizontal_room = wall_distance(rdram, ctx, cx, read_float(rdram, camera, 0x2A8) + 140.0f, cz,
-        std::cos(orbit.yaw), std::sin(orbit.yaw), zoomed * level + wall_margin) - wall_margin;
-    const float clear = horizontal_room / level;
+    // Walls: move the camera's collider from the look-at point out to the eye, as the game
+    // moves its own camera; how far it gets along the way is how far out the eye may be.
+    // func_15044380 finds the surfaces the collider ends up touching, so it moves in steps
+    // no longer than its radius (camera +0x95C): one long move ends past a wall without
+    // touching it. It may slide along a surface; it's blocked once a step barely gets it
+    // any farther along. In at once, back out gently.
+    const float radius = read_float(rdram, camera, 0x95C);
+    const float step = std::max(radius * 0.75f, 8.0f);
+    float px = cx, py = cy, pz = cz;
+    float clear = 0.0f;
+    int hits = 0, steps = 0;
+    while (clear < zoomed && steps < 256) {
+        const float t = std::min(clear + step, zoomed);
+        float hx = cx + dx * t, hy = cy + dy * t, hz = cz + dz * t;
+        hits += collide_camera(rdram, ctx, camera, px, py, pz, &hx, &hy, &hz);
+        steps++;
+        const float along = (hx - cx) * dx + (hy - cy) * dy + (hz - cz) * dz;
+        px = hx;
+        py = hy;
+        pz = hz;
+        if (along < clear + (t - clear) * 0.5f) {
+            clear = std::max(clear, along);
+            break;
+        }
+        clear = along;
+    }
+    const float hx = px, hy = py, hz = pz;
     const float allowed = std::clamp(clear, min_distance, std::max(zoomed, min_distance));
     if (allowed < orbit.distance) {
         orbit.distance = allowed;
     }
     else {
         orbit.distance += (allowed - orbit.distance) * ease_out;
+    }
+    // TEMP-DEBUG
+    {
+        static FILE* log = std::fopen("mouse_camera_log.txt", "w");
+        static int frames = 0;
+        if (log != nullptr && (hits != 0 || (frames % 30) == 0) && frames < 20000) {
+            std::fprintf(log, "steps %d hits %d radius %.1f clear %.1f wanted %.1f -> %.1f (end %.1f %.1f %.1f)\n", steps, hits, radius, clear, zoomed, orbit.distance, hx - cx, hy - cy, hz - cz);
+            std::fflush(log);
+        }
+        frames++;
     }
 
     const float ex = cx + dx * orbit.distance;
@@ -251,4 +307,41 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
 // frontend.cpp, once SDL is up: listen for the scroll wheel.
 void conker_mouse_camera_init() {
     SDL_AddEventWatch(watch_wheel, nullptr);
+}
+
+// TEMP-DEBUG: around func_1512BB10's own call of func_15044380 ($s0 the camera, its
+// stand-in object at $sp + 0x74): before it, repeat the same move through
+// collide_camera; after it, log both answers to wall_compare_log.txt.
+namespace {
+    struct {
+        float target[3];
+        float ours[3];
+        int ours_hits;
+    } compare;
+}
+extern "C" void conker_wall_compare_before(uint8_t* rdram, recomp_context* ctx) {
+    const gpr sp = ctx->r29, camera = ctx->r16, object = sp + 0x74;
+    for (int i = 0; i < 3; i++) {
+        compare.target[i] = compare.ours[i] = read_float(rdram, object, 0x14 + i * 4);
+    }
+    compare.ours_hits = collide_camera(rdram, ctx, camera, ctx->f12.fl, ctx->f14.fl, read_float(rdram, camera, 0x30C),
+        &compare.ours[0], &compare.ours[1], &compare.ours[2]);
+}
+extern "C" void conker_wall_compare_after(uint8_t* rdram, recomp_context* ctx) {
+    static FILE* log = std::fopen("wall_compare_log.txt", "w");
+    static int lines = 0;
+    if (log == nullptr || lines >= 2000) {
+        return;
+    }
+    const gpr sp = ctx->r29, object = sp + 0x74;
+    const int game_hits = (int)ctx->r2;
+    if (game_hits != 0 || compare.ours_hits != 0 || (lines % 30) == 0) {
+        std::fprintf(log, "game %d (%.1f %.1f %.1f) | ours %d (%.1f %.1f %.1f) | target (%.1f %.1f %.1f) | DBE62 %d DBE50 %d\n",
+            game_hits, read_float(rdram, object, 0x14), read_float(rdram, object, 0x18), read_float(rdram, object, 0x1C),
+            compare.ours_hits, compare.ours[0], compare.ours[1], compare.ours[2],
+            compare.target[0], compare.target[1], compare.target[2],
+            (int)MEM_BU(0, (gpr)(int32_t)0x800DBE62), (int)MEM_W(0, (gpr)(int32_t)0x800DBE50));
+        std::fflush(log);
+    }
+    lines++;
 }
