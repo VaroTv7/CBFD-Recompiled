@@ -400,3 +400,32 @@ text = "{ extern void conker_iris_begin(uint8_t*, recomp_context*); conker_iris_
 func = "func_15180580"
 before_vram = 0x151814F4
 text = "{ extern void conker_iris_end(uint8_t*, recomp_context*); conker_iris_end(rdram, ctx); }"
+
+# The look mode (hold R): gyro and mouse, and smooth or direct response for each input
+# (host/src/look_aim.cpp). The first three can turn the stick's axes around, the fourth is
+# before the pitch clamp so the game's limits apply to the mouse and gyro too, and the last is
+# where both branches of the springs meet.
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A14
+text = "{ extern void conker_look_stick_yaw_a(uint8_t*, recomp_context*); conker_look_stick_yaw_a(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A44
+text = "{ extern void conker_look_stick_yaw_b(uint8_t*, recomp_context*); conker_look_stick_yaw_b(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A98
+text = "{ extern void conker_look_stick_pitch(uint8_t*, recomp_context*); conker_look_stick_pitch(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120B44
+text = "{ extern void conker_look_targets(uint8_t*, recomp_context*); conker_look_targets(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120E8C
+text = "{ extern void conker_look_currents(uint8_t*, recomp_context*); conker_look_currents(rdram, ctx); }"
