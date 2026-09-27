@@ -21,7 +21,8 @@
 // out once the way is clear.
 //
 // The orbit only runs where the C-buttons turn the camera (func_1512D390 ran this
-// frame), so cutscenes and special cameras are the game's. Pressing C-left or C-right
+// frame) and not in the look mode (func_15120158: hold R, aiming), so cutscenes, special
+// cameras and aiming are the game's. Pressing C-left or C-right
 // hands the camera back to the game until the mouse moves again.
 
 #include <algorithm>
@@ -71,6 +72,7 @@ namespace {
     struct Orbit {
         bool engaged = false;
         bool follow_camera_ran = false; // func_1512D390 ran since the last view
+        bool look_mode_ran = false;     // func_15120158 (hold R, aiming) ran since the last view
         float yaw = 0.0f;               // radians, the eye's direction from the look-at point
         float pitch = 0.0f;
         float distance = 0.0f;          // current, after walls
@@ -149,6 +151,13 @@ extern "C" void conker_mouse_camera_follow(uint8_t* rdram, recomp_context* ctx) 
     }
 }
 
+// func_15120158 (the look mode: hold R, and aiming such as the slingshot on a B pad), after
+// its first instruction. The mouse aims there (look_aim.cpp), so the orbit leaves the
+// camera to it: otherwise both turned with the mouse, and the view ran ahead of the aim.
+extern "C" void conker_mouse_camera_look_mode(uint8_t* rdram, recomp_context* ctx) {
+    orbit.look_mode_ran = true;
+}
+
 // func_151284C4 (builds the view), after its first instruction: $a0 is the camera.
 extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     float mouse_x = 0.0f, mouse_y = 0.0f;
@@ -157,8 +166,9 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     if ((uint32_t)camera != (uint32_t)MEM_W(0, (gpr)(int32_t)current_camera)) {
         return;
     }
-    const bool follow_camera = orbit.follow_camera_ran;
+    const bool follow_camera = orbit.follow_camera_ran && !orbit.look_mode_ran;
     orbit.follow_camera_ran = false;
+    orbit.look_mode_ran = false;
     if (!follow_camera) {
         orbit.engaged = false;
         return;

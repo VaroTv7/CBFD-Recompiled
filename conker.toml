@@ -462,3 +462,8 @@ text = "{ extern void conker_mouse_camera_follow(uint8_t*, recomp_context*); con
 func = "func_151284C4"
 before_vram = 0x151284C8
 text = "{ extern void conker_mouse_camera(uint8_t*, recomp_context*); conker_mouse_camera(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x1512015C
+text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); conker_mouse_camera_look_mode(rdram, ctx); }"
