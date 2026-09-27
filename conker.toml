@@ -342,6 +342,18 @@ func = "updateCullScales_1510B958"
 before_vram = 0x1510B9C8
 text = "{ extern void conker_widen_cull_scale(uint8_t*, recomp_context*); conker_widen_cull_scale(rdram, ctx); }"
 
+# Widescreen: some levels' backdrop (sky and distant scenery) is a grid of cells drawn by
+# func_15110CFC, one quad (4 vertices) per cell in view, into buffers func_15000AD0
+# allocates for 448 vertices per frame (112 cells). Nothing stops it there: the 4:3 view
+# never has more cells in view, but a wide one does, and the extra quads overran the
+# next heap block, crashing the game (looking at the sky on ultrawide screens, the duct
+# tape and exploding mouse cutscenes). $s1 (the size) and $v1 (the second frame's
+# offset) are set just before 0x15000B80; give them room (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "func_15000AD0"
+before_vram = 0x15000B80
+text = "{ extern void conker_widen_backdrop_buffers(uint8_t*, recomp_context*); conker_widen_backdrop_buffers(rdram, ctx); }"
+
 # Widescreen: the pause menu's blurred background, a saved copy of the 4:3 frame
 # drawn as tiles, is stretched over the whole width (host/src/widescreen.cpp).
 [[patches.hook]]

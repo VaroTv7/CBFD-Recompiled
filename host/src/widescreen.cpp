@@ -415,3 +415,21 @@ extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
     const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
     write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / ratio);
 }
+
+// Some levels' backdrop (sky and distant scenery) is a grid of cells: func_15110CFC splits
+// it down to the cells in view (sphere tests, func_150A6210, with the widened cull scale)
+// and writes 4 vertices per cell into a buffer func_15000AD0 allocates per camera, two
+// halves of 448 vertices, one per frame in flight. It never checks the end: Rare's 4:3
+// view can't hold more cells than that, but a wide one can, and the extra vertices
+// overran the next heap block (a crash in the heap walk, func_10004250, looking at the
+// sky on ultrawide screens and in the duct tape and exploding mouse cutscenes). At
+// 0x15000B80 $s1 holds the block's size and $v1 the second half's offset: make both
+// four times as big, enough for a 32:9 view with room to spare (43 KB more a camera).
+namespace {
+    constexpr uint32_t backdrop_buffer_scale = 4;
+}
+
+extern "C" void conker_widen_backdrop_buffers(uint8_t* rdram, recomp_context* ctx) {
+    ctx->r17 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r17 * backdrop_buffer_scale);
+    ctx->r3 = (gpr)(int64_t)(int32_t)((uint32_t)ctx->r3 * backdrop_buffer_scale);
+}
