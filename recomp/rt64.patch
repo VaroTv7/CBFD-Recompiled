@@ -10,6 +10,20 @@ index 79dfc38..aef4a58 100644
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dgolden.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dpd.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dwave.cpp"
+diff --git a/include/rt64_extended_gbi.h b/include/rt64_extended_gbi.h
+index d387090..75ab87d 100644
+--- a/include/rt64_extended_gbi.h
++++ b/include/rt64_extended_gbi.h
+@@ -113,6 +113,9 @@
+ #define G_EX_ASPECT_AUTO            0x0
+ #define G_EX_ASPECT_STRETCH         0x1
+ #define G_EX_ASPECT_ADJUST          0x2
++// Stretched to the width like G_EX_ASPECT_STRETCH, and scaled as much vertically about the
++// middle of the scissor, keeping the rect's proportions (its top and bottom are cropped).
++#define G_EX_ASPECT_ZOOM            0x3
+ 
+ #define G_EX_VERTEX_POSITION        0x0
+ #define G_EX_VERTEX_VELOCITY        0x1
 diff --git a/src/common/rt64_common.h b/src/common/rt64_common.h
 index f79adbf..6e0a6f9 100644
 --- a/src/common/rt64_common.h
@@ -484,19 +498,21 @@ index 61bb3b1..313f93a 100644
          void setVertexSegmentV1(bool isEnabled, uint32_t vertexElement, uint32_t vertexAddress, uint32_t baseSegmentAddress);
          template<uint32_t floatCount, uint32_t vertexSize>
 diff --git a/src/render/rt64_framebuffer_renderer.cpp b/src/render/rt64_framebuffer_renderer.cpp
-index 9fae0d4..5943590 100644
+index 9fae0d4..b518a93 100644
 --- a/src/render/rt64_framebuffer_renderer.cpp
 +++ b/src/render/rt64_framebuffer_renderer.cpp
-@@ -1488,7 +1488,7 @@ namespace RT64 {
+@@ -1488,7 +1488,9 @@ namespace RT64 {
                  // The call's scissor spans the whole width of the framebuffer pair scissor. Custom origin must not be in use to be able to use the stretched viewport.
                  const auto &viewport = drawData.rspViewports[proj.transformsIndex];
                  FixedRect intersectionRect = proj.scissorRect.intersection(viewport.rect(viewportClipRatios));
 -                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= fbPair.scissorRect.ulx) && (intersectionRect.lrx >= fbPair.scissorRect.lrx);
-+                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= fbPair.scissorRect.ulx + CoversWidthSlack) && (intersectionRect.lrx >= fbPair.scissorRect.lrx - CoversWidthSlack);
++                // With no pair scissor (all its triangles culled), compare with the projection's own, as ProjectionProcessor does.
++                const FixedRect &pairScissor = fbPair.scissorRect.isNull() ? proj.scissorRect : fbPair.scissorRect;
++                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= pairScissor.ulx + CoversWidthSlack) && (intersectionRect.lrx >= pairScissor.lrx - CoversWidthSlack);
                  bool horizontalRatio = !intersectionRect.isEmpty() && (intersectionRect.width(true, true) > intersectionRect.height(true, true));
                  bool useWideViewport = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
                  if (useWideViewport) {
-@@ -1625,6 +1625,7 @@ namespace RT64 {
+@@ -1625,6 +1627,7 @@ namespace RT64 {
  
                          float invRatioScale = 1.0f / aspectRatioScale;
                          float horizontalMisalignment = 0.0f;
@@ -504,7 +520,16 @@ index 9fae0d4..5943590 100644
                          switch (proj.type) {
                          case Projection::Type::Perspective:
                          case Projection::Type::Orthographic: {
-@@ -1652,7 +1653,31 @@ namespace RT64 {
+@@ -1645,14 +1648,46 @@ namespace RT64 {
+                             // The call's scissor spans the whole width of the framebuffer pair scissor. The rect must not be using extended origins.
+                             const bool regularOrigins = (call.callDesc.rectLeftOrigin == G_EX_ORIGIN_NONE) && (call.callDesc.rectRightOrigin == G_EX_ORIGIN_NONE);
+                             const bool coversScissorWidth = regularOrigins && (call.callDesc.rect.ulx <= fbPair.scissorRect.ulx) && (call.callDesc.rect.lrx >= fbPair.scissorRect.lrx);
+-                            if ((tileCopiesUsed || coversScissorWidth || call.callDesc.rectAspect == G_EX_ASPECT_STRETCH) && (call.callDesc.rectAspect != G_EX_ASPECT_ADJUST)) {
++                            const bool stretchAspect = (call.callDesc.rectAspect == G_EX_ASPECT_STRETCH) || (call.callDesc.rectAspect == G_EX_ASPECT_ZOOM);
++                            if ((tileCopiesUsed || coversScissorWidth || stretchAspect) && (call.callDesc.rectAspect != G_EX_ASPECT_ADJUST)) {
+                                 invRatioScale = 1.0f;
+                             }
+                             else {
                                  horizontalMisalignment = p.horizontalMisalignment;
                              }
  
@@ -533,10 +558,17 @@ index 9fae0d4..5943590 100644
 +                                }
 +                            }
 +
++                            // Zoomed: stretched to the width above, and scaled as much vertically about the middle of the scissor.
++                            if ((call.callDesc.rectAspect == G_EX_ASPECT_ZOOM) && !call.callDesc.scissorRect.isNull()) {
++                                const float middle = ((call.callDesc.scissorRect.uly + call.callDesc.scissorRect.lry) / 8.0f) * p.resolutionScale.y;
++                                viewportRect.y = middle + (viewportRect.y - middle) * aspectRatioScale;
++                                viewportRect.height *= aspectRatioScale;
++                            }
++
                              triangles.screenScale = { viewportRect.width / framebuffer.viewport.width, viewportRect.height / framebuffer.viewport.height };
                              triangles.screenOffset.x = halfPixelOffset.x + ((viewportRect.x + viewportRect.width / 2.0f) - halfViewportSize.x) / halfViewportSize.x;
                              triangles.screenOffset.y = halfPixelOffset.y + (halfViewportSize.y - (viewportRect.y + viewportRect.height / 2.0f)) / halfViewportSize.y;
-@@ -1676,7 +1701,12 @@ namespace RT64 {
+@@ -1676,7 +1711,12 @@ namespace RT64 {
                              break;
                          }
  
@@ -551,16 +583,19 @@ index 9fae0d4..5943590 100644
                          bool usesViewport = (proj.type == Projection::Type::Perspective) || (proj.type == Projection::Type::Orthographic);
                          if (usesViewport) {
 diff --git a/src/render/rt64_projection_processor.cpp b/src/render/rt64_projection_processor.cpp
-index e842dcc..b27031f 100644
+index e842dcc..8d0fc82 100644
 --- a/src/render/rt64_projection_processor.cpp
 +++ b/src/render/rt64_projection_processor.cpp
-@@ -92,7 +92,8 @@ namespace RT64 {
+@@ -92,7 +92,11 @@ namespace RT64 {
                  }
  
                  if (!intersectionRect.isEmpty()) {
 -                    bool coversWholeWidth = (intersectionRect.ulx <= fbPair.scissorRect.ulx) && (intersectionRect.lrx >= fbPair.scissorRect.lrx);
-+                    // Same slack as FramebufferRenderer's wide viewport check: the two must agree.
-+                    bool coversWholeWidth = (intersectionRect.ulx <= fbPair.scissorRect.ulx + CoversWidthSlack) && (intersectionRect.lrx >= fbPair.scissorRect.lrx - CoversWidthSlack);
++                    // Same slack as FramebufferRenderer's wide viewport check: the two must agree. A pair whose triangles were
++                    // all culled has no scissor; compare with the projection's own then, or this projection's transforms, which
++                    // another pair that did draw may share, would lose their widening (Conker's hub, near the naughty/nice sign).
++                    const FixedRect &pairScissor = fbPair.scissorRect.isNull() ? proj.scissorRect : fbPair.scissorRect;
++                    bool coversWholeWidth = (intersectionRect.ulx <= pairScissor.ulx + CoversWidthSlack) && (intersectionRect.lrx >= pairScissor.lrx - CoversWidthSlack);
                      bool horizontalRatio = (intersectionRect.width(true, true) > intersectionRect.height(true, true));
                      adjustAspectRatio = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
                  }

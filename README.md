@@ -37,8 +37,8 @@ instead, read on.
 
 The game is playable, and has been played through to the end. Known issues:
 
-- Widescreen: the pause menu's blurred background is the 4:3 frame stretched to
-  the full width.
+- Widescreen: the pause menu's blurred background is the 4:3 frame scaled up to
+  the full width, so its top and bottom are cropped.
 - Environment-mapped (reflective) surfaces render without their reflection texture.
 - Only the US ROM is supported.
 - Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with

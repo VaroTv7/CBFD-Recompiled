@@ -233,6 +233,17 @@ surface was cut at the 4:3 edges. Both checks, the wide viewport in
 now allow 4 pixels of slack (`CoversWidthSlack`). They must agree, or the 3D is
 stretched.
 
+A framebuffer pair whose triangles were all culled has no combined scissor, but
+its projection can share its transforms with a pair that did draw. Comparing
+with the null scissor turned the widening off for both, and the 3D flickered
+between 4:3 and widescreen (the hub, near the naughty/nice sign). Both checks
+now compare with the projection's own scissor in that case.
+
+The patch adds a rect aspect, `G_EX_ASPECT_ZOOM`: stretched to the width like
+`G_EX_ASPECT_STRETCH`, and scaled as much vertically about the middle of the
+scissor, so the rectangle keeps its proportions and loses its top and bottom.
+The pause menu's background, a saved copy of the 4:3 frame, is drawn with it.
+
 A rectangle whose scissor spans the frame (with the same slack) is clipped at
 the edges of the widened frame, as widened 3D is, instead of at the 4:3 area.
 Together with the game-side hooks in `host/src/widescreen.cpp`, that keeps
