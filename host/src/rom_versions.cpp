@@ -26,15 +26,16 @@ namespace {
     constexpr uint64_t us_code_hash = 0x3C7B12470FFFD01DULL; // XXH3-64 of the US ROM from code_start to code_end
 
     // Versions with a name of their own, by the XXH3-64 of the whole ROM (big-endian .z64).
-    // Any other ROM the game accepts is a "ROM hack".
+    // Any other ROM the game accepts is a "ROM hack". Every one of them is the US version
+    // (its code has to be the US ROM's), which the names say.
     struct KnownVersion {
         uint64_t hash;
         const char* slug;
         const char* name;
     };
     constexpr KnownVersion known_versions[] = {
-        { conker::roms::us_rom_hash, "original", "Original" },
-        { 0xAC445026C8F77A94ULL, "uncensored", "Uncensored" }, // the bleeped words restored
+        { conker::roms::us_rom_hash, "original", "US Original" },
+        { 0xAC445026C8F77A94ULL, "uncensored", "US Uncensored" }, // the bleeped words restored
     };
 
     std::filesystem::path stored_path;   // the runtime's ROM in play
@@ -61,7 +62,7 @@ namespace {
             }
         }
         // hack-<hash>: the hash's first 8 digits tell hacks apart.
-        return "ROM hack (" + slug.substr(5, 8) + ")";
+        return "US ROM hack (" + slug.substr(5, 8) + ")";
     }
 
     // The versions kept, named ones first in the order above, then hacks.
@@ -178,6 +179,35 @@ size_t conker::roms::version_count() {
 
 std::string conker::roms::current_name() {
     return current_slug.empty() ? std::string() : name_of(current_slug);
+}
+
+std::string conker::roms::region_of(const std::filesystem::path& rom_path) {
+    uint8_t header[0x40];
+    std::ifstream file(rom_path, std::ios::binary);
+    if (!file.read(reinterpret_cast<char*>(header), sizeof(header))) {
+        return {};
+    }
+    // The country code is at 0x3E in a big-endian .z64. Byteswapped (.v64) and
+    // little-endian (.n64) ROMs have it elsewhere in the word, told by the first bytes.
+    uint8_t code;
+    if (header[0] == 0x80) {
+        code = header[0x3E];
+    } else if (header[0] == 0x37) {
+        code = header[0x3F];
+    } else if (header[0] == 0x40) {
+        code = header[0x3D];
+    } else {
+        return {};
+    }
+    switch (code) {
+        case 'E': return "US";
+        case 'P': case 'X': case 'Y': return "European";
+        case 'D': return "German";
+        case 'F': return "French";
+        case 'J': return "Japanese";
+        case 'U': return "Australian";
+        default: return {};
+    }
 }
 
 bool conker::roms::switch_to_next() {
