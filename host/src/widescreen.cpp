@@ -75,6 +75,12 @@ namespace {
         return extra;
     }
 
+    // TEMP-DEBUG: CONKER_NO_CULL_WIDEN leaves the frustum and cull scale at 4:3.
+    bool no_cull_widen() {
+        static const bool off = SDL_getenv("CONKER_NO_CULL_WIDEN") != nullptr;
+        return off;
+    }
+
     // How far past each 4:3 edge sprites are kept, in N64 screen pixels: as far as
     // the window reaches past it (half the frame's width, D_800BE620, for each 4:3
     // width more), and a little more. A fixed 160 fell short on 32:9 screens.
@@ -394,7 +400,7 @@ extern "C" void conker_iris_end(uint8_t* rdram, recomp_context* ctx) {
 // as wide as the window shows it: tan(half angle) grows with the aspect ratio.
 extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
     const float ratio = widescreen_ratio();
-    if (ratio <= 1.0f) {
+    if (ratio <= 1.0f || no_cull_widen()) {
         return;
     }
     const gpr camera = ctx->r16;
@@ -419,7 +425,7 @@ extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
 // the window is, so they keep what the widened view shows.
 extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
     const float ratio = widescreen_ratio();
-    if (ratio <= 1.0f) {
+    if (ratio <= 1.0f || no_cull_widen()) {
         return;
     }
     const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
