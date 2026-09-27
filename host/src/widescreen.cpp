@@ -22,10 +22,6 @@
 extern SDL_Window* window;
 
 namespace {
-    // How far past each 4:3 edge sprites are kept, in N64 screen pixels: enough
-    // for a 32:9 window. Sprites outside the actual window cost a draw, nothing more.
-    constexpr float cull_margin = 160.0f;
-
     // RT64's extended GBI (tools/rt64/include/rt64_extended_gbi.h) for F3DEX2,
     // whose no-op (0xE0) carries RT64's hooks.
     constexpr uint32_t rt64_hook_opcode = 0xE0;
@@ -69,6 +65,14 @@ namespace {
         return std::max(1.0f, (float)width / (float)height / (4.0f / 3.0f));
     }
 
+    // How far past each 4:3 edge sprites are kept, in N64 screen pixels: as far as
+    // the window reaches past it (half the frame's width, D_800BE620, for each 4:3
+    // width more), and a little more. A fixed 160 fell short on 32:9 screens.
+    float sprite_cull_margin(uint8_t* rdram) {
+        const float half_frame = (float)MEM_W(0, (gpr)(int32_t)0x800BE620) * 0.5f;
+        return half_frame * (widescreen_ratio() - 1.0f) + 8.0f;
+    }
+
     void put_command(uint8_t* rdram, gpr& dl, uint32_t w0, uint32_t w1) {
         MEM_W(0, dl) = (int32_t)w0;
         MEM_W(4, dl) = (int32_t)w1;
@@ -80,11 +84,11 @@ namespace {
 // and right sprite bounds (camera + 0x2C / + 0x30), about to be compared with the
 // sprite's right and left edges.
 extern "C" void conker_widen_sprite_cull_left(uint8_t* rdram, recomp_context* ctx) {
-    ctx->f6.fl -= cull_margin;
+    ctx->f6.fl -= sprite_cull_margin(rdram);
 }
 
 extern "C" void conker_widen_sprite_cull_right(uint8_t* rdram, recomp_context* ctx) {
-    ctx->f10.fl += cull_margin;
+    ctx->f10.fl += sprite_cull_margin(rdram);
 }
 
 // func_15130A9C at 0x15130DA0: the game has just written a G_RDPPIPESYNC at $v0,
