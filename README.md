@@ -223,6 +223,19 @@ Run `host/build/ConkerRecomp` (Linux and macOS) or `host\build-win\ConkerRecomp.
   Z = Q, L = E, R = R, Start = Enter, C buttons = arrow keys, D-pad = IJKL.
   Everything can be remapped in Controls.
 
+## ROM hacks
+
+A ROM hack that only changes the game's assets (its audio, textures, models or
+text), such as an uncensored patch that restores the bleeped words, plays like the
+US ROM. The recompiled code only comes from the ROM's code, which has to be the US
+ROM's, so hacks that change the game's code are refused.
+
+The launcher's **Version** option says which ROM is in play (for example
+**Version: Original**), and so does the window's title. The first time, it reads
+**(load another)**: pick the hack's `.z64` to add it. After that, selecting Version
+switches between the ROMs you've loaded. Each is kept in `rom_versions/` in the data
+folder (64 MB apiece). Saves are shared between them.
+
 ## Mods
 
 Mods are `.nrm` files. Install one by copying it into the `mods` folder of the

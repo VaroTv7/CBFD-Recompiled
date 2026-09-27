@@ -4,6 +4,8 @@
 
 #include <cstdio>
 #include <fstream>
+#include <mutex>
+#include <string>
 #include <vector>
 
 #define SDL_MAIN_HANDLED
@@ -24,6 +26,7 @@
 #include "recompui/program_config.h"
 #include "recompui/recompui.h"
 #include "recompui/renderer.h"
+#include "base/ui_launcher.h"
 #include "util/file.h"
 
 #include "conker.hpp"
@@ -35,6 +38,12 @@ SDL_Window* window = nullptr;
 
 namespace {
     std::vector<char> thumbnail;
+
+    // The launcher's Version option, and the window title that names the version in play.
+    // The title is set on the main thread (update_gfx), as macOS requires.
+    recompui::GameOption* version_option = nullptr;
+    std::mutex title_mutex;
+    std::string pending_title;
 
     void* create_gfx() {
         SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
@@ -91,6 +100,79 @@ namespace {
 
     void update_gfx(void*) {
         recompinput::handle_events();
+        std::string title;
+        {
+            std::lock_guard lock(title_mutex);
+            title.swap(pending_title);
+        }
+        if (!title.empty() && window != nullptr) {
+            SDL_SetWindowTitle(window, title.c_str());
+        }
+    }
+
+    // Shows which version of the ROM is in play: on the launcher's Version option (hidden
+    // until there's a ROM) and in the window title.
+    void show_version() {
+        std::string name = conker::roms::current_name();
+        if (version_option != nullptr) {
+            if (name.empty()) {
+                version_option->display_hide();
+            }
+            else {
+                // With a single version, the option loads another (an uncensored ROM, say).
+                bool single = conker::roms::version_count() < 2;
+                version_option->set_title("Version: " + name + (single ? " (load another)" : ""));
+                version_option->display_show();
+            }
+        }
+        std::printf("[frontend] ROM version in play: %s (%zu kept)\n", name.empty() ? "none" : name.c_str(),
+            conker::roms::version_count());
+        std::lock_guard lock(title_mutex);
+        pending_title = name.empty() ? std::string(conker::program_name)
+                                     : std::string(conker::program_name) + " (" + name + ")";
+    }
+
+    // The Version option: switches to the next version kept, or with only one, loads another.
+    void on_version_selected() {
+        if (conker::roms::version_count() > 1) {
+            if (conker::roms::switch_to_next()) {
+                show_version();
+            }
+            return;
+        }
+        recompui::file::open_file_dialog([](bool success, const std::filesystem::path& path) {
+            if (!success) {
+                return;
+            }
+            recomp::RomValidationError result = recomp::select_rom(path, supported_games[0].game_id);
+            if (result != recomp::RomValidationError::Good) {
+                recompui::message_box(conker::rom_error_text(result));
+            }
+            // The launcher's update picks the new version up once it's written.
+        });
+    }
+
+    // The launcher's options: RecompFrontend's usual ones, with Version after Start Game.
+    void init_launcher(recompui::LauncherMenu* menu) {
+        const recomp::GameEntry& game = supported_games[0];
+        // Here rather than at startup, so a ROM given with --rom is already the one stored.
+        conker::roms::init(recomp::get_config_path() / game.stored_filename());
+        recompui::GameOptionsMenu* options = menu->init_game_options_menu(
+            game.game_id, game.mod_game_id, game.display_name, game.thumbnail_bytes);
+        recompui::update_game_mod_id(game.mod_game_id);
+        options->add_start_game_or_load_rom_option();
+        version_option = options->add_option("Version", on_version_selected);
+        options->add_setup_controls_option();
+        options->add_settings_option();
+        options->add_mods_option();
+        options->add_exit_option();
+        show_version();
+    }
+
+    void update_launcher(recompui::LauncherMenu*) {
+        if (conker::roms::update()) {
+            show_version();
+        }
     }
 
     std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
@@ -125,6 +207,10 @@ void conker::frontend::init(recomp::GameEntry& game) {
     thumbnail.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     game.thumbnail_bytes = std::span<const char>(thumbnail);
     supported_games.push_back(game);
+
+    // Versions of the ROM (the original, an uncensored ROM hack...) to switch between.
+    recompui::register_launcher_init_callback(init_launcher);
+    recompui::register_launcher_update_callback(update_launcher);
 
     recompui::register_primary_font("InterVariable.ttf", "Inter Variable");
     recompui::register_ui_exports();
