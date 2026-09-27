@@ -14,10 +14,8 @@ starting from the [Conker decompilation](https://github.com/mkst/conker). It run
 
 ## Download
 
-Ready-to-play Windows and Linux builds are on the
-[Releases page](https://github.com/sciaschi/CBFD-Recompiled/releases), and macOS
-builds (Apple Silicon, macOS 15 or later) on
-[this fork's Releases page](https://github.com/nitrostemp/CBFD-Recompiled-mac/releases).
+Ready-to-play Windows, Linux and macOS (Apple Silicon, macOS 15 or later) builds
+are on the [Releases page](https://github.com/sciaschi/CBFD-Recompiled/releases).
 Unpack one anywhere, run `ConkerRecomp`, and pick your US ROM in the launcher the
 first time. The packages contain no game data: you still need your own ROM. The
 macOS app isn't signed with an Apple developer ID, so the first time, open it and
@@ -41,10 +39,11 @@ yourself instead, read on.
 
 The game is playable, and has been played through to the end. Known issues:
 
-- Widescreen: the pause menu's blurred background is the 4:3 frame stretched to
-  the full width.
+- Widescreen: the pause menu's blurred background is the 4:3 frame scaled up to
+  the full width, so its top and bottom are cropped.
 - Environment-mapped (reflective) surfaces render without their reflection texture.
-- Only the US ROM is supported.
+- Only the US ROM is supported (and ROM hacks that only change its assets: see
+  [ROM hacks](#rom-hacks)).
 - Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with
   software Vulkan (llvmpipe) and sound. It hasn't been played on Linux with a
   real GPU driver yet, so reports are welcome, especially about performance or
@@ -141,13 +140,11 @@ of it, as on Linux.
 
 ### 2. Get the code and build
 
-In Terminal, in the folder you want it in, with the path to your ROM. The macOS
-support is on the `macos-port` branch of
-[CBFD-Recompiled-mac](https://github.com/nitrostemp/CBFD-Recompiled-mac):
+In Terminal, in the folder you want it in, with the path to your ROM:
 
 ```sh
-git clone --recursive -b macos-port https://github.com/nitrostemp/CBFD-Recompiled-mac.git
-cd CBFD-Recompiled-mac
+git clone --recursive https://github.com/sciaschi/CBFD-Recompiled.git
+cd CBFD-Recompiled
 ./build.sh ~/path/to/your/conker.z64
 ```
 
@@ -230,10 +227,12 @@ text), such as an uncensored patch that restores the bleeped words, plays like t
 US ROM. The recompiled code only comes from the ROM's code, which has to be the US
 ROM's, so hacks that change the game's code are refused.
 
-The launcher's **Version** option says which ROM is in play (for example
-**Version: Original**), and so does the window's title. The first time, it reads
-**(load another)**: pick the hack's `.z64` to add it. After that, selecting Version
-switches between the ROMs you've loaded. Each is kept in `rom_versions/` in the data
+The launcher's **Version** option says which ROM is in play, with its region (for
+example **Version: US Original** or **Version: US Uncensored**), and so does the
+window's title. **Add ROM** loads another: pick the hack's `.z64`, and it's put in
+play. After that, selecting Version switches between the ROMs you've loaded. Other
+regions' ROMs (such as the European one) are refused, with a message naming the
+region. Each is kept in `rom_versions/` in the data
 folder (64 MB apiece). Saves are shared between them.
 
 ## Mods
@@ -300,6 +299,8 @@ not to them.
 
 - The [Conker's Bad Fur Day decompilation](https://github.com/mkst/conker) project,
   whose work this is built on.
+- The macOS port, and support for ROM hacks, by
+  [nitrostemp](https://github.com/nitrostemp).
 - [N64Recomp](https://github.com/N64Recomp/N64Recomp),
   [N64ModernRuntime](https://github.com/N64Recomp/N64ModernRuntime) and
   [RecompFrontend](https://github.com/N64Recomp/RecompFrontend) by Wiseguy and

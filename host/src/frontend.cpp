@@ -39,9 +39,10 @@ SDL_Window* window = nullptr;
 namespace {
     std::vector<char> thumbnail;
 
-    // The launcher's Version option, and the window title that names the version in play.
-    // The title is set on the main thread (update_gfx), as macOS requires.
+    // The launcher's Version and Add ROM options, and the window title that names the
+    // version in play. The title is set on the main thread (update_gfx), as macOS requires.
     recompui::GameOption* version_option = nullptr;
+    recompui::GameOption* add_rom_option = nullptr;
     std::mutex title_mutex;
     std::string pending_title;
 
@@ -110,20 +111,23 @@ namespace {
         }
     }
 
-    // Shows which version of the ROM is in play: on the launcher's Version option (hidden
-    // until there's a ROM) and in the window title.
+    // Shows which version of the ROM is in play: on the launcher's Version option and in
+    // the window title. Version and Add ROM are hidden until there's a ROM (Start Game's
+    // Load ROM picks the first).
     void show_version() {
         std::string name = conker::roms::current_name();
-        if (version_option != nullptr) {
-            if (name.empty()) {
-                version_option->display_hide();
+        for (recompui::GameOption* option : { version_option, add_rom_option }) {
+            if (option != nullptr) {
+                if (name.empty()) {
+                    option->display_hide();
+                }
+                else {
+                    option->display_show();
+                }
             }
-            else {
-                // With a single version, the option loads another (an uncensored ROM, say).
-                bool single = conker::roms::version_count() < 2;
-                version_option->set_title("Version: " + name + (single ? " (load another)" : ""));
-                version_option->display_show();
-            }
+        }
+        if ((version_option != nullptr) && !name.empty()) {
+            version_option->set_title("Version: " + name);
         }
         std::printf("[frontend] ROM version in play: %s (%zu kept)\n", name.empty() ? "none" : name.c_str(),
             conker::roms::version_count());
@@ -132,19 +136,35 @@ namespace {
                                      : std::string(conker::program_name) + " (" + name + ")";
     }
 
-    // The Version option: switches to the next version kept, or with only one, loads another.
+    // The Version option: switches to the next version kept.
     void on_version_selected() {
-        if (conker::roms::version_count() > 1) {
-            if (conker::roms::switch_to_next()) {
-                show_version();
-            }
+        if (conker::roms::version_count() < 2) {
+            recompui::message_box("This is the only version of the ROM loaded. Add another with Add ROM "
+                "(a ROM hack that only changes the game's assets, such as an uncensored one) to switch between them.");
             return;
         }
+        if (conker::roms::switch_to_next()) {
+            show_version();
+        }
+    }
+
+    // The Add ROM option: loads another ROM, which is kept as a version and put in play.
+    void on_add_rom_selected() {
         recompui::file::open_file_dialog([](bool success, const std::filesystem::path& path) {
             if (!success) {
                 return;
             }
             recomp::RomValidationError result = recomp::select_rom(path, supported_games[0].game_id);
+            if (result == recomp::RomValidationError::IncorrectVersion) {
+                // Conker's Bad Fur Day, but not a US ROM the game plays: say which region it is.
+                std::string region = conker::roms::region_of(path);
+                if (!region.empty() && region != "US") {
+                    std::string text = "This is the " + region + " version of Conker's Bad Fur Day. Only the US "
+                        "version is supported (and ROM hacks of it that only change the game's assets).";
+                    recompui::message_box(text.c_str());
+                    return;
+                }
+            }
             if (result != recomp::RomValidationError::Good) {
                 recompui::message_box(conker::rom_error_text(result));
             }
@@ -152,16 +172,20 @@ namespace {
         });
     }
 
-    // The launcher's options: RecompFrontend's usual ones, with Version after Start Game.
+    // The launcher's options: RecompFrontend's usual ones, with Version and Add ROM after Start Game.
     void init_launcher(recompui::LauncherMenu* menu) {
         const recomp::GameEntry& game = supported_games[0];
         // Here rather than at startup, so a ROM given with --rom is already the one stored.
         conker::roms::init(recomp::get_config_path() / game.stored_filename());
         recompui::GameOptionsMenu* options = menu->init_game_options_menu(
             game.game_id, game.mod_game_id, game.display_name, game.thumbnail_bytes);
+        // Lower than recompui's 25% from the bottom: with Version and Add ROM, seven options
+        // would reach up into the title.
+        options->set_bottom(10.0f, recompui::Unit::Percent);
         recompui::update_game_mod_id(game.mod_game_id);
         options->add_start_game_or_load_rom_option();
         version_option = options->add_option("Version", on_version_selected);
+        add_rom_option = options->add_option("Add ROM", on_add_rom_selected);
         options->add_setup_controls_option();
         options->add_settings_option();
         options->add_mods_option();

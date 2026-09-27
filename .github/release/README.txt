@@ -1,6 +1,6 @@
 Conker's Bad Fur Day: Recompiled
 https://github.com/sciaschi/CBFD-Recompiled
-macOS fork (this package): https://github.com/nitrostemp/CBFD-Recompiled-mac
+macOS port by nitrostemp: https://github.com/nitrostemp
 
 This package contains no game data. You need your own copy of the US ROM of
 Conker's Bad Fur Day (N64).
@@ -10,6 +10,10 @@ Playing
   2. The first time, the launcher asks for your ROM: pick your US .z64 ROM.
      It's checked, and remembered for later runs.
   3. Start Game.
+
+ROM hacks that only change the game's assets, such as the uncensored one, work
+too: load one with the launcher's Add ROM option. Version shows the ROM in
+play and switches between the ROMs you've loaded.
 
 Windows: Windows 10 or 11, 64-bit, with a Direct3D 12 or Vulkan graphics card.
 Linux: x86-64 with Vulkan, and SDL2, GTK 3 and FreeType installed

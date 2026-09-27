@@ -33,10 +33,12 @@ namespace conker {
         // Keeps a newly stored ROM (from Load ROM) as a version. True if the one in play changed.
         bool update();
         size_t version_count();
-        // "Original", "Uncensored" or "ROM hack (<hash>)"; empty with no ROM yet.
+        // "US Original", "US Uncensored" or "US ROM hack (<hash>)"; empty with no ROM yet.
         std::string current_name();
         // Puts the next kept version in play. False if there's no other.
         bool switch_to_next();
+        // The region a ROM file's header names ("US", "European"...); empty if it can't tell.
+        std::string region_of(const std::filesystem::path& rom_path);
     }
 
     // main.cpp: why a ROM was refused.
