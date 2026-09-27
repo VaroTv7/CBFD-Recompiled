@@ -14,6 +14,9 @@
 #include <SDL_syswm.h>
 #endif
 
+// recompui.h names the launcher's menu before declaring it.
+namespace recompui { class LauncherMenu; }
+#include "base/ui_launcher.h"
 #include "librecomp/game.hpp"
 #include "recompinput/input_events.h"
 #include "recompinput/input_state.h"
@@ -23,6 +26,8 @@
 #include "recompui/recompui.h"
 #include "recompui/renderer.h"
 #include "util/file.h"
+#define XXH_INLINE_ALL
+#include "xxHash/xxhash.h"
 
 #include "conker.hpp"
 
@@ -78,6 +83,54 @@ namespace {
         recompinput::handle_events();
     }
 
+    // The ROM the launcher has stored: the US one, or the uncensored one (the game's
+    // other accepted ROM, GameEntry::other_rom_hashes).
+    std::string stored_rom_title() {
+        const recomp::GameEntry& game = supported_games[0];
+        std::ifstream file(recomp::get_config_path() / game.stored_filename(), std::ios::binary);
+        std::vector<char> rom((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        return XXH3_64bits(rom.data(), rom.size()) == game.rom_hash ? "ROM: US" : "ROM: Uncensored";
+    }
+
+    // recompui's default launcher, plus, once a ROM is stored, an option showing which
+    // one, which picks another (recompui's own only picks one when there's none yet).
+    void init_launcher(recompui::LauncherMenu* menu) {
+        const recomp::GameEntry& game = supported_games[0];
+        recompui::GameOptionsMenu* options = menu->init_game_options_menu(game.game_id, game.mod_game_id,
+            game.display_name, game.thumbnail_bytes, recompui::GameOptionsMenuLayout::Center);
+        recompui::update_game_mod_id(game.mod_game_id);
+        options->add_start_game_or_load_rom_option();
+        if (recomp::is_rom_valid(game.game_id)) {
+            recompui::GameOption* rom_option = options->add_option(stored_rom_title(), nullptr);
+            rom_option->set_callback([rom_option]() {
+                recompui::file::open_file_dialog([rom_option](bool success, const std::filesystem::path& path) {
+                    if (!success) {
+                        return;
+                    }
+                    recomp::RomValidationError error = recomp::select_rom(path, supported_games[0].game_id);
+                    if (error == recomp::RomValidationError::FailedToOpen) {
+                        recompui::message_box("Failed to open ROM file.");
+                        return;
+                    }
+                    if (error != recomp::RomValidationError::Good) {
+                        recompui::message_box("This isn't the US or the uncensored ROM of Conker's Bad Fur Day.");
+                        return;
+                    }
+                    recompui::ContextId context = recompui::get_launcher_context_id();
+                    bool opened = context.open_if_not_already();
+                    rom_option->set_title(stored_rom_title());
+                    if (opened) {
+                        context.close();
+                    }
+                });
+            });
+        }
+        options->add_setup_controls_option();
+        options->add_settings_option();
+        options->add_mods_option();
+        options->add_exit_option();
+    }
+
     std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
         uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
         return recompui::renderer::create_render_context(rdram, window_handle,
@@ -110,6 +163,7 @@ void conker::frontend::init(recomp::GameEntry& game) {
     thumbnail.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     game.thumbnail_bytes = std::span<const char>(thumbnail);
     supported_games.push_back(game);
+    recompui::register_launcher_init_callback(init_launcher);
 
     recompui::register_primary_font("InterVariable.ttf", "Inter Variable");
     recompui::register_ui_exports();

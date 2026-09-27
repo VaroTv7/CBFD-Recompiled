@@ -6,8 +6,9 @@ Conker's Bad Fur Day (N64).
 
 Playing
   1. Start ConkerRecomp (ConkerRecomp.exe on Windows).
-  2. The first time, the launcher asks for your ROM: pick your US .z64 ROM.
-     It's checked, and remembered for later runs.
+  2. The first time, the launcher asks for your ROM: pick your US .z64 ROM
+     (its uncensored version works too). It's checked, and remembered for
+     later runs. To switch ROMs later, pick the launcher's "ROM:" option.
   3. Start Game.
 
 Windows: Windows 10 or 11, 64-bit, with a Direct3D 12 or Vulkan graphics card.

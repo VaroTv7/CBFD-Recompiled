@@ -212,6 +212,9 @@ RspExitReason conker_audio_ucode(uint8_t* rdram, uint32_t ucode_addr);
 namespace {
     const std::u8string game_id = u8"conker.n64.us.1.0";
     constexpr uint64_t rom_hash = 0x23FBBA2DBCF2FD8EULL; // XXH3-64 of the US ROM (big-endian .z64)
+    // The uncensored ROM, a patch of the US one: the same code (the first 0x1A37E0 bytes,
+    // which the build recompiles, are identical); only assets after it differ.
+    constexpr uint64_t uncensored_rom_hash = 0xAC445026C8F77A94ULL;
 
     std::atomic<uint32_t> vi_count{0};
 
@@ -419,6 +422,7 @@ int main(int argc, char** argv) {
 
     recomp::GameEntry game{};
     game.rom_hash = rom_hash;
+    game.other_rom_hashes = { uncensored_rom_hash };
     game.internal_name = "CONKER BFD";
     game.display_name = "Conker's Bad Fur Day";
     game.game_id = game_id;

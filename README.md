@@ -20,6 +20,11 @@ anywhere, run `ConkerRecomp`, and pick your US ROM in the launcher the first tim
 The packages contain no game data: you still need your own ROM. To build it yourself
 instead, read on.
 
+The uncensored version of the US ROM (SHA-1
+`4df27756ef604e82c6874aade21075b5bc8d405a`) works too. Its code is the same as the
+US ROM's; only assets after it differ. Once a ROM is loaded, the launcher shows which
+one (**ROM: US** or **ROM: Uncensored**); pick that option to load the other.
+
 ## Features
 
 - Runs natively on Windows (Direct3D 12 or Vulkan) and Linux (Vulkan), rendered
@@ -40,7 +45,7 @@ The game is playable, and has been played through to the end. Known issues:
 - Widescreen: the pause menu's blurred background is the 4:3 frame scaled up to
   the full width, so its top and bottom are cropped.
 - Environment-mapped (reflective) surfaces render without their reflection texture.
-- Only the US ROM is supported.
+- Only the US ROM (and its uncensored version) is supported.
 - Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with
   software Vulkan (llvmpipe) and sound. It hasn't been played on Linux with a
   real GPU driver yet, so reports are welcome, especially about performance or
@@ -143,8 +148,8 @@ code is C so far, and the rest is still the original assembly.
 
 Run `host/build/ConkerRecomp` (Linux) or `host\build-win\ConkerRecomp.exe`
 (Windows). The first time, pick **Load ROM** in the launcher and select your ROM
-(the same `baserom.us.z64` works). After that it's remembered, so just choose
-**Start Game**.
+(the same `baserom.us.z64` works, or the uncensored ROM). After that it's
+remembered, so just choose **Start Game**. Building needs the US ROM either way.
 
 - **Settings** (in the launcher, or Esc / the controller's menu button in game)
   has graphics (resolution, aspect ratio, anti-aliasing, frame rate), controls,
