@@ -27,6 +27,20 @@ index f79adbf..6e0a6f9 100644
      struct FixedRect {
          int32_t ulx;
          int32_t uly;
+diff --git a/src/common/rt64_hlslpp.h b/src/common/rt64_hlslpp.h
+index 1450565..032ed28 100644
+--- a/src/common/rt64_hlslpp.h
++++ b/src/common/rt64_hlslpp.h
+@@ -10,4 +10,8 @@
+ #define HLSLPP_SCALAR
+ #endif
+ 
++// The scalar implementation uses labs() without including <stdlib.h>, which recent
++// macOS SDKs no longer bring in through <math.h>.
++#include <stdlib.h>
++
+ #include "hlsl++.h"
+\ No newline at end of file
 diff --git a/src/gbi/rt64_gbi.cpp b/src/gbi/rt64_gbi.cpp
 index 7006549..4984e7c 100644
 --- a/src/gbi/rt64_gbi.cpp
