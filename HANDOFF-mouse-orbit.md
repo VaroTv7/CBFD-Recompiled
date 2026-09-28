@@ -34,9 +34,9 @@ Multiplayer mouse is deferred on purpose; the user wants story mode stable first
 
 ## Start here: open work, in priority order (2026-09-27, end of session)
 
-### 1. Widescreen clipping of doors and objects: FIXED in RT64. The user confirmed it looks much better in several spots (2026-09-28)
+### 1. Widescreen clipping of doors and objects: FIXED in RT64. The user confirmed it looks much better in several spots (2026-09-28), and at 32:9 too
 
-**Still to do:** remove the log and the switches, port to main (and check 32:9, the camera's wall check, the sky, glows, pause and iris before that).
+**Still to do:** remove the log and the switches, port to main (and check the camera's wall check, the sky, glows, pause and iris before that).
 
 **The real cause (from `CONKER_RT64_FBLOG`, 2026-09-28; the depth theory below was wrong).**
 - **What the log ruled out:** RT64 never reloads, clears or resizes the depth target, and
