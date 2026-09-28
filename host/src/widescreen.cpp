@@ -156,7 +156,14 @@ extern "C" void conker_emit_sprite_texrect(uint8_t* rdram, recomp_context* ctx) 
 // rectangle, the first sync becomes the enable of RT64's extended GBI and the
 // second the zoom; the last sync, after the last rectangle, returns to the
 // automatic aspect. The display list doesn't grow.
+//
+// Not for the motion blur (func_151D6778, e.g. Conker drunk at the start of the game), which
+// uses both every frame on its own copy of the frame (D_800BE570): it draws the copy over the
+// frame, then copies the frame into it. That copy is RT64's widened frame and is drawn back
+// across the whole width already, and zooming it each frame zoomed the last frame's ghost
+// again on every pass, dragging the picture into streaks.
 namespace {
+    constexpr uint32_t motion_blur_copy = 0x800BE570; // D_800BE570
     constexpr uint32_t g_ex_setrectaspect_v1 = 0x000033;
     constexpr uint32_t g_ex_aspect_auto = 0x0;
     constexpr uint32_t g_ex_aspect_zoom = 0x3;
@@ -170,9 +177,21 @@ namespace {
     }
 }
 
-// At the start of the function: $a0 is where it writes its first command.
+// At the start of the function: $a0 is where it writes its first command, $a1 the image it
+// draws from.
 extern "C" void conker_frame_copy_begin(uint8_t* rdram, recomp_context* ctx) {
     frame_copy_dl_start = ctx->r4;
+    const uint32_t blur_copy = (uint32_t)MEM_W(0, (gpr)(int32_t)motion_blur_copy);
+    if (blur_copy == 0) {
+        return;
+    }
+    // The motion blur draws its copy (func_151D6418 from D_800BE570), or copies the frame into
+    // it (func_151D5E90 just after its colour image was set to D_800BE570).
+    const bool draws_copy = (uint32_t)ctx->r5 == blur_copy;
+    const bool fills_copy = ((uint32_t)MEM_W(-16, ctx->r4) >> 24) == 0xFF && (uint32_t)MEM_W(-12, ctx->r4) == blur_copy;
+    if (draws_copy || fills_copy) {
+        frame_copy_dl_start = 0;
+    }
 }
 
 // At its return: $v0 is the end of what it wrote.
