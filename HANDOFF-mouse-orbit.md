@@ -1,4 +1,4 @@
-# Handoff: mouse orbit camera (wall collision)
+# Handoff: mouse orbit camera, frame clear, widescreen door clipping
 
 Status as of 2026-09-27. This lives only on the `mouse-orbit-wip` branch of the test clone
 (`D:\Retro Emulation\Conker's Recomp Test`), not on main. Experiments stay here until the
@@ -31,6 +31,74 @@ What the user has confirmed working:
 - **Handing back to the game:** C-left/right, cutscenes and look mode.
 
 Multiplayer mouse is deferred on purpose; the user wants story mode stable first.
+
+## Start here: open work, in priority order (2026-09-27, end of session)
+
+### 1. Widescreen clipping of doors and objects: cause found, fix not written yet
+
+**Symptom.** In widescreen only (fine at 4:3), doors lose pieces depending on the camera
+angle, and so do most objects drawn in the same pass. Examples: the doors on either side of
+the Feral Reserve building, and the "CLOSED" door in the Windy caves.
+
+**Cause.** `func_1510B9D0` is the per-camera level pass. At 0x1510BE20 it calls
+`func_1512E5F0`, camera code, when the camera struct (`$a1` = sp+0x94) has +0x8B8 set and
+bit 0x8 of +0x84 on.
+- **What the copy does:** it switches the colour image to a 1-pixel-wide image (0xFF100000 at
+  0x1512E7AC), sets a scissor, and copies depth-buffer pixels into it.
+- **Who reads it:** `func_1512B1B8` decodes the samples with the N64 depth table `D_80089630`.
+- **What breaks:** RT64 then starts a new framebuffer pair for the main screen ("The color image
+  was changed"). Everything drawn after it (objects in the later passes) is depth-tested
+  wrongly. The probable reason: RT64 syncs depth to RDRAM (292 wide) and reloads it, so it no
+  longer lines up with the widened picture.
+
+**Confirmed by the user at 1080p:**
+- `CONKER_SKIP_DEPTH_CAMERA=1` (skips that copy): nothing clips.
+- `CONKER_SKIP_DEPTH_PROBES=1` (the other copy, `func_151742EC` → `func_15173D00`, 4 pixels
+  wide): still clips. So it's the camera copy only.
+
+**Next steps:**
+1. Work out what `func_1512B1B8` uses the camera's depth samples for; start from the
+   decode at 0x1512B23C/0x1512B3EC. Probably a check on whether Conker or the camera target is
+   hidden behind something.
+2. Choose a fix:
+   - **(a) Game-side:** skip the copy (the hook at 0x1510BE18 forcing `$t2 = 0`, now under
+     `CONKER_SKIP_DEPTH_CAMERA`). Give `func_1512B1B8` a neutral answer instead, e.g. fill
+     its sample buffer with 0xFFFC ("nothing in front"), or answer the question with a
+     collision ray.
+   - **(b) RT64-side:** stop RT64 from reloading depth after a draw that only reads the depth
+     buffer. More general, but deeper.
+   - **Recommendation:** (a), in widescreen only if needed.
+3. Make it permanent: the hook in `conker.toml` and code in `host/src/render_fixes.cpp`.
+   Remove the TEMP-DEBUG switches, name and document `func_1512E5F0`/`func_1512B1B8` (project
+   rules), then port to main once the user confirms.
+
+**Tools that found it:**
+- `CONKER_DEV_MODE=1` turns on RT64's developer tools. Set Mouse Sensitivity to 0, press F1,
+  right-click the scene, and pick draw calls.
+- A framebuffer pair whose flush reason is "color image was changed" was the clue.
+
+### 2. Light glows (built, needs an in-game check)
+- **What was wrong:** `func_151408A4` hides a glow when a depth sample says something is in front
+  of the light. On RT64 the sample isn't real depth, so glows vanished with distance (the Feral
+  Reserve sign lights).
+- **The fix:** a hook at 0x15140DB4 (`conker_light_glow_depth` in `render_fixes.cpp`) forces
+  the test to pass. It still writes a TEMP-DEBUG `light_glow_log.txt`.
+- **To check:** the user hasn't confirmed it in game; the log only appears once those lights are on
+  screen.
+- **The other system:** a second glow system (`func_1517E1AC` reads depth from RDRAM with the
+  CPU; `func_1517E28C` fades it) may need the same treatment.
+
+### 3. Frame clear: confirmed good
+`D_800BE635` is forced on through `conker_frame_clear` (hook in `func_1510FEA0` at
+0x1510FFA4), so each frame starts black instead of repeating the last one in the void. It
+has a TEMP-DEBUG `CONKER_NO_FRAME_CLEAR` switch. It is a candidate to port to main on its
+own; it helps the controller camera too.
+
+### TEMP-DEBUG to remove before porting
+- `CONKER_CULL_EXTRA` and `CONKER_NO_CULL_WIDEN` in `widescreen.cpp`.
+- `CONKER_DEV_MODE` in `frontend.cpp`. Could stay as a developer feature if the user wants.
+- `CONKER_NO_FRAME_CLEAR`, `CONKER_SKIP_DEPTH_CAMERA`, `CONKER_SKIP_DEPTH_PROBES` and the glow log
+  in `render_fixes.cpp`, plus their two toml hooks (`func_1510B9D0`, `func_151742EC`).
 
 ## Change of plan (user's idea): let it clip, clear the frame
 
