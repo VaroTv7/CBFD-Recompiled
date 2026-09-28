@@ -56,28 +56,84 @@ bit 0x8 of +0x84 on.
 - `CONKER_SKIP_DEPTH_PROBES=1` (the other copy, `func_151742EC` → `func_15173D00`, 4 pixels
   wide): still clips. So it's the camera copy only.
 
-**Next steps:**
-1. Work out what `func_1512B1B8` uses the camera's depth samples for; start from the
-   decode at 0x1512B23C/0x1512B3EC. Probably a check on whether Conker or the camera target is
-   hidden behind something.
-2. Choose a fix:
-   - **(a) Game-side:** skip the copy (the hook at 0x1510BE18 forcing `$t2 = 0`, now under
-     `CONKER_SKIP_DEPTH_CAMERA`). Give `func_1512B1B8` a neutral answer instead, e.g. fill
-     its sample buffer with 0xFFFC ("nothing in front"), or answer the question with a
-     collision ray.
-   - **(b) RT64-side:** stop RT64 from reloading depth after a draw that only reads the depth
-     buffer. More general, but deeper.
-   - **Recommendation:** (a), in widescreen only if needed.
-3. Make it permanent: the hook in `conker.toml` and code in `host/src/render_fixes.cpp`.
-   Remove the TEMP-DEBUG switches, name and document `func_1512E5F0`/`func_1512B1B8` (project
-   rules), then port to main once the user confirms.
+**What the copy is for.** `func_1512E5F0` builds an RDP copy of one full row of the depth
+buffer into the buffer at camera +0x8BC:
+- the row is camera +0x8BA, the full width `D_800BE620`, 292;
+- the texture is the depth buffer (`D_800BE9C4`), loaded as a 16-bit texture with LoadBlock;
+- the colour image is set to +0x8BC at width 292, with a 1-row scissor, and a copy-mode texture
+  rectangle does the copy;
+- afterwards `func_1501A680` and `func_1501A490` restore the main colour image and scissor.
+
+Next frame, `func_1512B1B8(camera, x, a2, depth)` scans that row left and right from
+Conker's column (called from 0x1512AF6C). It decodes each sample, compares it with Conker's
+depth, and calls `func_1512B630` to record occluders in the per-camera tables `D_800DC0C0`.
+This is most likely the controller camera noticing a wall hiding Conker and swinging around
+it (not yet confirmed in game). So skipping the copy would change camera behaviour.
+
+**Decision (user, 2026-09-27): fix it in RT64 (option b); keep the game's copy as it is.**
+Option (a), skipping the copy in widescreen and filling +0x8BC with 0xFFFC ("nothing in
+front"), was turned down because the camera would lose that behaviour. Keep it only as a
+fallback.
+
+**Next steps (RT64 side):**
+1. **Reproduce.** Use the inspector (`CONKER_DEV_MODE=1`, F1) in widescreen at the Feral
+   Reserve doors. Framebuffer pair #2 should be the 292×1 image at camera+0x8BC, and #3 the
+   main screen resumed ("The color image was changed").
+2. **Find what RT64 does to the depth target around pair #2.** Suspects, most likely first:
+   - **Depth target resized or converted:** the tiny pair's scissor isn't 4:3, so
+     `adjustRatio` is false (`rt64_framebuffer_renderer.cpp`, about line 1435, scissor ratio
+     vs `aspectRatioSource`). That pair may be rendered without widening. Pair #2 still has
+     the main depth image attached, so RT64 may resize or convert the depth target to the
+     narrower resolution, and #3 then gets it back misaligned.
+   - **Depth reloaded from RDRAM:** the depth buffer is read as a texture (SETTIMG = the
+     depth address). RT64 may sync depth to RDRAM (292 wide) for that, then mark the target
+     stale and reload it from RDRAM for pair #3, which drops the widened area and shifts the
+     rest.
+   - **Where to look:** `rt64_framebuffer_manager.cpp` / `rt64_framebuffer_changes.cpp`
+     (fb-as-texture, RDRAM sync), `rt64_render_target_manager` (target sizes per address),
+     and the `checkFramebufferPair` / flush path in `rt64_state.cpp` / `rt64_rdp.cpp`.
+3. **Fix.** When a pair only reads the depth image as a texture and doesn't draw with depth
+   (copy mode, no Z), leave the widened depth target alone: no resize, no reload, and no
+   RDRAM write-back that later overrides it. The game still needs its row copy to hold real
+   depth, 292 samples at the N64 resolution, taken from the middle 4:3 area of the widened
+   target. So the copy has to sample the widened target at the right place, or RT64's
+   existing fb-to-RDRAM path has to produce that without touching the GPU target.
+4. **Patch location:** the change goes in `recomp/rt64.patch` (build.cmd/build.sh apply it to
+   tools/rt64). Regenerate the patch from tools/rt64 after editing.
+5. **Verify.** The doors stay whole at 16:9 and 32:9 (`host/multi_aspect.ps1`) without
+   `CONKER_SKIP_DEPTH_CAMERA`. The camera still swings when Conker walks behind a wall (compare
+   with 4:3). No regressions in the sky, the glows or the frame copies (pause and iris).
+6. **Then:** remove the TEMP-DEBUG switches, name and document `func_1512E5F0` and
+   `func_1512B1B8` (project rules), and port to main once the user confirms.
 
 **Tools that found it:**
 - `CONKER_DEV_MODE=1` turns on RT64's developer tools. Set Mouse Sensitivity to 0, press F1,
   right-click the scene, and pick draw calls.
 - A framebuffer pair whose flush reason is "color image was changed" was the clue.
 
-### 2. Light glows (built, needs an in-game check)
+### 2. Light glows: the depth fix works, but they clip at the screen edges (next small fix)
+**Status:** the user confirmed the glows stay lit now. But they disappear toward the left and
+right edges in widescreen.
+
+**Cause:** `func_151408A4` is the glow. It keeps a glow only while the light's projected point
+(from `func_15144CEC`) is inside the camera's 4:3 screen bounds:
+- left +0x2C and right +0x30, compared at 0x15140980–0x151409A8;
+- top +0x24 and bottom +0x28 after that.
+
+There's no margin. The glow itself is drawn as a 3D billboard (matrices through
+`func_151D5D60`), so widescreen draws it fine anywhere; only this check is 4:3.
+
+**Fix plan:**
+- Add hooks before the two x compares: 0x15140988 (`c.lt.s $f8, $f10`, where `$f10` = left) and
+  0x151409A0 (`c.lt.s $f4, $f8`, where `$f4` = right).
+- Widen `$f10` by −margin and `$f4` by +margin. Use the same margin as the sprite cull in
+  `widescreen.cpp`: half_frame × (ratio − 1) + 8, where ratio = window aspect / (4/3).
+- Put the code in `render_fixes.cpp`, which can call a shared margin helper exported from
+  `widescreen.cpp`.
+- The depth-sample x written for that light may then be off the 4:3 buffer. That's harmless,
+  since the depth test is bypassed.
+
+**Earlier details:**
 - **What was wrong:** `func_151408A4` hides a glow when a depth sample says something is in front
   of the light. On RT64 the sample isn't real depth, so glows vanished with distance (the Feral
   Reserve sign lights).
