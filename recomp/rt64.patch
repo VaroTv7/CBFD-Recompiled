@@ -220,6 +220,157 @@ index 69c35d2..bcea8ec 100644
          Count
      };
  
+diff --git a/src/gbi/rt64_gbi_f3dex2cbfd.cpp b/src/gbi/rt64_gbi_f3dex2cbfd.cpp
+new file mode 100644
+index 0000000..3db0968
+--- /dev/null
++++ b/src/gbi/rt64_gbi_f3dex2cbfd.cpp
+@@ -0,0 +1,119 @@
++//
++// RT64
++//
++// Conker's Bad Fur Day's modified F3DEX2, based on GLideN64's F3DEX2CBFD.
++// Commands not listed here behave as in F3DEX2.
++//
++
++#include "rt64_gbi_f3dex2cbfd.h"
++
++#include "hle/rt64_interpreter.h"
++
++#include "rt64_f3d.h"
++#include "rt64_gbi_f3dex2.h"
++
++namespace RT64 {
++    namespace GBI_F3DEX2CBFD {
++        // The game's G_LIGHTING is kept aside: lighting is computed into the vertex
++        // colours on the CPU (RSP::lightVerticesCBFD), so the shaders must not light
++        // them again. Texture generation also relies on these normals, which RT64's
++        // shaders can't see, so it's disabled for now.
++        void geometryMode(State *state, DisplayList **dl) {
++            RSP *rsp = state->rsp.get();
++            const uint32_t offMask = (*dl)->p0(0, 24);
++            const uint32_t onMask = (*dl)->w1;
++            const uint32_t current = rsp->geometryModeStack[rsp->geometryModeStackSize - 1];
++            const uint32_t previous = current | (rsp->cbfd.lighting ? G_LIGHTING : 0);
++            const uint32_t requested = (previous & offMask) | onMask;
++            rsp->cbfd.lighting = (requested & G_LIGHTING) != 0;
++            rsp->modifyGeometryMode(0, requested & ~(G_LIGHTING | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR));
++        }
++
++        void vertex(State *state, DisplayList **dl) {
++            uint8_t vtxCount = (*dl)->p0(12, 8);
++            state->rsp->setVertexCBFD((*dl)->w1, vtxCount, (*dl)->p0(1, 7) - vtxCount);
++        }
++
++        void moveWord(State *state, DisplayList **dl) {
++            switch ((*dl)->p0(16, 8)) {
++            case G_MW_NUMLIGHT:
++                state->rsp->cbfd.lightCount = (*dl)->w1 / 48;
++                break;
++            case F3DEX2CBFD_G_MW_COORD_MOD:
++                state->rsp->setCoordModCBFD((*dl)->w0, (*dl)->w1);
++                break;
++            default:
++                GBI_F3DEX2::moveWord(state, dl);
++                break;
++            }
++        }
++
++        void moveMem(State *state, DisplayList **dl) {
++            switch ((*dl)->p0(0, 8)) {
++            case F3DEX2_G_MV_VIEWPORT:
++                state->rsp->setViewport((*dl)->w1);
++                break;
++            case F3DEX2_G_MV_LIGHT: {
++                const uint32_t offset = (*dl)->p0(5, 14);
++                const uint32_t n = offset / 48;
++                if (n < 2) {
++                    state->rsp->setLookAt(n, (*dl)->w1);
++                }
++                else {
++                    state->rsp->setLightCBFD(n - 2, (*dl)->w1);
++                }
++
++                break;
++            }
++            case F3DEX2CBFD_G_MV_NORMALES:
++                state->rsp->cbfd.normalBase = state->rsp->fromSegmentedMasked((*dl)->w1);
++                break;
++            default:
++                break;
++            }
++        }
++
++        // The microcode reuses G_LOAD_UCODE to switch to its advanced lighting mode.
++        void switchLightingMode(State *state, DisplayList **dl) {
++            state->rsp->cbfd.advancedLighting = true;
++        }
++
++        void tri4(State *state, DisplayList **dl) {
++            const uint32_t w0 = (*dl)->w0;
++            const uint32_t w1 = (*dl)->w1;
++            auto field = [](uint32_t w, uint32_t shift, uint32_t bits) { return (w >> shift) & ((1U << bits) - 1); };
++            const uint32_t v[12] = {
++                field(w0, 23, 5), field(w0, 18, 5), (field(w0, 15, 3) << 2) | field(w1, 30, 2),
++                field(w0, 10, 5), field(w0, 5, 5), field(w0, 0, 5),
++                field(w1, 25, 5), field(w1, 20, 5), field(w1, 15, 5),
++                field(w1, 10, 5), field(w1, 5, 5), field(w1, 0, 5),
++            };
++
++            for (int t = 0; t < 4; t++) {
++                const uint32_t a = v[t * 3 + 0], b = v[t * 3 + 1], c = v[t * 3 + 2];
++                // Unused slots repeat an index.
++                if ((a != b) && (b != c) && (a != c)) {
++                    state->rsp->drawIndexedTri(a, b, c);
++                }
++            }
++        }
++
++        void reset(State *state) {
++            state->rsp->setClipRatioAll(2U);
++            state->rsp->cbfd.advancedLighting = false;
++        }
++
++        void setup(GBI *gbi) {
++            GBI_F3DEX2::setup(gbi);
++            gbi->resetFromTask = &reset;
++            gbi->map[F3DEX2_G_GEOMETRYMODE] = &geometryMode;
++            gbi->map[F3DEX2_G_VTX] = &vertex;
++            gbi->map[F3DEX2_G_MOVEWORD] = &moveWord;
++            gbi->map[F3DEX2_G_MOVEMEM] = &moveMem;
++            gbi->map[F3DEX2_G_LOAD_UCODE] = &switchLightingMode;
++            for (uint32_t i = 0; i < 16; i++) {
++                gbi->map[F3DEX2CBFD_G_TRI4 + i] = &tri4;
++            }
++        }
++    }
++};
+diff --git a/src/gbi/rt64_gbi_f3dex2cbfd.h b/src/gbi/rt64_gbi_f3dex2cbfd.h
+new file mode 100644
+index 0000000..99ef5c2
+--- /dev/null
++++ b/src/gbi/rt64_gbi_f3dex2cbfd.h
+@@ -0,0 +1,20 @@
++//
++// RT64
++//
++
++#pragma once
++
++#include "rt64_gbi.h"
++
++// Conker's Bad Fur Day's modified F3DEX2: F3DEX2 with a different lighting
++// model (point lights, per-vertex normals held apart from the vertices, a
++// coordinate modifier) and a four-triangle command.
++#define F3DEX2CBFD_G_TRI4 0x10
++#define F3DEX2CBFD_G_MV_NORMALES 14
++#define F3DEX2CBFD_G_MW_COORD_MOD 0x10
++
++namespace RT64 {
++    namespace GBI_F3DEX2CBFD {
++        void setup(GBI *gbi);
++    };
++};
 diff --git a/src/hle/rt64_framebuffer_manager.cpp b/src/hle/rt64_framebuffer_manager.cpp
 index d7caa12..60112aa 100644
 --- a/src/hle/rt64_framebuffer_manager.cpp
