@@ -12,6 +12,10 @@
 #include "ultramodern/input.hpp"
 #include "ultramodern/renderer_context.hpp"
 
+namespace recomp::config {
+    class Config;
+}
+
 namespace conker {
     // overlays.cpp
     void register_overlays();
@@ -72,6 +76,14 @@ namespace conker {
 
     // conker_config.cpp: the settings tabs.
     void init_config();
+
+    // look_aim.cpp: gyro and mouse in the look mode (hold R), and how each input moves the view.
+    namespace look_aim {
+        // Its settings, on the General tab.
+        void add_options(recomp::config::Config& config);
+        // Called on every input poll: queues its mouse and gyro movement for the look mode.
+        void on_input_poll();
+    }
 
     // SDL sound output (audio_output.cpp).
     namespace audio {

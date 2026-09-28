@@ -420,3 +420,86 @@ text = "{ extern void conker_iris_begin(uint8_t*, recomp_context*); conker_iris_
 func = "func_15180580"
 before_vram = 0x151814F4
 text = "{ extern void conker_iris_end(uint8_t*, recomp_context*); conker_iris_end(rdram, ctx); }"
+
+# The look mode (hold R): gyro and mouse, and smooth or direct response for each input
+# (host/src/look_aim.cpp). The first three can turn the stick's axes around, the fourth is
+# before the pitch clamp so the game's limits apply to the mouse and gyro too, and the last is
+# where both branches of the springs meet.
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A14
+text = "{ extern void conker_look_stick_yaw_a(uint8_t*, recomp_context*); conker_look_stick_yaw_a(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A44
+text = "{ extern void conker_look_stick_yaw_b(uint8_t*, recomp_context*); conker_look_stick_yaw_b(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120A98
+text = "{ extern void conker_look_stick_pitch(uint8_t*, recomp_context*); conker_look_stick_pitch(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120B44
+text = "{ extern void conker_look_targets(uint8_t*, recomp_context*); conker_look_targets(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120E8C
+text = "{ extern void conker_look_currents(uint8_t*, recomp_context*); conker_look_currents(rdram, ctx); }"
+
+# Mouse camera: a free orbit camera (host/src/mouse_camera.cpp). func_1512D390 is the
+# C-buttons' turning, which runs while the follow camera does ($s0 is the camera until
+# 0x1512D54C restores it); func_1512BB10 is the camera's collision, where the orbit places
+# the eye it wants for the collision to stop at walls; func_151284C4 builds the view from
+# the eye and ends the frame's camera update ($a0 the camera in both).
+[[patches.hook]]
+func = "func_1512D390"
+before_vram = 0x1512D54C
+text = "{ extern void conker_mouse_camera_follow(uint8_t*, recomp_context*); conker_mouse_camera_follow(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_1512BB10"
+before_vram = 0x1512BB14
+text = "{ extern void conker_mouse_camera_collide(uint8_t*, recomp_context*); conker_mouse_camera_collide(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_151284C4"
+before_vram = 0x151284C8
+text = "{ extern void conker_mouse_camera(uint8_t*, recomp_context*); conker_mouse_camera(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x1512015C
+text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); conker_mouse_camera_look_mode(rdram, ctx); }"
+
+# Clear the frame to black before drawing it. func_1510FEA0 (starts each frame's display
+# list) clears the depth buffer, then clears the colour buffer only while D_800BE635 is
+# set, and level setup (func_1501A220) clears that flag: the game relies on the level and
+# sky covering the whole screen. Where they don't, such as with the mouse camera inside or
+# under a wall, the last frame's picture stayed there and repeated (host/src/render_fixes.cpp).
+[[patches.hook]]
+func = "func_1510FEA0"
+before_vram = 0x1510FFA4
+text = "{ extern void conker_frame_clear(uint8_t*, recomp_context*); conker_frame_clear(rdram, ctx); }"
+
+# Light glows: func_151408A4 hides a glow when the depth buffer sample under its light is
+# nearer than the light, and on RT64 that sample isn't real depth. Skip the comparison
+# (host/src/render_fixes.cpp).
+[[patches.hook]]
+func = "func_151408A4"
+before_vram = 0x15140DB4
+text = "{ extern void conker_light_glow_depth(uint8_t*, recomp_context*); conker_light_glow_depth(rdram, ctx); }"
+
+# TEMP-DEBUG: switches for the game's mid-frame depth-buffer copies (host/src/render_fixes.cpp).
+[[patches.hook]]
+func = "func_1510B9D0"
+before_vram = 0x1510BE18
+text = "{ extern void conker_depth_copy_camera(uint8_t*, recomp_context*); conker_depth_copy_camera(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_151742EC"
+before_vram = 0x1517432C
+text = "{ extern void conker_depth_copy_probes(uint8_t*, recomp_context*); conker_depth_copy_probes(rdram, ctx); }"

@@ -56,7 +56,12 @@ function New-Instance([string]$name) {
         $target = Join-Path $dir $relative
         if (Test-Path -LiteralPath $target) { return }
         New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-        if ($_.Extension -eq ".z64") { New-Item -ItemType HardLink -Path $target -Target $_.FullName | Out-Null }
+        if ($_.Extension -eq ".z64") {
+            # A hard link can't cross drives (the data in %LOCALAPPDATA% on C:, the build on D:): copy then.
+            $rom = $_.FullName
+            try { New-Item -ItemType HardLink -Path $target -Target $rom -ErrorAction Stop | Out-Null }
+            catch { Copy-Item -LiteralPath $rom -Destination $target }
+        }
         else { Copy-Item -LiteralPath $_.FullName -Destination $target }
     }
     Set-Content -LiteralPath (Join-Path $dir "portable.txt") -Value "Test instance ($name): data lives next to the exe." -Encoding utf8

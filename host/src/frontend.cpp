@@ -36,8 +36,16 @@ std::vector<recomp::GameEntry> supported_games;
 // The game window, which recompui also uses (ui_state.cpp declares it extern).
 SDL_Window* window = nullptr;
 
+void conker_mouse_camera_init();
+
 namespace {
     std::vector<char> thumbnail;
+
+    // Each poll also tells the look mode that the next mouse and gyro movement is in.
+    void poll_inputs() {
+        recompinput::poll_inputs();
+        conker::look_aim::on_input_poll();
+    }
 
     // The launcher's Version and Add ROM options, and the window title that names the
     // version in play. The title is set on the main thread (update_gfx), as macOS requires.
@@ -66,6 +74,8 @@ namespace {
         // application object if it doesn't exist yet and makes it an accessory app, and SDL
         // then leaves it that way (no Dock icon, and the window opens behind the terminal).
         NFD_Init();
+        // The mouse camera's scroll wheel zoom (mouse_camera.cpp).
+        conker_mouse_camera_init();
         return nullptr;
     }
 
@@ -204,7 +214,9 @@ namespace {
     std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
         uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
         return recompui::renderer::create_render_context(rdram, window_handle,
-            ultramodern::renderer::PresentationMode::PresentEarly, developer_mode);
+            ultramodern::renderer::PresentationMode::PresentEarly,
+            // TEMP-DEBUG: CONKER_DEV_MODE turns on RT64's developer tools (F1: inspector).
+            developer_mode || SDL_getenv("CONKER_DEV_MODE") != nullptr);
     }
 
 }
@@ -247,7 +259,7 @@ void conker::frontend::init(recomp::GameEntry& game) {
 void conker::frontend::set_callbacks(recomp::Configuration& cfg) {
     cfg.renderer_callbacks.create_render_context = create_render_context;
     cfg.gfx_callbacks = { create_gfx, create_window, update_gfx };
-    cfg.input_callbacks = { recompinput::poll_inputs, recompinput::profiles::get_n64_input, recompinput::set_rumble,
+    cfg.input_callbacks = { poll_inputs, recompinput::profiles::get_n64_input, recompinput::set_rumble,
                             conker::get_connected_device_info };
     cfg.error_handling_callbacks.message_box = recompui::message_box;
 }
