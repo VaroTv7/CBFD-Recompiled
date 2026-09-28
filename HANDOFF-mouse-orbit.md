@@ -1,7 +1,7 @@
 # Handoff: mouse orbit camera, frame clear, widescreen door clipping
 
 Status as of 2026-09-27. This lives only on the `mouse-orbit-wip` branch of the test clone
-(`D:\Retro Emulation\Conker's Recomp Test`), not on main. Experiments stay here until the
+(`D:\Retro Emulation\Conkers Recomp Test`; renamed 2026-09-28 without the apostrophe, so the old `build-win` folders had to be deleted), not on main. Experiments stay here until the
 user has tried them in game; then they are ported to the original repo
 (`D:\Retro Emulation\Conker's Recomp`, public as sciaschi/CBFD-Recompiled).
 
@@ -134,6 +134,34 @@ fallback.
   Feral Reserve doors at 16:9 to tell (A) from (B). This needs the user's machine (ROM,
   build, game).
 
+**The RT64 log (TEMP-DEBUG, 2026-09-28), to tell (A) from (B):**
+- **Turning it on:** it's in `recomp/rt64.patch` (new `src/common/rt64_fblog.h`). Off unless
+  `CONKER_RT64_FBLOG` is set.
+- **What it writes:** 2 frames out of every 150 (about every 5 s), 40 times, to
+  `rt64_fb_log.txt` in the working directory. Rects are 10.2 fixed point, so 4 = one pixel.
+- **Line prefixes:**
+  - `[hle N]`: the game's side, per pair as it's submitted: addresses, flush reason,
+    rects, depthRead/Write, and the colour and depth framebuffers' widthChanged,
+    sizChanged, rdramChanged and formatChanged. Also pending ops (tile copies), `changeRAM`
+    (who marks whom rdramChanged), and `checkRDRAM` (framebuffers the CPU changed).
+  - `[hires N]`: the widened render, per pair: targets and sizes, resizes, and every time the
+    depth target is CLEARED, reloaded from RDRAM, or overwritten from its colour-type
+    target. Also tile copy setup/record and writeChanges (RDRAM uploads).
+  - `renderer pair` lines: the pair's adjustRatio, and useWideViewport per projection.
+  - `[proj N]`: the projection processor's adjustAspectRatio per projection.
+    Transforms shared by several pairs are adjusted by whichever of them comes last.
+- **Reading it:** find the frame's pair with colour width 292 whose drawColorRect is one
+  row (the camera copy). Then look at the pair after it (the main screen resumed):
+  - (A) it shows `DEPTH target CLEARED` or `rows ... reloaded from RDRAM`, and the `[hle]` depthFb line
+    says which flag caused it;
+  - (B) its `adjustRatio`, `useWideViewport` or `adjustAspectRatio` differ from the pair
+    before the copy.
+- **To run** (from the repo root, as the rt64 patch changed): `.\build.cmd`, then in
+  `host\build-win`:
+  `$env:CONKER_RT64_FBLOG=1; .\ConkerRecomp.exe; Remove-Item Env:CONKER_RT64_FBLOG`.
+  Stand at the Feral Reserve doors in 16:9 with a door visibly clipped for ~30 s.
+  A second run with `CONKER_SKIP_DEPTH_CAMERA=1` as well gives the comparison.
+
 **Tools that found it:**
 - `CONKER_DEV_MODE=1` turns on RT64's developer tools. Set Mouse Sensitivity to 0, press F1,
   right-click the scene, and pick draw calls.
@@ -181,6 +209,9 @@ own; it helps the controller camera too.
 ### TEMP-DEBUG to remove before porting
 - `CONKER_CULL_EXTRA` and `CONKER_NO_CULL_WIDEN` in `widescreen.cpp`.
 - `CONKER_DEV_MODE` in `frontend.cpp`. Could stay as a developer feature if the user wants.
+- `CONKER_RT64_FBLOG` in `recomp/rt64.patch`: all of `src/common/rt64_fblog.h` and every block marked
+  TEMP-DEBUG (Conker) in rt64_state.cpp, rt64_framebuffer_manager.cpp, rt64_workload_queue.cpp,
+  rt64_framebuffer_renderer.cpp and rt64_projection_processor.cpp.
 - `CONKER_NO_FRAME_CLEAR`, `CONKER_SKIP_DEPTH_CAMERA`, `CONKER_SKIP_DEPTH_PROBES` and the glow log
   in `render_fixes.cpp`, plus their two toml hooks (`func_1510B9D0`, `func_151742EC`).
 
