@@ -267,7 +267,14 @@ own; it helps the controller camera too.
     `func_15122C5C` from +0x2EC) to that eye and leaves the result in +0x2F8.
   - `func_1512C490` copies it to +0x2EC.
 - **The view hook** (`conker_mouse_camera`) now only resets the per-frame flags.
-- **Status:** built, not yet tried in game.
+- **Status:** the user confirmed it no longer clips (2026-09-28). It was jumpy when caught
+  on a wall, compared with the C-buttons.
+- **Jumpiness fix (built, not yet tried):**
+  - The orbit keeps turning while a wall holds the camera, so the collision made one long
+    sweep each frame from the held spot, and it landed somewhere different each time.
+  - Now, when the camera is further from the wanted eye than the orbit itself moved since
+    last frame (+ 8 units), +0x2F8 gets only `catch_up` (0.3) of the way from +0x304 each
+    frame. Otherwise it gets the whole way, so free orbiting and zoom are unchanged.
 - **Watch for:** getting stuck behind pillars while orbiting (the sweep follows a straight
   line from the old eye), and flicks through thin walls.
 

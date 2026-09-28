@@ -53,6 +53,12 @@ namespace {
     constexpr float zoom_step = 1.12f;
     constexpr uint32_t camera_distances = 0x800A34B0; // D_800A34B0, 4 x { horizontal, height }
     constexpr int camera_distance_count = 4;
+    // When the camera is behind the eye the orbit wants (held by a wall, or freed after one),
+    // it's sent this fraction of the way each frame, and a gap this many units larger than the
+    // orbit's own move counts as behind. The collision only takes the C-buttons' camera a
+    // little way each frame; one long move from where a wall held it jumped about.
+    constexpr float catch_up = 0.3f;
+    constexpr float behind_slack = 8.0f;
 
     // Scroll wheel notches since the view last read them (SDL event watch: the
     // frontend's own event loop consumes the events).
@@ -69,6 +75,9 @@ namespace {
         bool follow_camera_ran = false; // func_1512D390 ran since the last view
         bool look_mode_ran = false;     // func_15120158 (hold R, aiming) ran since the last view
         bool turned = false;            // the mouse and wheel were read since the last view
+        bool has_target = false;        // target and next_target hold eyes the orbit wanted
+        float target[3] = {};           // the eye the orbit wanted last frame
+        float next_target[3] = {};      // this frame's, kept as target once the frame ends
         float yaw = 0.0f;               // radians, the eye's direction from the look-at point
         float pitch = 0.0f;
         float wanted = 0.0f;            // the scroll wheel's distance from the look-at point
@@ -179,9 +188,25 @@ extern "C" void conker_mouse_camera_collide(uint8_t* rdram, recomp_context* ctx)
     // Where the game pulls its own camera in closer than the controller can (tight spots),
     // so does the orbit.
     const float zoomed = (wanted_distance < nearest) ? std::min(orbit.wanted, wanted_distance) : orbit.wanted;
-    write_float(rdram, camera, 0x2F8, cx + dx * zoomed);
-    write_float(rdram, camera, 0x2FC, cy + dy * zoomed);
-    write_float(rdram, camera, 0x300, cz + dz * zoomed);
+    const float target[3] = { cx + dx * zoomed, cy + dy * zoomed, cz + dz * zoomed };
+
+    // The collision moves the camera from last frame's eye (+0x304). If that's further from
+    // the eye wanted now than the orbit itself moved since last frame, the camera is behind:
+    // ease it there rather than sending it the whole way at once.
+    float gap = 0.0f, moved = 0.0f;
+    float from[3];
+    for (int i = 0; i < 3; i++) {
+        from[i] = read_float(rdram, camera, 0x304 + i * 4);
+        gap += (target[i] - from[i]) * (target[i] - from[i]);
+        const float step = orbit.has_target ? (target[i] - orbit.target[i]) : 0.0f;
+        moved += step * step;
+    }
+    const bool behind = orbit.has_target && (std::sqrt(gap) > std::sqrt(moved) + behind_slack);
+    for (int i = 0; i < 3; i++) {
+        const float eye = behind ? from[i] + (target[i] - from[i]) * catch_up : target[i];
+        write_float(rdram, camera, 0x2F8 + i * 4, eye);
+        orbit.next_target[i] = target[i];
+    }
 }
 
 // func_151284C4 (builds the view), after its first instruction: $a0 is the camera. The
@@ -194,6 +219,9 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     if (!orbit.follow_camera_ran || orbit.look_mode_ran) {
         orbit.engaged = false;
     }
+    // The eye wanted this frame, to tell next frame how far the orbit itself moved.
+    orbit.has_target = orbit.engaged;
+    std::memcpy(orbit.target, orbit.next_target, sizeof(orbit.target));
     orbit.follow_camera_ran = false;
     orbit.look_mode_ran = false;
     orbit.turned = false;
