@@ -452,11 +452,18 @@ text = "{ extern void conker_look_currents(uint8_t*, recomp_context*); conker_lo
 
 # Mouse camera: a free orbit camera (host/src/mouse_camera.cpp). func_1512D390 is the
 # C-buttons' turning, which runs while the follow camera does ($s0 is the camera until
-# 0x1512D54C restores it); func_151284C4 builds the view from the eye ($a0 the camera).
+# 0x1512D54C restores it); func_1512BB10 is the camera's collision, where the orbit places
+# the eye it wants for the collision to stop at walls; func_151284C4 builds the view from
+# the eye and ends the frame's camera update ($a0 the camera in both).
 [[patches.hook]]
 func = "func_1512D390"
 before_vram = 0x1512D54C
 text = "{ extern void conker_mouse_camera_follow(uint8_t*, recomp_context*); conker_mouse_camera_follow(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_1512BB10"
+before_vram = 0x1512BB14
+text = "{ extern void conker_mouse_camera_collide(uint8_t*, recomp_context*); conker_mouse_camera_collide(rdram, ctx); }"
 
 [[patches.hook]]
 func = "func_151284C4"

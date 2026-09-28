@@ -254,6 +254,23 @@ own; it helps the controller camera too.
 - `CONKER_NO_FRAME_CLEAR`, `CONKER_SKIP_DEPTH_CAMERA`, `CONKER_SKIP_DEPTH_PROBES` and the glow log
   in `render_fixes.cpp`, plus their two toml hooks (`func_1510B9D0`, `func_151742EC`).
 
+## Orbit camera walls, attempt 4 (2026-09-28): let the game's own collision do it
+
+- **Why it's worth trying:** the user confirmed the C-button camera stops at walls and
+  slides along them, so `func_1512BB10` works for the game's own camera.
+- **Why the orbit went through walls:** it wrote all three eye copies in `func_151284C4`,
+  after that collision had run, which threw away its result.
+- **The new hook:** `conker_mouse_camera_collide` at `func_1512BB10` +4.
+  - It places the orbit's wanted eye in +0x2F8, the same field the C-button turning sets
+    earlier in `func_15122C5C`.
+  - The collision sweeps from last frame's drawn eye (+0x304, saved at the start of
+    `func_15122C5C` from +0x2EC) to that eye and leaves the result in +0x2F8.
+  - `func_1512C490` copies it to +0x2EC.
+- **The view hook** (`conker_mouse_camera`) now only resets the per-frame flags.
+- **Status:** built, not yet tried in game.
+- **Watch for:** getting stuck behind pillars while orbiting (the sweep follows a straight
+  line from the old eye), and flicks through thin walls.
+
 ## Change of plan (user's idea): let it clip, clear the frame
 
 The orbit camera no longer tries to collide. The collision code and the compare hooks were
@@ -359,9 +376,11 @@ Hooks, all in `conker.toml`:
   that the follow camera ran; C-left/right disengage the orbit.
 - **`conker_mouse_camera_look_mode`**: `func_15120158` @0x1512015C (look mode). It disables the
   orbit for that frame.
-- **`conker_mouse_camera`**: `func_151284C4` @0x151284C8 (builds the view; $a0 = camera). It
-  places the eye from our yaw, pitch and distance around the look-at point (+0x2BC), and writes
-  all three eye copies (+0x2EC, +0x2F8, +0x304).
+- **`conker_mouse_camera_collide`**: `func_1512BB10` @0x1512BB14 (the camera's collision; $a0 =
+  camera). It reads the mouse and wheel, then places the eye it wants from our yaw, pitch and distance
+  around the look-at point (+0x2BC) in +0x2F8, for the collision to move the camera toward.
+- **`conker_mouse_camera`**: `func_151284C4` @0x151284C8 (builds the view). It ends the frame:
+  resets the flags.
 - **Scroll wheel:** an SDL event watch (`conker_mouse_camera_init`, called from frontend.cpp).
 
 Camera (struct108), the follow camera:

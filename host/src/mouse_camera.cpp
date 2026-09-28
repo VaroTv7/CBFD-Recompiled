@@ -11,14 +11,16 @@
 // from an eye kept at a horizontal distance (+0x374) and height (+0x344) from the
 // pivot. It doesn't keep its angle: every frame func_15125330 works it out (+0x37C)
 // from where the eye is, and Conker's movement is relative to it. So once the mouse
-// moves, the eye is placed each frame from our own yaw and pitch around the look-at
-// point, just before the view is built (func_151284C4 builds it in func_1512C490), and
-// the rest of the game follows. The camera stays where the mouse leaves it.
+// moves, the eye the camera wants (+0x2F8) is placed each frame from our own yaw and
+// pitch around the look-at point, and the rest of the game follows. The camera stays
+// where the mouse leaves it.
 //
-// Walls: the orbit camera may go into walls (the game's camera collision, func_1512BB10,
-// works on its own camera's small moves). What it sees there is kept clean by clearing
-// each frame to black first (conker.toml, func_1510FEA0), instead of the last frame's
-// picture repeating wherever the level doesn't cover the screen.
+// Walls: the eye is placed as the game's camera collision (func_1512BB10) starts, the
+// way the C-buttons' turning places it earlier in the same update (func_15122C5C). The
+// collision moves the camera from where it was drawn last frame (+0x304) toward that eye
+// and stops it at walls, sliding along them, and leaves the result in +0x2F8. The view
+// (func_151284C4, in func_1512C490) then draws from there (+0x2EC). So the orbit stops at
+// walls the way the game's own camera does.
 //
 // The orbit only runs where the C-buttons turn the camera (func_1512D390 ran this
 // frame) and not in the look mode (func_15120158: hold R, aiming), so cutscenes, special
@@ -66,6 +68,7 @@ namespace {
         bool engaged = false;
         bool follow_camera_ran = false; // func_1512D390 ran since the last view
         bool look_mode_ran = false;     // func_15120158 (hold R, aiming) ran since the last view
+        bool turned = false;            // the mouse and wheel were read since the last view
         float yaw = 0.0f;               // radians, the eye's direction from the look-at point
         float pitch = 0.0f;
         float wanted = 0.0f;            // the scroll wheel's distance from the look-at point
@@ -107,20 +110,26 @@ extern "C" void conker_mouse_camera_look_mode(uint8_t* rdram, recomp_context* ct
     orbit.look_mode_ran = true;
 }
 
-// func_151284C4 (builds the view), after its first instruction: $a0 is the camera.
-extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
-    float mouse_x = 0.0f, mouse_y = 0.0f;
-    recompinput::get_mouse_deltas(&mouse_x, &mouse_y);
+// func_1512BB10 (the camera's collision), after its first instruction: $a0 is the camera.
+// Places the eye the orbit wants, for the collision to move the camera toward. The game
+// calls it a second time in some frames (camera +0x23C set): the mouse and wheel are read
+// only the first time, and the second places the same eye.
+extern "C" void conker_mouse_camera_collide(uint8_t* rdram, recomp_context* ctx) {
     const gpr camera = ctx->r4;
     if ((uint32_t)camera != (uint32_t)MEM_W(0, (gpr)(int32_t)current_camera)) {
         return;
     }
-    const bool follow_camera = orbit.follow_camera_ran && !orbit.look_mode_ran;
-    orbit.follow_camera_ran = false;
-    orbit.look_mode_ran = false;
-    if (!follow_camera) {
+    if (!orbit.follow_camera_ran || orbit.look_mode_ran) {
         orbit.engaged = false;
         return;
+    }
+
+    float mouse_x = 0.0f, mouse_y = 0.0f;
+    int notches = 0;
+    if (!orbit.turned) {
+        recompinput::get_mouse_deltas(&mouse_x, &mouse_y);
+        notches = wheel_notches.exchange(0);
+        orbit.turned = true;
     }
 
     const float cx = read_float(rdram, camera, 0x2BC);
@@ -133,10 +142,10 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     const float wanted_distance = std::sqrt(horizontal * horizontal + height * height);
 
     if (!orbit.engaged) {
-        if (mouse_x == 0.0f && mouse_y == 0.0f && wheel_notches.load() == 0) {
+        if (mouse_x == 0.0f && mouse_y == 0.0f && notches == 0) {
             return;
         }
-        // Take over from where the game's camera is.
+        // Take over from where the game's camera was drawn.
         const float ex = read_float(rdram, camera, 0x2EC) - cx;
         const float ey = read_float(rdram, camera, 0x2F0) - cy;
         const float ez = read_float(rdram, camera, 0x2F4) - cz;
@@ -158,7 +167,6 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
         nearest = (i == 0) ? d : std::min(nearest, d);
         farthest = (i == 0) ? d : std::max(farthest, d);
     }
-    const int notches = wheel_notches.exchange(0);
     orbit.wanted = std::clamp(orbit.wanted * std::pow(zoom_step, (float)-notches), nearest, farthest);
     orbit.yaw += mouse_x * degrees_per_pixel * degrees_to_radians;
     orbit.pitch = std::clamp(orbit.pitch + mouse_y * degrees_per_pixel * degrees_to_radians, min_pitch, max_pitch);
@@ -171,14 +179,24 @@ extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
     // Where the game pulls its own camera in closer than the controller can (tight spots),
     // so does the orbit.
     const float zoomed = (wanted_distance < nearest) ? std::min(orbit.wanted, wanted_distance) : orbit.wanted;
-    const float ex = cx + dx * zoomed;
-    const float ey = cy + dy * zoomed;
-    const float ez = cz + dz * zoomed;
-    for (int32_t eye : { 0x2EC, 0x2F8, 0x304 }) {
-        write_float(rdram, camera, eye, ex);
-        write_float(rdram, camera, eye + 4, ey);
-        write_float(rdram, camera, eye + 8, ez);
+    write_float(rdram, camera, 0x2F8, cx + dx * zoomed);
+    write_float(rdram, camera, 0x2FC, cy + dy * zoomed);
+    write_float(rdram, camera, 0x300, cz + dz * zoomed);
+}
+
+// func_151284C4 (builds the view), after its first instruction: $a0 is the camera. The
+// frame's camera update is done: start over for the next one.
+extern "C" void conker_mouse_camera(uint8_t* rdram, recomp_context* ctx) {
+    const gpr camera = ctx->r4;
+    if ((uint32_t)camera != (uint32_t)MEM_W(0, (gpr)(int32_t)current_camera)) {
+        return;
     }
+    if (!orbit.follow_camera_ran || orbit.look_mode_ran) {
+        orbit.engaged = false;
+    }
+    orbit.follow_camera_ran = false;
+    orbit.look_mode_ran = false;
+    orbit.turned = false;
 }
 
 // frontend.cpp, once SDL is up: listen for the scroll wheel.
