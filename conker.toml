@@ -450,6 +450,38 @@ func = "func_15120158"
 before_vram = 0x15120E8C
 text = "{ extern void conker_look_currents(uint8_t*, recomp_context*); conker_look_currents(rdram, ctx); }"
 
+# The second aiming mode (func_15126378: aiming that doesn't go through the look mode, e.g. the
+# sniper scope, the magnum and throwables) reads the stick itself, into its own yaw and pitch ($t0 + 0x174 and
+# + 0x178). Every path meets at 0x15126EA0 with the turn in $f14 (yaw, subtracted) and $f12
+# (pitch, added), just before they're applied: the look mode's Invert Stick setting turns them
+# around there too (host/src/look_aim.cpp).
+[[patches.hook]]
+func = "func_15126378"
+before_vram = 0x15126EA0
+text = "{ extern void conker_aim_stick(uint8_t*, recomp_context*); conker_aim_stick(rdram, ctx); }"
+
+# Camera: Invert Turning and Turning Speed (host/src/look_aim.cpp). func_1512D390 turns the
+# follow camera with C-Left and C-Right (by default also the right stick). It stores the direction,
+# 1 or -1, at $s0 + 0x6B0 (0x1512D3E8 or 0x1512D3EC); both paths meet at 0x1512D3F0, before the
+# turn speeds up that way. The frame's turn, in degrees, is then handed to func_1508EF80 in $f18
+# while a button is held (moved to $a2 at 0x1512D4C4) and in $f4 while it glides to a stop (at
+# 0x1512D53C). Only the camera turns there, so multiplayer's strafing (the same buttons, in the
+# movement code) is left as it is.
+[[patches.hook]]
+func = "func_1512D390"
+before_vram = 0x1512D3F0
+text = "{ extern void conker_camera_turn_invert(uint8_t*, recomp_context*); conker_camera_turn_invert(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_1512D390"
+before_vram = 0x1512D4C4
+text = "{ extern void conker_camera_turn_speed_held(uint8_t*, recomp_context*); conker_camera_turn_speed_held(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_1512D390"
+before_vram = 0x1512D53C
+text = "{ extern void conker_camera_turn_speed_released(uint8_t*, recomp_context*); conker_camera_turn_speed_released(rdram, ctx); }"
+
 # Mouse camera: a free orbit camera (host/src/mouse_camera.cpp). func_1512D390 is the
 # C-buttons' turning, which runs while the follow camera does ($s0 is the camera until
 # 0x1512D54C restores it); func_1512BB10 is the camera's collision, where the orbit places

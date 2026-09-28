@@ -89,6 +89,8 @@ namespace {
         const std::string gyro_response = "look_gyro_response";
         const std::string mouse_invert = "look_mouse_invert";
         const std::string gyro_invert = "look_gyro_invert";
+        const std::string camera_turn_invert = "camera_invert_turning";
+        const std::string camera_turn_speed = "camera_turn_speed";
     }
 
     enum class Response : uint32_t { Smooth, Direct };
@@ -131,7 +133,7 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
         " This also applies to the mouse and gyro, as the view catches up with the stick at once.",
         response, Response::Smooth);
     config.add_enum_option(options::stick_invert, "R-Look: Invert Stick",
-        "Inverts the stick in R-Look (hold R and look around), separately from the mouse and gyro. <recomp-color primary>Invert Y</recomp-color> is the default and matches the original game: pushing the stick up looks down.",
+        "Inverts the stick in R-Look (hold R and look around) and in the second aiming mode (e.g. the sniper scope, the magnum, throwables), separately from the mouse and gyro. <recomp-color primary>Invert Y</recomp-color> is the default and matches the original game: pushing the stick up looks down.",
         invert, Invert::Y);
     config.add_enum_option(options::mouse_response, "R-Look: Mouse Response",
         "How the view follows the mouse in R-Look (hold R and look around). Needs Mouse Sensitivity above zero." + about,
@@ -145,6 +147,18 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
     config.add_enum_option(options::gyro_invert, "R-Look: Invert Gyro",
         "Inverts gyro in R-Look (hold R and look around), separately from the stick and the mouse. With <recomp-color primary>None</recomp-color>, the view turns the way the controller is turned.",
         invert, Invert::None);
+    static EnumOptions turn_invert = {
+        {Invert::None, "None", "None"},
+        {Invert::X, "InvertX", "Invert X"},
+    };
+    config.add_enum_option(options::camera_turn_invert, "Camera: Invert Turning",
+        "Inverts the camera's left and right turning in single player, with the right stick or C-Left and C-Right. "
+        "<recomp-color primary>None</recomp-color> matches the original game. Strafing in multiplayer isn't affected.",
+        turn_invert, Invert::None);
+    config.add_number_option(options::camera_turn_speed, "Camera: Turning Speed",
+        "Sets how fast the camera turns left and right in single player, with the right stick or C-Left and C-Right. "
+        "Strafing in multiplayer isn't affected.",
+        50.0, 300.0, 5.0, 0, true, 100.0);
 }
 #endif
 
@@ -199,6 +213,54 @@ extern "C" void conker_look_stick_pitch(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
     if (turn_stick_y()) {
         ctx->f10.fl = ctx->f6.fl - ctx->f8.fl;  // 0x15120A94: add.s $f10, $f6, $f8
+    }
+#endif
+}
+
+// Camera: Invert Turning. At 0x1512D3F0 func_1512D390 ($s0 the camera) has just stored the
+// C-buttons' turn direction, 1 (C-Right) or -1 (C-Left), at + 0x6B0.
+extern "C" void conker_camera_turn_invert(uint8_t* rdram, recomp_context* ctx) {
+#if defined(CONKER_RT64)
+    if (option<Invert>(options::camera_turn_invert) == Invert::X) {
+        MEM_W(0x6B0, ctx->r16) = -MEM_W(0x6B0, ctx->r16);
+    }
+#endif
+}
+
+#if defined(CONKER_RT64)
+namespace {
+    float camera_turn_speed() {
+        return (float)(std::get<double>(recompui::config::get_general_config().get_option_value(options::camera_turn_speed)) / 100.0);
+    }
+}
+#endif
+
+// Camera: Turning Speed. The frame's turn, about to be passed to func_1508EF80: in $f18 while
+// C-Left or C-Right is held (0x1512D4C4), in $f4 while the turn glides to a stop (0x1512D53C).
+// Only the turn applied is scaled, not the speed the game keeps, so it eases in and out as before.
+extern "C" void conker_camera_turn_speed_held(uint8_t* rdram, recomp_context* ctx) {
+#if defined(CONKER_RT64)
+    ctx->f18.fl *= camera_turn_speed();
+#endif
+}
+
+extern "C" void conker_camera_turn_speed_released(uint8_t* rdram, recomp_context* ctx) {
+#if defined(CONKER_RT64)
+    ctx->f4.fl *= camera_turn_speed();
+#endif
+}
+
+// The second aiming mode's stick (func_15126378, at 0x15126EA0): the yaw's turn in $f14 is about to
+// be subtracted and the pitch's in $f12 added, the same directions as the look mode's stick (X
+// normal, Y inverted), so the same setting turns them around. Some states have scaled or clamped
+// them (symmetrically) already.
+extern "C" void conker_aim_stick(uint8_t* rdram, recomp_context* ctx) {
+#if defined(CONKER_RT64)
+    if (turn_stick_x()) {
+        ctx->f14.fl = -ctx->f14.fl;
+    }
+    if (turn_stick_y()) {
+        ctx->f12.fl = -ctx->f12.fl;
     }
 #endif
 }
