@@ -34,7 +34,33 @@ Multiplayer mouse is deferred on purpose; the user wants story mode stable first
 
 ## Start here: open work, in priority order (2026-09-27, end of session)
 
-### 1. Widescreen clipping of doors and objects: cause found, fix not written yet
+### 1. Widescreen clipping of doors and objects: real cause found from the log, fix built, waiting for the user's test
+
+**The real cause (from `CONKER_RT64_FBLOG`, 2026-09-28; the depth theory below was wrong).**
+- **What the log ruled out:** RT64 never reloads, clears or resizes the depth target, and
+  the pair after the copy is widened like the one before.
+- **What it found:** the pair after the copy (pair 3, the objects, 7 calls) got a target only
+  **292×51** native (1920×255). A pair's target height is `drawColorRect.bottom`.
+- **How that rect is built:** `RSP` (rt64_rsp.cpp, draw rect per triangle) intersects each
+  triangle's box with the **4:3** scissor and viewport, and drops it if that's empty.
+- **Why widescreen cuts the objects:** triangles beside the 4:3 area, visible only because
+  the picture is widened, don't count. A pair drawn mostly at the side (the doors at the right
+  edge: drawColorRect x 249..290) is sized from its small 4:3 part, and everything below
+  that row is cut off, by an amount that depends on the camera angle.
+- **Why only with the copy:** the copy splits the frame, so these objects get a pair of
+  their own. Without it they're in pair 1, which is full height because the level fills
+  it. At 4:3 nothing drawn is outside the area.
+- **Fix (in recomp/rt64.patch, rt64_rsp.cpp):** before the intersection, clamp the
+  triangle's box into the scissor∩viewport horizontally, so it still counts for the rows it
+  covers. The game's copy stays as it is.
+- **To check:**
+  - the doors at 16:9 and 32:9 with no switches set;
+  - the camera still turns for walls;
+  - no regressions in sky, glows, pause, iris;
+  - later, whether the camera row copy (`tileCopy` left 0 in the widened target) needs
+    centring for the camera's wall check.
+
+**The earlier (wrong) theory, kept for reference:**
 
 **Symptom.** In widescreen only (fine at 4:3), doors lose pieces depending on the camera
 angle, and so do most objects drawn in the same pass. Examples: the doors on either side of

@@ -681,7 +681,7 @@ index fd8b3eb..b053489 100644
              linearVelocity = curLinearVelocity;
          }
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
-index 1da2550..f11897f 100644
+index 1da2550..e70ad9d 100644
 --- a/src/hle/rt64_rsp.cpp
 +++ b/src/hle/rt64_rsp.cpp
 @@ -4,7 +4,9 @@
@@ -897,6 +897,24 @@ index 1da2550..f11897f 100644
              const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
              *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
          }
+@@ -1152,6 +1319,17 @@ namespace RT64 {
+ 
+             const interop::RSPViewport &viewport = viewportStack[viewportStackSize - 1];
+             const FixedRect viewportClipRect = viewport.rect(clipRatios.data());
++
++            // A triangle beside the 4:3 area is still drawn when the picture is widened, so it must still count
++            // for the rows it covers: clamp it into the area horizontally instead of dropping it. The pair's
++            // target is sized from these rows, and a pair drawn only at the side (Conker's objects after the
++            // camera's depth-row copy splits the frame) was otherwise cut off at the bottom of what the 4:3 part covered.
++            const FixedRect clipRect = viewportClipRect.intersection(scissorRect);
++            if (!clipRect.isNull()) {
++                drawRect.ulx = std::clamp(drawRect.ulx, clipRect.ulx, clipRect.lrx);
++                drawRect.lrx = std::clamp(drawRect.lrx, clipRect.ulx, clipRect.lrx);
++            }
++
+             drawRect = viewportClipRect.intersection(scissorRect.intersection(drawRect));
+             if (!drawRect.isNull()) {
+                 fbPair.drawColorRect.merge(drawRect);
 diff --git a/src/hle/rt64_rsp.h b/src/hle/rt64_rsp.h
 index 61bb3b1..313f93a 100644
 --- a/src/hle/rt64_rsp.h
