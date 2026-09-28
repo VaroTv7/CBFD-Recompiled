@@ -165,19 +165,15 @@ Runs before N64Recomp.
   saved by `func_150ADAF0` and jumps to its epilogue) into a `setjmp`/`longjmp`.
   Recompiled as plain calls, it returned only from the innermost function and
   crashed in the Panther King cutscene.
-- Runs the collision code's `$t0`-linked subroutine at 0x150AC1C4 as a call
-  from `func_150AC1B4` and `func_150AC0F8`, which enter it by fall-through with
-  `$t0` holding a goto target rather than a return point (`prepare_elf.py` warns about such
-  entries). Recompiled as a return, it skipped `func_150AB1F0`'s epilogue and
-  crashed shortly after Hungover starts.
-=======
 - Makes the fall-through into `func_150AB1F0`'s internal subroutine at
-  0x150AC1C4 a call followed by a jump to 0x150AB6F0. The subroutine returns with
-  `jr $t0`, which `prepare_elf.py` rewrites to `jr $ra` for its jal caller; on the
-  fall-through path (`$t0` = 0x150AB6F0, no jal) that return left the routine
-  without its epilogue, `$sp` ended up 0x268 low, and the camera code's saved
-  registers came back as garbage (a spinning camera, then a crash in
-  `func_1512BB10`). `prepare_elf.py` warns about any such fall-through entry.
+  0x150AC1C4 a call followed by a jump to 0x150AB6F0, in `func_150AC1B4` and
+  in `func_150AC0F8` (which falls through `func_150AC1B4` into the same code).
+  The subroutine returns with `jr $t0`, which `prepare_elf.py` rewrites to
+  `jr $ra` for its jal caller; on the fall-through path (`$t0` = 0x150AB6F0, no
+  jal) that return left the routine without its epilogue, `$sp` ended up 0x268
+  low, and the camera code's saved registers came back as garbage (a spinning
+  camera, then a crash in `func_1512BB10` shortly after Hungover starts).
+  `prepare_elf.py` warns about any such fall-through entry.
 
 ## Local changes to the tools
 

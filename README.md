@@ -302,6 +302,10 @@ upstream decompilation, and the people behind that project and other N64
 decompilation communities aren't responsible for it. Please report problems here,
 not to them.
 
+## Contributing
+
+Bug reports, fixes and patches are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Credits
 
 - The [Conker's Bad Fur Day decompilation](https://github.com/mkst/conker) project,
