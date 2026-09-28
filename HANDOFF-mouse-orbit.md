@@ -106,6 +106,34 @@ fallback.
 6. **Then:** remove the TEMP-DEBUG switches, name and document `func_1512E5F0` and
    `func_1512B1B8` (project rules), and port to main once the user confirms.
 
+**Code reading, 2026-09-28 (cloud session, no ROM, nothing run):**
+- The copy's display list (`func_1512E5F0`): othermode 0xEF202CFF / L=0, so copy mode with
+  no Z compare or update. Pair #2 therefore has no depth image attached in RT64, and RT64
+  never resizes or redraws the depth target for it.
+- Order in RT64: the LoadBlock of the depth row comes before SETCIMG. So `checkImageOverlap`
+  ends pair #1 ("SamplingFromDepthImage"). The tile copy of the depth row lands in pair
+  #2's start operations (`createTileCopyRecord`: depth → colour copy, then
+  `discardLastWrite` on the depth framebuffer). None of this writes to the hi-res depth
+  target.
+- Only two paths could overwrite the widened depth target in pair #3:
+  (A) the depth framebuffer flagged `rdramChanged`/`formatChanged` in
+      `State::submitFramebufferPair`. Then `WorkloadQueue` clears it and reloads it from the
+      RDRAM snapshot (292 wide, 4:3): correct at 4:3, misaligned when widened. That matches
+      the symptom.
+  (B) pair #3's projections not widened the way pair #1's are. `ProjectionProcessor` and
+      `FramebufferRenderer` decide widening per pair from `fbPair.scissorRect`. Then the
+      doors' depth wouldn't line up with the level's.
+- The tile copy samples the widened row from x=0 (`tileCopy.left = fbTile.left * scale.x`),
+  not from the centred 4:3 area. So the game's camera row is shifted in widescreen. Fix it
+  together with this bug.
+- The CPU also writes 0xFFFC into the +0x8BC buffer (game_157840.c, around line 545). +0x8BC is a
+  pointer, and where that buffer is allocated is unknown.
+- **Next:** add an env-gated RT64 log. Per pair: addresses, flush reason, scissor,
+  depthRead/Write, colour/depth formatChanged, syncRequired, start ops. In the hi-res
+  record: depth clears and reloads. Per projection: adjustAspectRatio. Run it once at the
+  Feral Reserve doors at 16:9 to tell (A) from (B). This needs the user's machine (ROM,
+  build, game).
+
 **Tools that found it:**
 - `CONKER_DEV_MODE=1` turns on RT64's developer tools. Set Mouse Sensitivity to 0, press F1,
   right-click the scene, and pick draw calls.
