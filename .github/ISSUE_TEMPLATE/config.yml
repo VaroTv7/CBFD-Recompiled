@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Building, playing and mods
+    url: https://github.com/sciaschi/CBFD-Recompiled#readme
+    about: How to build it, where your data folder is, and how to install mods.
+  - name: Contributing
+    url: https://github.com/sciaschi/CBFD-Recompiled/blob/main/CONTRIBUTING.md
+    about: Pull requests, patches and what a good bug report needs.

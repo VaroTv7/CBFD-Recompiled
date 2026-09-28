@@ -1,0 +1,109 @@
+name: Bug report
+description: Something doesn't work, looks wrong or crashes.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the [open issues](https://github.com/sciaschi/CBFD-Recompiled/issues) first, and add to an existing one if it's the same problem.
+
+        **Don't attach a ROM or any files from the game.**
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the launcher, or the release you downloaded. If you built it yourself, the commit.
+      placeholder: V0.1.4
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - Steam Deck
+        - macOS
+        - Windows version through Wine / Proton
+    validations:
+      required: true
+  - type: input
+    id: os-details
+    attributes:
+      label: OS version and desktop
+      description: For Linux, the distribution and desktop (and Wayland or X11).
+      placeholder: Windows 11 24H2 / Fedora 44 KDE (Wayland)
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      placeholder: NVIDIA RTX 3070, driver 580.xx / Intel HD 620, Mesa 26.x
+    validations:
+      required: true
+  - type: dropdown
+    id: graphics-api
+    attributes:
+      label: Graphics API
+      description: In the game's Graphics settings.
+      options:
+        - Automatic
+        - Direct3D 12
+        - Vulkan
+        - Metal
+        - Don't know
+  - type: dropdown
+    id: aspect-ratio
+    attributes:
+      label: Aspect ratio setting
+      description: In the game's Graphics settings. For graphics problems, please also check whether it still happens with **Original**.
+      options:
+        - Expand (widescreen)
+        - Original (4:3)
+        - Manual
+        - Don't know
+  - type: input
+    id: resolution
+    attributes:
+      label: Screen or window size
+      placeholder: 2560x1440 (16:9) / 5120x1440 (32:9)
+  - type: input
+    id: controls
+    attributes:
+      label: Input
+      description: Keyboard and mouse, or which controller.
+      placeholder: Xbox Series controller / keyboard and mouse
+  - type: input
+    id: mods
+    attributes:
+      label: Enabled mods
+      placeholder: None / Skip Intro, Skip Any Cutscene
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happens
+      description: What you see, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where and how
+      description: The level and what you were doing, and whether it happens every time. Steps to make it happen again help the most.
+      placeholder: |
+        1. In Windy, blow up the boulder and go into the tunnel.
+        2. The cutscene with the Professor starts.
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: crash-log
+    attributes:
+      label: Crash log
+      description: For a crash, paste `crash.log` from next to the game (or, on Linux, the terminal output).
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, video or a save
+      description: Drag files here. A save from just before the problem helps a lot.

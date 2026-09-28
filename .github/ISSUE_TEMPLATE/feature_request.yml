@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a new option or improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the [open issues](https://github.com/sciaschi/CBFD-Recompiled/issues) first, in case it's already been asked for.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+      description: The option or change, and how you'd use it.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What it would fix or make better. If other recomps or ports do it, say which and how.
+  - type: dropdown
+    id: help
+    attributes:
+      label: Can you help with it?
+      options:
+        - No, just suggesting it
+        - I can test it
+        - I'd like to work on it (see CONTRIBUTING.md)
