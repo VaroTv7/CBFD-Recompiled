@@ -65,6 +65,22 @@ namespace {
         return std::max(1.0f, (float)width / (float)height / (4.0f / 3.0f));
     }
 
+    // TEMP-DEBUG: CONKER_CULL_EXTRA widens the frustum and cull scale this much more than
+    // the window, to tell whether a missing piece is theirs.
+    float cull_extra() {
+        static const float extra = [] {
+            const char* value = SDL_getenv("CONKER_CULL_EXTRA");
+            return value != nullptr ? std::max(1.0f, (float)std::atof(value)) : 1.0f;
+        }();
+        return extra;
+    }
+
+    // TEMP-DEBUG: CONKER_NO_CULL_WIDEN leaves the frustum and cull scale at 4:3.
+    bool no_cull_widen() {
+        static const bool off = SDL_getenv("CONKER_NO_CULL_WIDEN") != nullptr;
+        return off;
+    }
+
     // How far past each 4:3 edge sprites are kept, in N64 screen pixels: as far as
     // the window reaches past it (half the frame's width, D_800BE620, for each 4:3
     // width more), and a little more. A fixed 160 fell short on 32:9 screens.
@@ -384,13 +400,13 @@ extern "C" void conker_iris_end(uint8_t* rdram, recomp_context* ctx) {
 // as wide as the window shows it: tan(half angle) grows with the aspect ratio.
 extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
     const float ratio = widescreen_ratio();
-    if (ratio <= 1.0f) {
+    if (ratio <= 1.0f || no_cull_widen()) {
         return;
     }
     const gpr camera = ctx->r16;
     constexpr float degrees_to_radians = 3.14159265358979f / 180.0f;
     const float half_x = read_float(rdram, camera, 0x74) * 0.5f * degrees_to_radians;
-    const float wide_half_x = std::atan(std::tan(half_x) * ratio);
+    const float wide_half_x = std::min(std::atan(std::tan(half_x) * ratio * cull_extra()), 1.5f);
     const float c = std::cos(wide_half_x);
     const float s = std::sin(wide_half_x);
     // Left (cos, 0, -sin) and right (-cos, 0, -sin), as the game writes them.
@@ -409,11 +425,11 @@ extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
 // the window is, so they keep what the widened view shows.
 extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
     const float ratio = widescreen_ratio();
-    if (ratio <= 1.0f) {
+    if (ratio <= 1.0f || no_cull_widen()) {
         return;
     }
     const gpr cull_scale_x = (gpr)(int32_t)0x800D35E0; // cullScaleX_800D35E0
-    write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / ratio);
+    write_float(rdram, cull_scale_x, 0, read_float(rdram, cull_scale_x, 0) / (ratio * cull_extra()));
 }
 
 // Some levels' backdrop (sky and distant scenery) is a grid of cells: func_15110CFC splits
