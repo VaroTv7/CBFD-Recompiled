@@ -50,9 +50,20 @@ Multiplayer mouse is deferred on purpose; the user wants story mode stable first
 - **Why only with the copy:** the copy splits the frame, so these objects get a pair of
   their own. Without it they're in pair 1, which is full height because the level fills
   it. At 4:3 nothing drawn is outside the area.
-- **Fix (in recomp/rt64.patch, rt64_rsp.cpp):** before the intersection, clamp the
-  triangle's box into the scissor∩viewport horizontally, so it still counts for the rows it
-  covers. The game's copy stays as it is.
+- **First fix, not enough (user's screenshots, 2026-09-28):** clamping triangles into the 4:3
+  area horizontally. Doors at the right edge still lost pieces, and doors at the top left
+  vanished entirely.
+- **Why:**
+  - A pair whose triangles are all beside the 4:3 area had a zero-width draw area.
+    `isEmpty()` then skipped the whole pair on the widened render, so the door vanished.
+  - Triangles crossing the camera plane project with a flipped y (the divide by w
+    isn't guarded), so they either still don't count or are culled as back-facing.
+- **Fix now (both in recomp/rt64.patch):**
+  - `rt64_rsp.cpp`: clamp the triangle's box into scissor∩viewport horizontally, at least one pixel
+    wide, so a pair drawn only at the side still has a draw area and is drawn.
+  - `rt64_workload_queue.cpp` (`getTargetsFromPair`): the widened render uses the
+    framebuffer's full height (`max(drawColorRect.bottom, fb->height)` when the widths
+    match), not the rows the 4:3 measure saw.
 - **To check:**
   - the doors at 16:9 and 32:9 with no switches set;
   - the camera still turns for walls;

@@ -681,7 +681,7 @@ index fd8b3eb..b053489 100644
              linearVelocity = curLinearVelocity;
          }
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
-index 1da2550..e70ad9d 100644
+index 1da2550..5abe718 100644
 --- a/src/hle/rt64_rsp.cpp
 +++ b/src/hle/rt64_rsp.cpp
 @@ -4,7 +4,9 @@
@@ -897,19 +897,18 @@ index 1da2550..e70ad9d 100644
              const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
              *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
          }
-@@ -1152,6 +1319,17 @@ namespace RT64 {
+@@ -1152,6 +1319,16 @@ namespace RT64 {
  
              const interop::RSPViewport &viewport = viewportStack[viewportStackSize - 1];
              const FixedRect viewportClipRect = viewport.rect(clipRatios.data());
 +
-+            // A triangle beside the 4:3 area is still drawn when the picture is widened, so it must still count
-+            // for the rows it covers: clamp it into the area horizontally instead of dropping it. The pair's
-+            // target is sized from these rows, and a pair drawn only at the side (Conker's objects after the
-+            // camera's depth-row copy splits the frame) was otherwise cut off at the bottom of what the 4:3 part covered.
++            // A triangle beside the 4:3 area is still drawn when the picture is widened, so it must still count: clamp
++            // it into the area horizontally (at least a pixel wide) instead of dropping it. A pair whose triangles are
++            // all beside it (a door at the side of the widened screen) otherwise has no draw area and isn't drawn at all.
 +            const FixedRect clipRect = viewportClipRect.intersection(scissorRect);
-+            if (!clipRect.isNull()) {
-+                drawRect.ulx = std::clamp(drawRect.ulx, clipRect.ulx, clipRect.lrx);
-+                drawRect.lrx = std::clamp(drawRect.lrx, clipRect.ulx, clipRect.lrx);
++            if (!clipRect.isNull() && ((clipRect.lrx - clipRect.ulx) >= 4)) {
++                drawRect.ulx = std::clamp(drawRect.ulx, clipRect.ulx, clipRect.lrx - 4);
++                drawRect.lrx = std::clamp(drawRect.lrx, clipRect.ulx + 4, clipRect.lrx);
 +            }
 +
              drawRect = viewportClipRect.intersection(scissorRect.intersection(drawRect));
@@ -1050,7 +1049,7 @@ index 2970e71..34210a0 100644
                  RenderWorkerExecution execution(ext.framebufferGraphicsWorker);
                  framebufferManager.uploadRAM(ext.framebufferGraphicsWorker, differentFbs.data(), differentFbs.size(), workload.fbChangePool, RDRAM, true, drawFbOperations, drawFbDiscards, ext.shaderLibrary);
 diff --git a/src/hle/rt64_workload_queue.cpp b/src/hle/rt64_workload_queue.cpp
-index 5a331aa..1b976c4 100644
+index 5a331aa..3d4fca2 100644
 --- a/src/hle/rt64_workload_queue.cpp
 +++ b/src/hle/rt64_workload_queue.cpp
 @@ -4,6 +4,8 @@
@@ -1062,7 +1061,23 @@ index 5a331aa..1b976c4 100644
  #include "common/rt64_thread.h"
  
  #include "rt64_present_queue.h"
-@@ -508,6 +510,16 @@ namespace RT64 {
+@@ -449,6 +451,15 @@ namespace RT64 {
+                         colorFb = &fbManager.get(colorImg.address, colorImg.siz, nativeColorWidth, nativeColorHeight);
+                     }
+ 
++                    // Draw at the framebuffer's full height, not only down to the lowest row this pair's triangles were seen
++                    // to cover. That was measured on the N64's 4:3 screen, where triangles beside it, or crossing the plane of
++                    // the camera, don't count; the widened picture does show them. A pair drawn only at the side (Conker's
++                    // objects, once the camera's depth-row copy splits them off from the level) was cut off below that row.
++                    const Framebuffer *heightFb = (colorFb != nullptr) ? colorFb : depthFb;
++                    if ((heightFb != nullptr) && (heightFb->width == nativeColorWidth)) {
++                        nativeColorHeight = std::max(nativeColorHeight, heightFb->height);
++                    }
++
+                     if (colorFb != nullptr) {
+                         fbKey.colorTargetKey = RenderTargetKey(colorFb->addressStart, colorFb->width, colorFb->siz, Framebuffer::Type::Color);
+                         colorTarget = &targetManager.get(fbKey.colorTargetKey);
+@@ -508,6 +519,16 @@ namespace RT64 {
              colorDepthPairs.clear();
  
              const uint32_t fbPairCount = (debuggerRenderer.framebufferIndex >= 0) ? (debuggerRenderer.framebufferIndex + 1) : workload.fbPairCount;
@@ -1079,7 +1094,7 @@ index 5a331aa..1b976c4 100644
              for (uint32_t f = 0; f < fbPairCount; f++) {
                  const FramebufferPair &fbPair = workload.fbPairs[f];
  #           if RT_ENABLED
-@@ -538,9 +550,19 @@ namespace RT64 {
+@@ -538,9 +559,19 @@ namespace RT64 {
                          depthFb->nativeTarget.resetBufferHistory();
                      }
  
@@ -1099,7 +1114,7 @@ index 5a331aa..1b976c4 100644
                      }
  
                      // Set up the dummy target used for rendering the depth if no depth framebuffer is active.
-@@ -566,6 +588,9 @@ namespace RT64 {
+@@ -566,6 +597,9 @@ namespace RT64 {
                          if (depthTarget->resize(ext.workloadGraphicsWorker, rtWidth, rtHeight)) {
                              resizedTargets.emplace(depthTarget);
                              depthFb->readHeight = 0;
@@ -1109,7 +1124,7 @@ index 5a331aa..1b976c4 100644
                          }
                      }
                  }
-@@ -577,6 +602,10 @@ namespace RT64 {
+@@ -577,6 +611,10 @@ namespace RT64 {
              // Make sure all depth targets are at least bigger than their corresponding color targets.
              for (auto colorDepthPair : colorDepthPairs) {
                  if (colorDepthPair.second->resize(ext.workloadGraphicsWorker, colorDepthPair.first->width, colorDepthPair.first->height)) {
@@ -1120,7 +1135,7 @@ index 5a331aa..1b976c4 100644
                      resizedTargets.emplace(colorDepthPair.second);
                  }
              }
-@@ -709,6 +738,12 @@ namespace RT64 {
+@@ -709,6 +747,12 @@ namespace RT64 {
              for (uint32_t f = 0; f < fbPairCount; f++) {
                  const FramebufferPair &fbPair = workload.fbPairs[f];
                  bool validTargets = getTargetsFromPair(f);
@@ -1133,7 +1148,7 @@ index 5a331aa..1b976c4 100644
                  fbManager.recordOperations(ext.workloadGraphicsWorker, &workload.fbChangePool, &workload.fbStorage, ext.shaderLibrary, ext.textureCache,
                      fbPair.startFbOperations, targetManager, fixedResScale, f, workload.submissionFrame);
  
-@@ -738,6 +773,11 @@ namespace RT64 {
+@@ -738,6 +782,11 @@ namespace RT64 {
  
                          if (colorFb->height > colorFb->readHeight) {
                              uint32_t readRowCount = colorFb->height - colorFb->readHeight;
@@ -1145,7 +1160,7 @@ index 5a331aa..1b976c4 100644
                              FramebufferChange *colorFbChange = colorFb->readChangeFromStorage(ext.workloadGraphicsWorker, workload.fbStorage, scratchFbChangePool,
                                  Framebuffer::Type::Color, colorImg.fmt, f, colorFb->readHeight, readRowCount, ext.shaderLibrary);
  
-@@ -756,10 +796,20 @@ namespace RT64 {
+@@ -756,10 +805,20 @@ namespace RT64 {
                          depthFbTypeChanged = (depthFb->lastWriteType == Framebuffer::Type::Color);
  
                          bool imgFormatChanged = (colorFb == nullptr) ? colorImg.formatChanged : depthImg.formatChanged;
@@ -1166,7 +1181,7 @@ index 5a331aa..1b976c4 100644
                              RenderTargetKey otherDepthTargetKey(depthFb->addressStart, depthFb->width, depthFb->siz, depthFb->lastWriteType);
                              RenderTarget &otherDepthTarget = targetManager.get(otherDepthTargetKey);
                              if (!otherDepthTarget.isEmpty()) {
-@@ -777,6 +827,10 @@ namespace RT64 {
+@@ -777,6 +836,10 @@ namespace RT64 {
  
                          if (depthFb->height > depthFb->readHeight) {
                              uint32_t readRowCount = depthFb->height - depthFb->readHeight;
