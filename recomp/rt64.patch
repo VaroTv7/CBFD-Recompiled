@@ -41,6 +41,92 @@ index f79adbf..6e0a6f9 100644
      struct FixedRect {
          int32_t ulx;
          int32_t uly;
+diff --git a/src/common/rt64_fblog.h b/src/common/rt64_fblog.h
+new file mode 100644
+index 0000000..c9dd621
+--- /dev/null
++++ b/src/common/rt64_fblog.h
+@@ -0,0 +1,80 @@
++//
++// RT64
++//
++
++// TEMP-DEBUG (Conker): a log of what happens to framebuffers, depth and widening, for the
++// widescreen door clipping. Off unless CONKER_RT64_FBLOG is set. It then logs 2 frames out of
++// every 150 (about every 5 seconds), 40 times, to rt64_fb_log.txt in the working directory.
++// Frames are workload submission frames: the same number on the game's side (hle) and on the
++// renderer's side, which run on different threads.
++
++#pragma once
++
++#include <cstdarg>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <mutex>
++
++namespace RT64 {
++    namespace FbLog {
++        constexpr uint64_t Period = 150;
++        constexpr uint64_t FramesPerCapture = 2;
++        constexpr uint64_t Captures = 40;
++
++        inline bool enabled() {
++            static const bool on = (std::getenv("CONKER_RT64_FBLOG") != nullptr);
++            return on;
++        }
++
++        inline bool frameLogged(uint64_t frame) {
++            return enabled() && ((frame % Period) < FramesPerCapture) && ((frame / Period) < Captures);
++        }
++
++        // The frame being processed on this thread, for code that doesn't know its workload.
++        inline uint64_t &threadFrame() {
++            thread_local uint64_t frame = UINT64_MAX;
++            return frame;
++        }
++
++        // Which side this thread is: "hle" (the game's display lists, and the native render to
++        // RDRAM) or "hires" (the widened picture on screen).
++        inline const char *&threadSide() {
++            thread_local const char *side = "?";
++            return side;
++        }
++
++        inline void setThreadFrame(uint64_t frame, const char *side = nullptr) {
++            threadFrame() = frame;
++            if (side != nullptr) {
++                threadSide() = side;
++            }
++        }
++
++        inline bool threadActive() {
++            return (threadFrame() != UINT64_MAX) && frameLogged(threadFrame());
++        }
++
++        inline void print(const char *fmt, ...) {
++            static std::mutex mutex;
++            static FILE *file = nullptr;
++            std::lock_guard<std::mutex> lock(mutex);
++            if (file == nullptr) {
++                file = std::fopen("rt64_fb_log.txt", "w");
++                if (file == nullptr) {
++                    return;
++                }
++            }
++
++            va_list args;
++            va_start(args, fmt);
++            std::vfprintf(file, fmt, args);
++            va_end(args);
++            std::fputc('\n', file);
++            std::fflush(file);
++        }
++    };
++};
++
++#define RT64_FBLOG_RECT(r) (r).ulx, (r).uly, (r).lrx, (r).lry
++#define RT64_FBLOG_RECT_FMT "(%d,%d)-(%d,%d)"
 diff --git a/src/common/rt64_hlslpp.h b/src/common/rt64_hlslpp.h
 index 1450565..032ed28 100644
 --- a/src/common/rt64_hlslpp.h
@@ -285,6 +371,71 @@ index 0000000..99ef5c2
 +        void setup(GBI *gbi);
 +    };
 +};
+diff --git a/src/hle/rt64_framebuffer_manager.cpp b/src/hle/rt64_framebuffer_manager.cpp
+index d7caa12..60112aa 100644
+--- a/src/hle/rt64_framebuffer_manager.cpp
++++ b/src/hle/rt64_framebuffer_manager.cpp
+@@ -4,6 +4,8 @@
+ 
+ #include "rt64_framebuffer_manager.h"
+ 
++#include "common/rt64_fblog.h"
++
+ #include <cassert>
+ #include <algorithm>
+ 
+@@ -91,6 +93,12 @@ namespace RT64 {
+         RenderTargetManager &targetManager, const ShaderLibrary *shaderLibrary)
+     {
+         auto it = framebuffers.find(op.writeChanges.address);
++        if (FbLog::threadActive()) {
++            FbLog::print("[%s %llu] writeChanges (RDRAM upload) to fb 0x%08X: %s", FbLog::threadSide(), (unsigned long long)(FbLog::threadFrame()), op.writeChanges.address,
++                (it == framebuffers.end()) ? "no fb" : ((it->second.lastWriteType == Framebuffer::Type::None) ? "skipped, lastWriteType None" :
++                ((it->second.lastWriteType == Framebuffer::Type::Depth) ? "into the DEPTH target" : "into the color target")));
++        }
++
+         if ((it != framebuffers.end()) && (it->second.lastWriteType != Framebuffer::Type::None)) {
+             const FramebufferChange *fbChange = fbChangePool.get(op.writeChanges.id);
+             assert(fbChange != nullptr);
+@@ -174,6 +182,12 @@ namespace RT64 {
+                 tileCopy.readDepthFromStorage = true;
+             }
+         }
++
++        if (FbLog::threadActive()) {
++            FbLog::print("[%s %llu] tileCopy setup id %llu fb 0x%08X (w %u h %u everUsedAsDepth %d) tile (%u,%u)-(%u,%u) -> scaled left %u top %u size %ux%u, rt %ux%u misalign %u, readColorFromStorage %d readDepthFromStorage %d",
++                FbLog::threadSide(), (unsigned long long)(FbLog::threadFrame()), (unsigned long long)(tileCopy.id), fbIt->second.addressStart, fbIt->second.width, fbIt->second.height, fbIt->second.everUsedAsDepth,
++                fbTile.left, fbTile.top, fbTile.right, fbTile.bottom, tileCopy.left, tileCopy.top, tileWidth, tileHeight, rtWidth, rtHeight, rtMisalignX, tileCopy.readColorFromStorage, tileCopy.readDepthFromStorage);
++        }
+     }
+ 
+     void FramebufferManager::createTileCopyRecord(RenderWorker *renderWorker, const FramebufferOperation &op, const FramebufferStorage &fbStorage,
+@@ -198,6 +212,13 @@ namespace RT64 {
+             }
+         }
+ 
++        if (FbLog::threadActive()) {
++            const FixedRect &r = fbIt->second.lastWriteRect;
++            FbLog::print("[%s %llu] tileCopy record id %llu fb 0x%08X lastWriteType %d lastWriteRect " RT64_FBLOG_RECT_FMT " colorTarget %ux%u%s",
++                FbLog::threadSide(), (unsigned long long)(FbLog::threadFrame()), (unsigned long long)(tileCopy.id), fbIt->second.addressStart, int(fbIt->second.lastWriteType), RT64_FBLOG_RECT(r),
++                colorTarget.width, colorTarget.height, (fbIt->second.lastWriteType == Framebuffer::Type::Depth) ? ": copies depth to color, then discards the fb's last write" : "");
++        }
++
+         // Copy from depth target if the last write was a depth buffer.
+         if (fbIt->second.lastWriteType == Framebuffer::Type::Depth) {
+             RenderTargetKey depthTargetKey(fbIt->second.addressStart, fbIt->second.width, fbIt->second.siz, Framebuffer::Type::Depth);
+@@ -908,6 +929,11 @@ namespace RT64 {
+         auto it = framebuffers.begin();
+         while (it != framebuffers.end()) {
+             if ((&it->second != changedFb) && (it->second.overlaps(addressStart, addressEnd))) {
++                if (FbLog::threadActive()) {
++                    FbLog::print("[%s %llu] changeRAM: fb 0x%08X wrote 0x%08X-0x%08X, overlapping fb 0x%08X-0x%08X (w %u h %u), which is marked rdramChanged",
++                        FbLog::threadSide(), (unsigned long long)(FbLog::threadFrame()), changedFb->addressStart, addressStart, addressEnd, it->second.addressStart, it->second.addressEnd, it->second.width, it->second.height);
++                }
++
+                 it->second.rdramChanged = true;
+             }
+ 
 diff --git a/src/hle/rt64_game_frame.cpp b/src/hle/rt64_game_frame.cpp
 index 87392d0..fb20d9e 100644
 --- a/src/hle/rt64_game_frame.cpp
@@ -530,7 +681,7 @@ index fd8b3eb..b053489 100644
              linearVelocity = curLinearVelocity;
          }
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
-index 1da2550..f11897f 100644
+index 1da2550..5abe718 100644
 --- a/src/hle/rt64_rsp.cpp
 +++ b/src/hle/rt64_rsp.cpp
 @@ -4,7 +4,9 @@
@@ -746,6 +897,23 @@ index 1da2550..f11897f 100644
              const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
              *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
          }
+@@ -1152,6 +1319,16 @@ namespace RT64 {
+ 
+             const interop::RSPViewport &viewport = viewportStack[viewportStackSize - 1];
+             const FixedRect viewportClipRect = viewport.rect(clipRatios.data());
++
++            // A triangle beside the 4:3 area is still drawn when the picture is widened, so it must still count: clamp
++            // it into the area horizontally (at least a pixel wide) instead of dropping it. A pair whose triangles are
++            // all beside it (a door at the side of the widened screen) otherwise has no draw area and isn't drawn at all.
++            const FixedRect clipRect = viewportClipRect.intersection(scissorRect);
++            if (!clipRect.isNull() && ((clipRect.lrx - clipRect.ulx) >= 4)) {
++                drawRect.ulx = std::clamp(drawRect.ulx, clipRect.ulx, clipRect.lrx - 4);
++                drawRect.lrx = std::clamp(drawRect.lrx, clipRect.ulx + 4, clipRect.lrx);
++            }
++
+             drawRect = viewportClipRect.intersection(scissorRect.intersection(drawRect));
+             if (!drawRect.isNull()) {
+                 fbPair.drawColorRect.merge(drawRect);
 diff --git a/src/hle/rt64_rsp.h b/src/hle/rt64_rsp.h
 index 61bb3b1..313f93a 100644
 --- a/src/hle/rt64_rsp.h
@@ -788,11 +956,272 @@ index 61bb3b1..313f93a 100644
          void setVertexColorPD(uint32_t address);
          void setVertexSegmentV1(bool isEnabled, uint32_t vertexElement, uint32_t vertexAddress, uint32_t baseSegmentAddress);
          template<uint32_t floatCount, uint32_t vertexSize>
+diff --git a/src/hle/rt64_state.cpp b/src/hle/rt64_state.cpp
+index 2970e71..34210a0 100644
+--- a/src/hle/rt64_state.cpp
++++ b/src/hle/rt64_state.cpp
+@@ -4,6 +4,8 @@
+ 
+ #include "rt64_state.h"
+ 
++#include "common/rt64_fblog.h"
++
+ #include <cassert>
+ #include <cinttypes>
+ 
+@@ -540,6 +542,27 @@ namespace RT64 {
+         FramebufferPair &fbPair = workload.fbPairs[fbPairIndex];
+         fbPair.flushReason = flushReason;
+ 
++        // TEMP-DEBUG (Conker): FbLog, see common/rt64_fblog.h.
++        FbLog::setThreadFrame(workload.submissionFrame, "hle");
++        const bool fbLog = FbLog::threadActive();
++        if (fbLog) {
++            FbLog::print("[hle %llu] pair %d submit reason %d color 0x%08X w %u siz %u fmt %u depth 0x%08X depthRead %d depthWrite %d fillRectOnly %d projections %u calls %u",
++                (unsigned long long)(workload.submissionFrame), fbPairIndex, int(flushReason), fbPair.colorImage.address, fbPair.colorImage.width, fbPair.colorImage.siz, fbPair.colorImage.fmt,
++                fbPair.depthImage.address, fbPair.depthRead, fbPair.depthWrite, fbPair.fillRectOnly, fbPair.projectionCount, fbPair.gameCallCount);
++            FbLog::print("[hle %llu] pair %d drawColorRect " RT64_FBLOG_RECT_FMT " drawDepthRect " RT64_FBLOG_RECT_FMT " scissorRect " RT64_FBLOG_RECT_FMT " pendingFbOps %zu",
++                (unsigned long long)(workload.submissionFrame), fbPairIndex, RT64_FBLOG_RECT(fbPair.drawColorRect), RT64_FBLOG_RECT(fbPair.drawDepthRect), RT64_FBLOG_RECT(fbPair.scissorRect), drawFbOperations.size());
++            for (const FramebufferOperation &op : drawFbOperations) {
++                if (op.type == FramebufferOperation::Type::CreateTileCopy) {
++                    const FramebufferTile &t = op.createTileCopy.fbTile;
++                    FbLog::print("[hle %llu] pair %d   op tileCopy id %llu from 0x%08X tile (%u,%u)-(%u,%u) lineWidth %u siz %u fmt %u",
++                        (unsigned long long)(workload.submissionFrame), fbPairIndex, (unsigned long long)(op.createTileCopy.id), op.createTileCopy.address, t.left, t.top, t.right, t.bottom, t.lineWidth, t.siz, t.fmt);
++                }
++                else {
++                    FbLog::print("[hle %llu] pair %d   op type %d", (unsigned long long)(workload.submissionFrame), fbPairIndex, int(op.type));
++                }
++            }
++        }
++
+         // Add all the pending framebuffer operations to the first one that was found.
+         flushFramebufferOperations(fbPair);
+ 
+@@ -551,6 +574,10 @@ namespace RT64 {
+             uint32_t depthWriteWidth = 0;
+             RT64::Framebuffer *colorFb = &framebufferManager.get(colorImg.address, colorImg.siz, colorImg.width, colorHeight);
+             colorImg.formatChanged = colorFb->widthChanged || colorFb->sizChanged || colorFb->rdramChanged;
++            if (fbLog) {
++                FbLog::print("[hle %llu] pair %d colorFb 0x%08X w %u h %u widthChanged %d sizChanged %d rdramChanged %d -> formatChanged %d",
++                    (unsigned long long)(workload.submissionFrame), fbPairIndex, colorFb->addressStart, colorFb->width, colorFb->height, colorFb->widthChanged, colorFb->sizChanged, colorFb->rdramChanged, colorImg.formatChanged);
++            }
+             colorFb->clearChanged();
+             colorFb->addDitherPatterns(fbPair.ditherPatterns);
+ 
+@@ -562,6 +589,11 @@ namespace RT64 {
+ 
+                 depthFb = &framebufferManager.get(depthImg.address, G_IM_SIZ_16b, colorImg.width, colorHeight);
+                 depthImg.formatChanged = depthFb->widthChanged || depthFb->sizChanged || depthFb->rdramChanged;
++                if (fbLog) {
++                    FbLog::print("[hle %llu] pair %d depthFb 0x%08X w %u h %u widthChanged %d sizChanged %d rdramChanged %d -> formatChanged %d depthWriteWidth %u",
++                        (unsigned long long)(workload.submissionFrame), fbPairIndex, depthFb->addressStart, depthFb->width, depthFb->height, depthFb->widthChanged, depthFb->sizChanged, depthFb->rdramChanged, depthImg.formatChanged, depthWriteWidth);
++                }
++
+                 depthFb->clearChanged();
+ 
+                 // Detect a fast path by checking if the framebuffer pair previous to the current one only did fill rects.
+@@ -604,6 +636,10 @@ namespace RT64 {
+             }
+         }
+ 
++        if (fbLog) {
++            FbLog::print("[hle %llu] pair %d syncRequired %d", (unsigned long long)(workload.submissionFrame), fbPairIndex, fbPair.syncRequired);
++        }
++
+         // Store the process Id this framebuffer pair was submitted under.
+         fbPair.displayListAddress = displayListAddress;
+         fbPair.displayListCounter = displayListCounter;
+@@ -630,6 +666,16 @@ namespace RT64 {
+         {
+             framebufferManager.storeRAM(workload.fbStorage, RDRAM, fbPairIndex);
+             framebufferManager.checkRAM(RDRAM, differentFbs, true);
++
++            // TEMP-DEBUG (Conker): FbLog, see common/rt64_fblog.h. Framebuffers whose RDRAM changed outside the RDP (the CPU).
++            FbLog::setThreadFrame(workload.submissionFrame, "hle");
++            if (FbLog::threadActive()) {
++                FbLog::print("[hle %llu] checkRDRAM at pair %u: %zu framebuffers differ", (unsigned long long)(workload.submissionFrame), fbPairIndex, differentFbs.size());
++                for (const Framebuffer *fb : differentFbs) {
++                    FbLog::print("[hle %llu]   differs: fb 0x%08X w %u h %u siz %u lastWriteType %d RAMBytes %u",
++                        (unsigned long long)(workload.submissionFrame), fb->addressStart, fb->width, fb->height, fb->siz, int(fb->lastWriteType), fb->RAMBytes);
++                }
++            }
+             if (!differentFbs.empty()) {
+                 RenderWorkerExecution execution(ext.framebufferGraphicsWorker);
+                 framebufferManager.uploadRAM(ext.framebufferGraphicsWorker, differentFbs.data(), differentFbs.size(), workload.fbChangePool, RDRAM, true, drawFbOperations, drawFbDiscards, ext.shaderLibrary);
+diff --git a/src/hle/rt64_workload_queue.cpp b/src/hle/rt64_workload_queue.cpp
+index 5a331aa..3d4fca2 100644
+--- a/src/hle/rt64_workload_queue.cpp
++++ b/src/hle/rt64_workload_queue.cpp
+@@ -4,6 +4,8 @@
+ 
+ #include "rt64_workload_queue.h"
+ 
++#include "common/rt64_fblog.h"
++
+ #include "common/rt64_thread.h"
+ 
+ #include "rt64_present_queue.h"
+@@ -449,6 +451,15 @@ namespace RT64 {
+                         colorFb = &fbManager.get(colorImg.address, colorImg.siz, nativeColorWidth, nativeColorHeight);
+                     }
+ 
++                    // Draw at the framebuffer's full height, not only down to the lowest row this pair's triangles were seen
++                    // to cover. That was measured on the N64's 4:3 screen, where triangles beside it, or crossing the plane of
++                    // the camera, don't count; the widened picture does show them. A pair drawn only at the side (Conker's
++                    // objects, once the camera's depth-row copy splits them off from the level) was cut off below that row.
++                    const Framebuffer *heightFb = (colorFb != nullptr) ? colorFb : depthFb;
++                    if ((heightFb != nullptr) && (heightFb->width == nativeColorWidth)) {
++                        nativeColorHeight = std::max(nativeColorHeight, heightFb->height);
++                    }
++
+                     if (colorFb != nullptr) {
+                         fbKey.colorTargetKey = RenderTargetKey(colorFb->addressStart, colorFb->width, colorFb->siz, Framebuffer::Type::Color);
+                         colorTarget = &targetManager.get(fbKey.colorTargetKey);
+@@ -508,6 +519,16 @@ namespace RT64 {
+             colorDepthPairs.clear();
+ 
+             const uint32_t fbPairCount = (debuggerRenderer.framebufferIndex >= 0) ? (debuggerRenderer.framebufferIndex + 1) : workload.fbPairCount;
++
++            // TEMP-DEBUG (Conker): FbLog, see common/rt64_fblog.h.
++            FbLog::setThreadFrame(workload.submissionFrame, "hires");
++            const bool fbLog = FbLog::threadActive();
++            const unsigned long long fbLogFrame = (unsigned long long)(workload.submissionFrame);
++            if (fbLog) {
++                FbLog::print("[hires %llu] frame: %u pairs, resolutionScale %.4f x %.4f, aspectRatioSource %.4f target %.4f scale %.4f (rects are 10.2 fixed point: 4 = one pixel)",
++                    fbLogFrame, fbPairCount, float(workloadConfig.resolutionScale.x), float(workloadConfig.resolutionScale.y), workloadConfig.aspectRatioSource, workloadConfig.aspectRatioTarget, workloadConfig.aspectRatioScale);
++            }
++
+             for (uint32_t f = 0; f < fbPairCount; f++) {
+                 const FramebufferPair &fbPair = workload.fbPairs[f];
+ #           if RT_ENABLED
+@@ -538,9 +559,19 @@ namespace RT64 {
+                         depthFb->nativeTarget.resetBufferHistory();
+                     }
+ 
++                    if (fbLog) {
++                        FbLog::print("[hires %llu] pair %u targets: colorFb 0x%08X depthFb 0x%08X native %ux%u fixedResScale %.4f x %.4f -> rt %ux%u misalign %u; colorTarget %ux%u depthTarget %ux%u",
++                            fbLogFrame, f, (colorFb != nullptr) ? colorFb->addressStart : 0, (depthFb != nullptr) ? depthFb->addressStart : 0, nativeColorWidth, nativeColorHeight, float(fixedResScale.x), float(fixedResScale.y),
++                            rtWidth, rtHeight, targetMisalignX, (colorTarget != nullptr) ? colorTarget->width : 0, (colorTarget != nullptr) ? colorTarget->height : 0,
++                            (depthTarget != nullptr) ? depthTarget->width : 0, (depthTarget != nullptr) ? depthTarget->height : 0);
++                    }
++
+                     if ((colorTarget != nullptr) && colorTarget->resize(ext.workloadGraphicsWorker, rtWidth, rtHeight)) {
+                         resizedTargets.emplace(colorTarget);
+                         colorFb->readHeight = 0;
++                        if (fbLog) {
++                            FbLog::print("[hires %llu] pair %u   color target RESIZED to %ux%u", fbLogFrame, f, colorTarget->width, colorTarget->height);
++                        }
+                     }
+ 
+                     // Set up the dummy target used for rendering the depth if no depth framebuffer is active.
+@@ -566,6 +597,9 @@ namespace RT64 {
+                         if (depthTarget->resize(ext.workloadGraphicsWorker, rtWidth, rtHeight)) {
+                             resizedTargets.emplace(depthTarget);
+                             depthFb->readHeight = 0;
++                            if (fbLog) {
++                                FbLog::print("[hires %llu] pair %u   DEPTH target RESIZED to %ux%u (its contents are lost)", fbLogFrame, f, depthTarget->width, depthTarget->height);
++                            }
+                         }
+                     }
+                 }
+@@ -577,6 +611,10 @@ namespace RT64 {
+             // Make sure all depth targets are at least bigger than their corresponding color targets.
+             for (auto colorDepthPair : colorDepthPairs) {
+                 if (colorDepthPair.second->resize(ext.workloadGraphicsWorker, colorDepthPair.first->width, colorDepthPair.first->height)) {
++                    if (fbLog) {
++                        FbLog::print("[hires %llu] a depth target was RESIZED to match its color target: %ux%u", fbLogFrame, colorDepthPair.second->width, colorDepthPair.second->height);
++                    }
++
+                     resizedTargets.emplace(colorDepthPair.second);
+                 }
+             }
+@@ -709,6 +747,12 @@ namespace RT64 {
+             for (uint32_t f = 0; f < fbPairCount; f++) {
+                 const FramebufferPair &fbPair = workload.fbPairs[f];
+                 bool validTargets = getTargetsFromPair(f);
++                if (fbLog) {
++                    FbLog::print("[hires %llu] pair %u record: validTargets %d startOps %zu endOps %zu formatChanged color %d depth %d, depthFb lastWriteType %d readHeight %u height %u",
++                        fbLogFrame, f, validTargets, fbPair.startFbOperations.size(), fbPair.endFbOperations.size(), fbPair.colorImage.formatChanged, fbPair.depthImage.formatChanged,
++                        (validTargets && (depthFb != nullptr)) ? int(depthFb->lastWriteType) : -1, (validTargets && (depthFb != nullptr)) ? depthFb->readHeight : 0, (validTargets && (depthFb != nullptr)) ? depthFb->height : 0);
++                }
++
+                 fbManager.recordOperations(ext.workloadGraphicsWorker, &workload.fbChangePool, &workload.fbStorage, ext.shaderLibrary, ext.textureCache,
+                     fbPair.startFbOperations, targetManager, fixedResScale, f, workload.submissionFrame);
+ 
+@@ -738,6 +782,11 @@ namespace RT64 {
+ 
+                         if (colorFb->height > colorFb->readHeight) {
+                             uint32_t readRowCount = colorFb->height - colorFb->readHeight;
++                            if (fbLog) {
++                                FbLog::print("[hires %llu] pair %u   color target 0x%08X rows %u-%u reloaded from RDRAM%s", fbLogFrame, f, colorFb->addressStart, colorFb->readHeight, colorFb->height,
++                                    colorImg.formatChanged ? " (formatChanged: cleared first)" : "");
++                            }
++
+                             FramebufferChange *colorFbChange = colorFb->readChangeFromStorage(ext.workloadGraphicsWorker, workload.fbStorage, scratchFbChangePool,
+                                 Framebuffer::Type::Color, colorImg.fmt, f, colorFb->readHeight, readRowCount, ext.shaderLibrary);
+ 
+@@ -756,10 +805,20 @@ namespace RT64 {
+                         depthFbTypeChanged = (depthFb->lastWriteType == Framebuffer::Type::Color);
+ 
+                         bool imgFormatChanged = (colorFb == nullptr) ? colorImg.formatChanged : depthImg.formatChanged;
++                        if (fbLog && imgFormatChanged) {
++                            FbLog::print("[hires %llu] pair %u   DEPTH target CLEARED and reloaded from RDRAM (formatChanged)", fbLogFrame, f);
++                        }
++
+                         if (imgFormatChanged) {
+                             depthFb->discardLastWrite();
+                         }
+                         else if (depthFb->isLastWriteDifferent(Framebuffer::Type::Depth)) {
++                            if (fbLog) {
++                                const FixedRect &r = depthFb->lastWriteRect;
++                                FbLog::print("[hires %llu] pair %u   DEPTH target overwritten from its color-type target (lastWriteType %d) rect " RT64_FBLOG_RECT_FMT,
++                                    fbLogFrame, f, int(depthFb->lastWriteType), RT64_FBLOG_RECT(r));
++                            }
++
+                             RenderTargetKey otherDepthTargetKey(depthFb->addressStart, depthFb->width, depthFb->siz, depthFb->lastWriteType);
+                             RenderTarget &otherDepthTarget = targetManager.get(otherDepthTargetKey);
+                             if (!otherDepthTarget.isEmpty()) {
+@@ -777,6 +836,10 @@ namespace RT64 {
+ 
+                         if (depthFb->height > depthFb->readHeight) {
+                             uint32_t readRowCount = depthFb->height - depthFb->readHeight;
++                            if (fbLog) {
++                                FbLog::print("[hires %llu] pair %u   DEPTH target rows %u-%u reloaded from RDRAM (native %u wide)", fbLogFrame, f, depthFb->readHeight, depthFb->height, depthFb->width);
++                            }
++
+                             FramebufferChange *depthFbChange = depthFb->readChangeFromStorage(ext.workloadGraphicsWorker, workload.fbStorage, scratchFbChangePool, Framebuffer::Type::Depth,
+                                 G_IM_FMT_DEPTH, f, depthFb->readHeight, readRowCount, ext.shaderLibrary);
+ 
 diff --git a/src/render/rt64_framebuffer_renderer.cpp b/src/render/rt64_framebuffer_renderer.cpp
-index 9fae0d4..b518a93 100644
+index 9fae0d4..8cac619 100644
 --- a/src/render/rt64_framebuffer_renderer.cpp
 +++ b/src/render/rt64_framebuffer_renderer.cpp
-@@ -1488,7 +1488,9 @@ namespace RT64 {
+@@ -7,6 +7,7 @@
+ #include "../include/rt64_extended_gbi.h"
+ 
+ #include "common/rt64_elapsed_timer.h"
++#include "common/rt64_fblog.h"
+ #include "common/rt64_math.h"
+ #include "hle/rt64_color_converter.h"
+ #include "gbi/rt64_f3d.h"
+@@ -1435,6 +1436,16 @@ namespace RT64 {
+         const float scissorRatio = static_cast<float>(fbPair.scissorRect.width(false, true)) / static_cast<float>(fbPair.scissorRect.height(false, true));
+         const bool adjustRatio = (abs((scissorRatio / p.aspectRatioSource) - 1.0f) < SimilarityPercentage);
+         const float aspectRatioScale = adjustRatio ? (p.aspectRatioTarget / p.aspectRatioSource) : 1.0f;
++
++        // TEMP-DEBUG (Conker): FbLog, see common/rt64_fblog.h.
++        const bool fbLog = FbLog::frameLogged(p.curWorkload->submissionFrame);
++        const unsigned long long fbLogFrame = (unsigned long long)(p.curWorkload->submissionFrame);
++        if (fbLog) {
++            FbLog::print("[%s %llu] renderer pair %u: scissorRect " RT64_FBLOG_RECT_FMT " ratio %.4f vs source %.4f -> adjustRatio %d aspectRatioScale %.4f, fb %ux%u target %ux%u misalign %.1f",
++                FbLog::threadSide(), fbLogFrame, p.fbPairIndex, RT64_FBLOG_RECT(fbPair.scissorRect), scissorRatio, p.aspectRatioSource, adjustRatio, aspectRatioScale,
++                p.fbWidth, p.fbHeight, p.targetWidth, p.targetHeight, p.horizontalMisalignment);
++        }
++
+         InstanceDrawCall instanceDrawCall;
+         interop::RenderIndices renderIndices;
+         uint32_t globalCallIndex = 0;
+@@ -1488,9 +1499,17 @@ namespace RT64 {
                  // The call's scissor spans the whole width of the framebuffer pair scissor. Custom origin must not be in use to be able to use the stretched viewport.
                  const auto &viewport = drawData.rspViewports[proj.transformsIndex];
                  FixedRect intersectionRect = proj.scissorRect.intersection(viewport.rect(viewportClipRatios));
@@ -802,8 +1231,16 @@ index 9fae0d4..b518a93 100644
 +                bool coversWholeWidth = !intersectionRect.isEmpty() && (intersectionRect.ulx <= pairScissor.ulx + CoversWidthSlack) && (intersectionRect.lrx >= pairScissor.lrx - CoversWidthSlack);
                  bool horizontalRatio = !intersectionRect.isEmpty() && (intersectionRect.width(true, true) > intersectionRect.height(true, true));
                  bool useWideViewport = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
++                if (fbLog) {
++                    FbLog::print("[%s %llu] renderer pair %u proj %u type %d transforms %u calls %u: projScissor " RT64_FBLOG_RECT_FMT " viewport&scissor " RT64_FBLOG_RECT_FMT " origin %u -> covers %d horizontal %d useWideViewport %d",
++                        FbLog::threadSide(), fbLogFrame, p.fbPairIndex, pr, int(proj.type), proj.transformsIndex, proj.gameCallCount, RT64_FBLOG_RECT(proj.scissorRect), RT64_FBLOG_RECT(intersectionRect),
++                        viewportOrigin, coversWholeWidth, horizontalRatio, useWideViewport);
++                }
++
                  if (useWideViewport) {
-@@ -1625,6 +1627,7 @@ namespace RT64 {
+                     projInvRatioScale = 1.0f;
+                 }
+@@ -1625,6 +1644,7 @@ namespace RT64 {
  
                          float invRatioScale = 1.0f / aspectRatioScale;
                          float horizontalMisalignment = 0.0f;
@@ -811,7 +1248,7 @@ index 9fae0d4..b518a93 100644
                          switch (proj.type) {
                          case Projection::Type::Perspective:
                          case Projection::Type::Orthographic: {
-@@ -1645,14 +1648,46 @@ namespace RT64 {
+@@ -1645,14 +1665,46 @@ namespace RT64 {
                              // The call's scissor spans the whole width of the framebuffer pair scissor. The rect must not be using extended origins.
                              const bool regularOrigins = (call.callDesc.rectLeftOrigin == G_EX_ORIGIN_NONE) && (call.callDesc.rectRightOrigin == G_EX_ORIGIN_NONE);
                              const bool coversScissorWidth = regularOrigins && (call.callDesc.rect.ulx <= fbPair.scissorRect.ulx) && (call.callDesc.rect.lrx >= fbPair.scissorRect.lrx);
@@ -859,7 +1296,7 @@ index 9fae0d4..b518a93 100644
                              triangles.screenScale = { viewportRect.width / framebuffer.viewport.width, viewportRect.height / framebuffer.viewport.height };
                              triangles.screenOffset.x = halfPixelOffset.x + ((viewportRect.x + viewportRect.width / 2.0f) - halfViewportSize.x) / halfViewportSize.x;
                              triangles.screenOffset.y = halfPixelOffset.y + (halfViewportSize.y - (viewportRect.y + viewportRect.height / 2.0f)) / halfViewportSize.y;
-@@ -1676,7 +1711,12 @@ namespace RT64 {
+@@ -1676,7 +1728,12 @@ namespace RT64 {
                              break;
                          }
  
@@ -874,10 +1311,18 @@ index 9fae0d4..b518a93 100644
                          bool usesViewport = (proj.type == Projection::Type::Perspective) || (proj.type == Projection::Type::Orthographic);
                          if (usesViewport) {
 diff --git a/src/render/rt64_projection_processor.cpp b/src/render/rt64_projection_processor.cpp
-index e842dcc..4b4cfbb 100644
+index e842dcc..c0e4b44 100644
 --- a/src/render/rt64_projection_processor.cpp
 +++ b/src/render/rt64_projection_processor.cpp
-@@ -92,7 +92,11 @@ namespace RT64 {
+@@ -4,6 +4,7 @@
+ 
+ #include "rt64_projection_processor.h"
+ 
++#include "common/rt64_fblog.h"
+ #include "common/rt64_math.h"
+ #include "hle/rt64_workload_queue.h"
+ 
+@@ -92,13 +93,26 @@ namespace RT64 {
                  }
  
                  if (!intersectionRect.isEmpty()) {
@@ -890,7 +1335,22 @@ index e842dcc..4b4cfbb 100644
                      bool horizontalRatio = (intersectionRect.width(true, true) > intersectionRect.height(true, true));
                      adjustAspectRatio = (viewportOrigin == G_EX_ORIGIN_NONE) && coversWholeWidth && horizontalRatio;
                  }
-@@ -121,8 +125,20 @@ namespace RT64 {
+             }
+  
+             float projRatioScale = adjustAspectRatio ? (1.0f / p.aspectRatioScale) : 1.0f;
++
++            // TEMP-DEBUG (Conker): FbLog, see common/rt64_fblog.h. Transforms shared by projections of several pairs are
++            // adjusted by whichever of them comes last here.
++            if (FbLog::frameLogged(workload.submissionFrame)) {
++                FbLog::print("[proj %llu] scene %zu pair %u proj %u type %d transforms %u aspectMode %u: projScissor " RT64_FBLOG_RECT_FMT " pairScissor " RT64_FBLOG_RECT_FMT " -> adjustAspectRatio %d interpolated %d",
++                    (unsigned long long)(workload.submissionFrame), sceneIndex, sceneProj.fbPairIndex, sceneProj.projectionIndex, int(proj.type), proj.transformsIndex, curProjGroup.aspectMode,
++                    RT64_FBLOG_RECT(proj.scissorRect), RT64_FBLOG_RECT(fbPair.scissorRect), adjustAspectRatio, (rigidBody != nullptr));
++            }
++
+             interop::float4x4 &viewMatrix = drawData.modViewTransforms[proj.transformsIndex];
+             interop::float4x4 &projMatrix = drawData.modProjTransforms[proj.transformsIndex];
+             interop::float4x4 &viewProjMatrix = drawData.modViewProjTransforms[proj.transformsIndex];
+@@ -121,8 +135,20 @@ namespace RT64 {
                  const interop::float4x4 curProjTransform = projMatrix;
                  interop::float4x4 adjustedPrevProj = *prevProjMatrix;
                  adjustProjectionMatrix(adjustedPrevProj, projRatioScale);
