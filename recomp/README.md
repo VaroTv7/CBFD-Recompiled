@@ -273,6 +273,11 @@ order drawn. In RT64:
   view matrix: lerping the view's translation while the camera turns moves the
   in-between camera off its path.
 - vertex motion is interpolated only if it's plausible (under 64 units a frame).
+- a camera cut isn't interpolated (`RigidBody::updateCameraCut`). A game that doesn't
+  say how its camera interpolates gets it always interpolated, so the frames between
+  two cutscene shots showed the camera partway from one to the other, inside the
+  scenery (issue #59). A cut is a camera moving over 150 units or turning over 50
+  degrees in one game frame, and four times as far as the frame before.
 
 A character's shadow (`func_15186794`) is the ground under it, clipped anew
 every frame and drawn with the shadow's texture projected onto it from the

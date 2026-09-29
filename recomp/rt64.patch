@@ -459,7 +459,7 @@ index d7caa12..60112aa 100644
              }
  
 diff --git a/src/hle/rt64_game_frame.cpp b/src/hle/rt64_game_frame.cpp
-index 87392d0..fb20d9e 100644
+index 87392d0..db00961 100644
 --- a/src/hle/rt64_game_frame.cpp
 +++ b/src/hle/rt64_game_frame.cpp
 @@ -296,7 +296,10 @@ namespace RT64 {
@@ -498,7 +498,25 @@ index 87392d0..fb20d9e 100644
                  }
              }
  
-@@ -744,17 +758,178 @@ namespace RT64 {
+@@ -486,6 +500,17 @@ namespace RT64 {
+                         viewProjMap.rigidBody = prevViewProjMap.rigidBody;
+                     }
+ 
++                    // A game that doesn't say how its camera interpolates (Conker) gets it interpolated always, cuts between
++                    // cutscene shots too: the frames drawn between the game's showed the camera partway from one shot to the
++                    // next, inside the scenery. A cut isn't interpolated.
++                    const bool projectionAutomatic = (curProjGroup.matrixId == G_EX_ID_IGNORE) || (curProjGroup.matrixId == G_EX_ID_AUTO);
++                    if (viewProjMap.rigidBody.updateCameraCut(prevView, curView) && projectionAutomatic) {
++                        projectionLinearComponent = G_EX_COMPONENT_SKIP;
++                        projectionAngularComponent = G_EX_COMPONENT_SKIP;
++                        projectionScaleComponent = G_EX_COMPONENT_SKIP;
++                        projectionSkewComponent = G_EX_COMPONENT_SKIP;
++                    }
++
+                     viewProjMap.rigidBody.updateLinear(prevView, curView, projectionLinearComponent);
+                     viewProjMap.rigidBody.updateAngular(prevView, curView, projectionAngularComponent, projectionScaleComponent, projectionSkewComponent);
+                     viewProjMap.rigidBody.updateDecomposition(curView, projectionDecompose);
+@@ -744,17 +769,178 @@ namespace RT64 {
                  const float *curPosFloatsRef = &curPosFloats[curVertexIndex * 3];
                  const float *prevPosFloatsRef = &prevPosFloats[prevVertexIndex * 3];
                  float *curVelFloatsRef = &curVelFloats[curVertexIndex * 3];
@@ -684,10 +702,20 @@ index 87392d0..fb20d9e 100644
              const std::vector<float> &prevTcFloats = prevWorkload.drawData.tcFloats;
              std::vector<float> &curVelFloats = curWorkload.drawData.tcVelFloats;
 diff --git a/src/hle/rt64_rigid_body.cpp b/src/hle/rt64_rigid_body.cpp
-index fd8b3eb..b053489 100644
+index fd8b3eb..7f54303 100644
 --- a/src/hle/rt64_rigid_body.cpp
 +++ b/src/hle/rt64_rigid_body.cpp
-@@ -24,11 +24,11 @@ namespace RT64 {
+@@ -4,6 +4,9 @@
+ 
+ #include "rt64_rigid_body.h"
+ 
++#include <algorithm>
++#include <cmath>
++
+ #include "../include/rt64_extended_gbi.h"
+ #include "common/rt64_math.h"
+ 
+@@ -24,11 +27,11 @@ namespace RT64 {
              hlslpp::float3 prevPosition = prevTransform[3].xyz;
              hlslpp::float3 curPosition = curTransform[3].xyz;
              hlslpp::float3 curLinearVelocity = curPosition - prevPosition;
@@ -702,6 +730,63 @@ index fd8b3eb..b053489 100644
              lerpTranslation = (curVelMag < VelocityTolerance) || (curVelMag / std::max(prevVelMag, Epsilon)) < MagnitudeThreshold;
              linearVelocity = curLinearVelocity;
          }
+@@ -70,6 +73,30 @@ namespace RT64 {
+         }
+     }
+ 
++    bool RigidBody::updateCameraCut(const hlslpp::float4x4 &prevView, const hlslpp::float4x4 &curView) {
++        // The camera itself (a view matrix's inverse): where it is (row 3) and which way it looks (row 2).
++        const hlslpp::float4x4 prevCamera = hlslpp::inverse(prevView);
++        const hlslpp::float4x4 curCamera = hlslpp::inverse(curView);
++        const float move = hlslpp::length(curCamera[3].xyz - prevCamera[3].xyz);
++        const hlslpp::float3 prevForward = prevCamera[2].xyz;
++        const hlslpp::float3 curForward = curCamera[2].xyz;
++        const float lengths = hlslpp::length(prevForward) * hlslpp::length(curForward);
++        const float cosTurn = (lengths > 1e-6f) ? float(hlslpp::dot(prevForward, curForward)) / lengths : 1.0f;
++        const float turn = std::acos(std::clamp(cosTurn, -1.0f, 1.0f));
++
++        // A cut is a jump well beyond both a camera's usual pace and the one it just had: moving further than MinCutMove
++        // (world units) or turning more than MinCutTurn in one game frame, and CutJump times as far as the frame before.
++        // A camera that speeds up keeps interpolating; one that jumps to another shot, whose in-between frames would show
++        // it partway along the jump (inside the scenery, looking between the two shots), doesn't.
++        const float MinCutMove = 150.0f; // TODO: Make configurable.
++        const float MinCutTurn = 50.0f * 3.14159265f / 180.0f;
++        const float CutJump = 4.0f;
++        const bool cut = ((move > MinCutMove) && (move > cameraMove * CutJump)) || ((turn > MinCutTurn) && (turn > cameraTurn * CutJump));
++        cameraMove = move;
++        cameraTurn = turn;
++        return cut;
++    }
++
+     void RigidBody::updatePerspective(const hlslpp::float4x4 &prevTransform, const hlslpp::float4x4 &curTransform, uint8_t perspInterpolation) {
+         // TODO auto perspective interpolation.
+         lerpPerspective = (perspInterpolation == G_EX_COMPONENT_INTERPOLATE);
+diff --git a/src/hle/rt64_rigid_body.h b/src/hle/rt64_rigid_body.h
+index 778e08b..f53d597 100644
+--- a/src/hle/rt64_rigid_body.h
++++ b/src/hle/rt64_rigid_body.h
+@@ -20,6 +20,10 @@ namespace RT64 {
+         bool lerpPerspective = false;
+         bool lerpDecompose = true;
+ 
++        // Cameras: how far the camera moved and turned (radians) over the last game frame.
++        float cameraMove = 0.0f;
++        float cameraTurn = 0.0f;
++
+         // Default constructor.
+         RigidBody();
+ 
+@@ -29,6 +33,10 @@ namespace RT64 {
+         // Updates the vectors with the data from the transforms and updates the rigid body to determine if rotation, scale, and skew interpolation should be skipped.
+         void updateAngular(const hlslpp::float4x4 &prevTransform, const hlslpp::float4x4 &curTransform, uint8_t rotInterpolation, uint8_t scaleInterpolation, uint8_t skewInterpolation);
+ 
++        // Cameras: whether going from prevView to curView is a cut to another shot rather than the camera moving, and
++        // keeps how far it moved and turned, to compare the next frame with.
++        bool updateCameraCut(const hlslpp::float4x4 &prevView, const hlslpp::float4x4 &curView);
++
+         // Determines if the perspective components of the transforms should be interpolated.
+         void updatePerspective(const hlslpp::float4x4 &prevTransform, const hlslpp::float4x4 &curTransform, uint8_t perspInterpolation);
+ 
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
 index 1da2550..5abe718 100644
 --- a/src/hle/rt64_rsp.cpp
