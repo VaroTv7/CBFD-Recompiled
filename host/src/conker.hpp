@@ -1,6 +1,7 @@
 #ifndef __CONKER_HPP__
 #define __CONKER_HPP__
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -15,6 +16,8 @@
 namespace recomp::config {
     class Config;
 }
+
+struct _SDL_GameController;
 
 namespace conker {
     // overlays.cpp
@@ -72,6 +75,18 @@ namespace conker {
         void set_callbacks(recomp::Configuration& cfg);
         void on_vi();
         ultramodern::input::connected_device_info_t get_connected_device_info(int controller_num);
+        // The controllers holding ports 1-4, in port order; returns how many hold one.
+        int port_controllers(std::array<_SDL_GameController*, 4>& out);
+    }
+
+    // rumble.cpp: the Rumble Pak, sent to each port's controller.
+    namespace rumble {
+        // Its settings (motor, style), on the General tab.
+        void add_options(recomp::config::Config& config);
+        // The runtime's rumble callback: the game turning a port's Rumble Pak on or off.
+        void set(int port, bool on);
+        // Every VI: sends each port's rumble to its controller.
+        void update();
     }
 
     // conker_config.cpp: the settings tabs.

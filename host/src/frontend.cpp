@@ -224,7 +224,7 @@ namespace {
 }
 
 void conker::frontend::on_vi() {
-    recompinput::update_rumble();
+    conker::rumble::update();
 }
 
 // Controller ports. recompinput's single-player mode reports all four ports as plugged
@@ -440,6 +440,10 @@ namespace {
     }
 }
 
+int conker::frontend::port_controllers(std::array<SDL_GameController*, max_ports>& out) {
+    return get_port_controllers(out);
+}
+
 ultramodern::input::connected_device_info_t conker::frontend::get_connected_device_info(int controller_num) {
     if (!recompinput::players::is_single_player_mode()) {
         if (recompinput::players::get_player_is_assigned(controller_num)) {
@@ -483,7 +487,7 @@ void conker::frontend::init(recomp::GameEntry& game) {
 void conker::frontend::set_callbacks(recomp::Configuration& cfg) {
     cfg.renderer_callbacks.create_render_context = create_render_context;
     cfg.gfx_callbacks = { create_gfx, create_window, update_gfx };
-    cfg.input_callbacks = { poll_inputs, get_port_input, recompinput::set_rumble,
+    cfg.input_callbacks = { poll_inputs, get_port_input, conker::rumble::set,
                             conker::get_connected_device_info };
     cfg.error_handling_callbacks.message_box = recompui::message_box;
 }
