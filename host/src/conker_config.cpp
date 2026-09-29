@@ -41,12 +41,13 @@ void conker::init_config() {
         std::filesystem::create_directories(app_folder);
     }
 
+    // The General tab's gyro and mouse sensitivities are added by look_aim.cpp instead, with the
+    // same ids, so they sit with the settings they go with: the camera and aiming with the stick, the
+    // mouse and gyro. Mouse sensitivity defaults to 0, which leaves the mouse, and the cursor, alone.
     recompui::config::GeneralTabOptions general_options{};
     general_options.has_rumble_strength = true;
-    // Used by the look mode (look_aim.cpp). Mouse sensitivity defaults to 0, which leaves the
-    // mouse, and the cursor, alone.
-    general_options.has_gyro_sensitivity = true;
-    general_options.has_mouse_sensitivity = true;
+    general_options.has_gyro_sensitivity = false;
+    general_options.has_mouse_sensitivity = false;
     auto& general_config = recompui::config::create_general_tab(general_options);
     conker::look_aim::add_options(general_config);
 

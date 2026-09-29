@@ -440,6 +440,22 @@ func = "func_15120158"
 before_vram = 0x15120A98
 text = "{ extern void conker_look_stick_pitch(uint8_t*, recomp_context*); conker_look_stick_pitch(rdram, ctx); }"
 
+# In some states (0x9, 0x15, 0x26, 0x37-0x3B, and while flag 2 of the camera's + 0x5F0 is set) the
+# look mode doesn't keep its yaw: it works it out each frame from the way Conker faces (his object's
+# + 0x7A) less an aiming angle the stick turns (a 16-bit angle at + 0x12 of the camera's + 0x3D4;
+# scaled by 0.35 on the second path). These two mark each path (0x15120908 and 0x15120978, their
+# first instruction), so the mouse and gyro turn that angle too (issue #61: the dual SMGs' aim
+# sprang back to the middle).
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120908
+text = "{ extern void conker_look_yaw_from_facing(uint8_t*, recomp_context*); conker_look_yaw_from_facing(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15120158"
+before_vram = 0x15120978
+text = "{ extern void conker_look_yaw_from_facing_scaled(uint8_t*, recomp_context*); conker_look_yaw_from_facing_scaled(rdram, ctx); }"
+
 [[patches.hook]]
 func = "func_15120158"
 before_vram = 0x15120B44

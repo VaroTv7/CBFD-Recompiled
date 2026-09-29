@@ -17,7 +17,14 @@
 //   conker_look_currents, after the springs (L_15120E8C, where both of their branches meet): for
 //     an input set to Direct, the current angles take its movement in the same frame instead of
 //     being eased toward it.
+//   conker_look_yaw_from_facing(_scaled), where some states work the yaw target out each frame from
+//     Conker's facing less an aiming angle the stick turns: the mouse and gyro turn that angle too.
+//   conker_aim_stick, in the second aiming mode (func_15126378: the sniper scope, the magnum,
+//     throwables): the stick's invert, and the mouse and gyro, scaled by the zoom.
+// The mouse and gyro are player 1's only: in multiplayer both modes run for each player's camera.
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <deque>
@@ -30,6 +37,7 @@
 #if defined(CONKER_RT64)
 #include "recompinput/input_state.h"
 #include "recompui/config.h"
+#include "util/steam_deck.h"
 #endif
 
 namespace {
@@ -81,6 +89,12 @@ namespace {
         float direct_pitch = 0.0f;
     } frame;
 
+    // Set by conker_look_yaw_from_facing(_scaled) when this frame's look works its yaw out from the
+    // way Conker faces less the aiming angle, for conker_look_targets: how many of the aiming angle's
+    // 16-bit units turn the view a degree (0 when it doesn't). And the part of a unit not yet taken.
+    float aim_units_per_degree = 0.0f;
+    float aim_remainder = 0.0f;
+
 #if defined(CONKER_RT64)
     namespace options {
         const std::string stick_response = "look_stick_response";
@@ -128,29 +142,14 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
     const std::string about =
         "<br /><recomp-color primary>Smooth</recomp-color>: the view eases toward where you aim, as in the original game."
         "<br /><recomp-color primary>Direct</recomp-color>: the view follows it exactly, with no easing.";
-    config.add_enum_option(options::stick_response, "R-Look: Stick Response",
-        "How the view follows the stick in R-Look (hold R and look around)." + about +
-        " This also applies to the mouse and gyro, as the view catches up with the stick at once.",
-        response, Response::Smooth);
-    config.add_enum_option(options::stick_invert, "R-Look: Invert Stick",
-        "Inverts the stick in R-Look (hold R and look around) and in the second aiming mode (e.g. the sniper scope, the magnum, throwables), separately from the mouse and gyro. <recomp-color primary>Invert Y</recomp-color> is the default and matches the original game: pushing the stick up looks down.",
-        invert, Invert::Y);
-    config.add_enum_option(options::mouse_response, "R-Look: Mouse Response",
-        "How the view follows the mouse in R-Look (hold R and look around). Needs Mouse Sensitivity above zero." + about,
-        response, Response::Smooth);
-    config.add_enum_option(options::gyro_response, "R-Look: Gyro Response",
-        "How the view follows gyro in R-Look (hold R and look around). Needs Gyro Sensitivity above zero." + about,
-        response, Response::Smooth);
-    config.add_enum_option(options::mouse_invert, "R-Look: Invert Mouse",
-        "Inverts the mouse in R-Look (hold R and look around), separately from the stick and gyro. With <recomp-color primary>None</recomp-color>, moving the mouse up looks up; <recomp-color primary>Invert Y</recomp-color> matches the game's stick, where up looks down.",
-        invert, Invert::None);
-    config.add_enum_option(options::gyro_invert, "R-Look: Invert Gyro",
-        "Inverts gyro in R-Look (hold R and look around), separately from the stick and the mouse. With <recomp-color primary>None</recomp-color>, the view turns the way the controller is turned.",
-        invert, Invert::None);
     static EnumOptions turn_invert = {
         {Invert::None, "None", "None"},
         {Invert::X, "InvertX", "Invert X"},
     };
+
+    // Grouped by what they're about, each group's names starting alike: the camera, then aiming with
+    // the stick, the mouse and gyro. The sensitivities are RecompFrontend's options (same ids, so
+    // saved values carry over), added here instead of by its General tab to sit with their group.
     config.add_enum_option(options::camera_turn_invert, "Camera: Invert Turning",
         "Inverts the camera's left and right turning in single player, with the right stick or C-Left and C-Right. "
         "<recomp-color primary>None</recomp-color> matches the original game. Strafing in multiplayer isn't affected.",
@@ -159,6 +158,38 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
         "Sets how fast the camera turns left and right in single player, with the right stick or C-Left and C-Right. "
         "Strafing in multiplayer isn't affected.",
         50.0, 300.0, 5.0, 0, true, 100.0);
+
+    config.add_enum_option(options::stick_response, "Stick: Aiming Response",
+        "How the view follows the stick in R-Look (hold R and look around)." + about +
+        " This also applies to the mouse and gyro, as the view catches up with the stick at once.",
+        response, Response::Smooth);
+    config.add_enum_option(options::stick_invert, "Stick: Invert Aiming",
+        "Inverts the stick in R-Look (hold R and look around) and in the second aiming mode (e.g. the sniper scope, the magnum, throwables), separately from the mouse and gyro. <recomp-color primary>Invert Y</recomp-color> is the default and matches the original game: pushing the stick up looks down.",
+        invert, Invert::Y);
+
+    config.add_percent_number_option(recompui::config::general::options::mouse_sensitivity, "Mouse: Sensitivity",
+        "How fast the mouse turns the camera and aims, in R-Look (hold R and look around) and the second aiming mode "
+        "(e.g. the sniper scope). <b>Zero turns mouse control off</b> and leaves the cursor free. "
+        "Mouse buttons can be bound to controls with the keyboard's controls.",
+        recompui::is_steam_deck() ? 50.0 : 0.0);
+    config.add_enum_option(options::mouse_response, "Mouse: Aiming Response",
+        "How the view follows the mouse in R-Look (hold R and look around). Needs Mouse: Sensitivity above zero." + about,
+        response, Response::Smooth);
+    config.add_enum_option(options::mouse_invert, "Mouse: Invert Aiming",
+        "Inverts the mouse in R-Look (hold R and look around) and the second aiming mode (e.g. the sniper scope), separately from the stick and gyro. With <recomp-color primary>None</recomp-color>, moving the mouse up looks up; <recomp-color primary>Invert Y</recomp-color> matches the game's stick, where up looks down.",
+        invert, Invert::None);
+
+    config.add_percent_number_option(recompui::config::general::options::gyro_sensitivity, "Gyro: Sensitivity",
+        "How strongly gyro aims in R-Look (hold R and look around) and the second aiming mode (e.g. the sniper scope), "
+        "on controllers that have it. <b>Zero turns gyro off.</b>"
+        "<br /><br /><b>To recalibrate gyro, set the controller down on a still, flat surface for 5 seconds.</b>",
+        25.0);
+    config.add_enum_option(options::gyro_response, "Gyro: Aiming Response",
+        "How the view follows gyro in R-Look (hold R and look around). Needs Gyro: Sensitivity above zero." + about,
+        response, Response::Smooth);
+    config.add_enum_option(options::gyro_invert, "Gyro: Invert Aiming",
+        "Inverts gyro in R-Look (hold R and look around) and the second aiming mode (e.g. the sniper scope), separately from the stick and the mouse. With <recomp-color primary>None</recomp-color>, the view turns the way the controller is turned.",
+        invert, Invert::None);
 }
 #endif
 
@@ -250,10 +281,48 @@ extern "C" void conker_camera_turn_speed_released(uint8_t* rdram, recomp_context
 #endif
 }
 
-// The second aiming mode's stick (func_15126378, at 0x15126EA0): the yaw's turn in $f14 is about to
-// be subtracted and the pitch's in $f12 added, the same directions as the look mode's stick (X
-// normal, Y inverted), so the same setting turns them around. Some states have scaled or clamped
-// them (symmetrically) already.
+#if defined(CONKER_RT64)
+namespace {
+    // The mouse and keyboard are player 1's. The camera (struct108, the look mode's and the second
+    // aiming mode's $s0) keeps its index into the cameras (D_800BE628) at + 0x23D, 0 for player 1;
+    // in multiplayer the aiming code runs for each player's camera in turn.
+    bool is_player_one(uint8_t* rdram, gpr camera) {
+        return MEM_BU(0x23D, camera) == 0;
+    }
+
+    // One poll's mouse and gyro movement as a turn of the view, in degrees: the yaw grows to the left
+    // and the pitch downward (see conker_look_targets). False if there was none.
+    bool take_movement(float& mouse_yaw, float& mouse_pitch, float& gyro_yaw, float& gyro_pitch) {
+        Movement m;
+        {
+            std::lock_guard lock{queue_mutex};
+            if (queue.empty()) {
+                return false;
+            }
+            m = queue.front();
+            queue.pop_front();
+        }
+        mouse_yaw = -m.mouse_x * mouse_degrees_per_pixel;
+        mouse_pitch = m.mouse_y * mouse_degrees_per_pixel;
+        gyro_yaw = m.gyro_y * gyro_scale;
+        gyro_pitch = -m.gyro_x * gyro_scale;
+        apply_invert(option<Invert>(options::mouse_invert), mouse_yaw, mouse_pitch);
+        apply_invert(option<Invert>(options::gyro_invert), gyro_yaw, gyro_pitch);
+        return true;
+    }
+}
+#endif
+
+// The second aiming mode's stick (func_15126378, at 0x15126EA0; $s0 is the camera): the yaw's turn in
+// $f14 is about to be subtracted and the pitch's in $f12 added, in degrees, the same directions as
+// the look mode's stick (X normal, Y inverted), so the same setting turns them around. Some states
+// have scaled or clamped them (symmetrically) already.
+//
+// The mouse and gyro turn it here too (issue #61: the sniper scope didn't follow the mouse at all).
+// This mode turns the aim at once, with no spring to ease it. Zoomed in, the stick turns slower;
+// the mouse and gyro turn by the same part of the view: their turn is scaled by the zoom, the
+// tangent of the field of view in use (the camera's + 0x74) against the unzoomed one's (+ 0x6C),
+// as func_1510B128 sets it.
 extern "C" void conker_aim_stick(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
     if (turn_stick_x()) {
@@ -262,32 +331,58 @@ extern "C" void conker_aim_stick(uint8_t* rdram, recomp_context* ctx) {
     if (turn_stick_y()) {
         ctx->f12.fl = -ctx->f12.fl;
     }
+
+    const gpr camera = ctx->r16;
+    if (!is_player_one(rdram, camera)) {
+        return;
+    }
+    float mouse_yaw, mouse_pitch, gyro_yaw, gyro_pitch;
+    if (!take_movement(mouse_yaw, mouse_pitch, gyro_yaw, gyro_pitch)) {
+        return;
+    }
+    const gpr view = (gpr)(int32_t)((uint32_t)MEM_W(0, (gpr)(int32_t)0x800BE628) + MEM_BU(0x23D, camera) * 0x180);
+    constexpr float half_degrees_to_radians = 3.14159265358979f / 360.0f;
+    const float fov = read_float(rdram, view, 0x74), unzoomed = read_float(rdram, view, 0x6C);
+    float zoom = 1.0f;
+    if (fov > 0.0f && unzoomed > 0.0f && fov < 180.0f && unzoomed < 180.0f) {
+        zoom = std::clamp(std::tan(fov * half_degrees_to_radians) / std::tan(unzoomed * half_degrees_to_radians), 0.02f, 2.0f);
+    }
+    // The yaw's turn is subtracted, the pitch's added.
+    ctx->f14.fl -= (mouse_yaw + gyro_yaw) * zoom;
+    ctx->f12.fl += (mouse_pitch + gyro_pitch) * zoom;
 #endif
+}
+
+// At the start of the two paths where the look mode works its yaw target out each frame from the way
+// Conker faces ($s0 + 0x3D0 is his object, its + 0x7A his facing) less an aiming angle (+ 0x12 of
+// $s0 + 0x3D4, an s16 the stick turns: 65536 to a turn, scaled by 0.35, D_800A33B4, on the second
+// path). A yaw added to the target alone was thrown away the next frame: the view sprang back.
+extern "C" void conker_look_yaw_from_facing(uint8_t* rdram, recomp_context* ctx) {
+    aim_units_per_degree = 65536.0f / 360.0f;
+}
+
+extern "C" void conker_look_yaw_from_facing_scaled(uint8_t* rdram, recomp_context* ctx) {
+    aim_units_per_degree = 65536.0f / 360.0f / 0.35f;
 }
 
 // Before the pitch clamp: $s0 is the look state, $t0 the targets (reloaded at 0x15120B40).
 extern "C" void conker_look_targets(uint8_t* rdram, recomp_context* ctx) {
     frame = Frame{};
+    const float units_per_degree = aim_units_per_degree;
+    aim_units_per_degree = 0.0f;
 #if defined(CONKER_RT64)
-    Movement m;
-    {
-        std::lock_guard lock{queue_mutex};
-        if (queue.empty()) {
-            return;
-        }
-        m = queue.front();
-        queue.pop_front();
-    }
-
     // Directions, all measured by playing: the yaw grows to the left and the pitch downward (the
     // game's stick is inverted: up looks down). The mouse's x grows to the right and its y
     // downward. recompinput's gyro gives the controller's turn on y (positive turning left) and
     // its tilt on x (positive tilting it back, toward you). Without inverting, the mouse and gyro
-    // look the way they move: mouse or controller up looks up.
-    float mouse_yaw = -m.mouse_x * mouse_degrees_per_pixel, mouse_pitch = m.mouse_y * mouse_degrees_per_pixel;
-    float gyro_yaw = m.gyro_y * gyro_scale, gyro_pitch = -m.gyro_x * gyro_scale;
-    apply_invert(option<Invert>(options::mouse_invert), mouse_yaw, mouse_pitch);
-    apply_invert(option<Invert>(options::gyro_invert), gyro_yaw, gyro_pitch);
+    // look the way they move: mouse or controller up looks up (take_movement).
+    if (!is_player_one(rdram, ctx->r16)) {
+        return;
+    }
+    float mouse_yaw, mouse_pitch, gyro_yaw, gyro_pitch;
+    if (!take_movement(mouse_yaw, mouse_pitch, gyro_yaw, gyro_pitch)) {
+        return;
+    }
 
     const float yaw = mouse_yaw + gyro_yaw, pitch = mouse_pitch + gyro_pitch;
     if (yaw == 0.0f && pitch == 0.0f) {
@@ -295,6 +390,14 @@ extern "C" void conker_look_targets(uint8_t* rdram, recomp_context* ctx) {
     }
     const gpr targets = ctx->r8;
     write_float(rdram, targets, target_yaw, read_float(rdram, targets, target_yaw) + yaw);
+    if (units_per_degree != 0.0f) {
+        // Turn the aiming angle as far, for the next frame's target, which grows as it shrinks.
+        const gpr aim = (gpr)(int32_t)MEM_W(0x3D4, ctx->r16);
+        const float units = yaw * units_per_degree + aim_remainder;
+        const int32_t whole = (int32_t)units;
+        aim_remainder = units - (float)whole;
+        MEM_H(0x12, aim) = (int16_t)(MEM_H(0x12, aim) - whole);
+    }
     frame.pitch_target_set = read_float(rdram, targets, target_pitch) + pitch;
     write_float(rdram, targets, target_pitch, frame.pitch_target_set);
     frame.targets_moved = true;
