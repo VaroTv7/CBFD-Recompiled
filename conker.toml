@@ -551,3 +551,31 @@ text = "{ extern void conker_depth_copy_camera(uint8_t*, recomp_context*); conke
 func = "func_151742EC"
 before_vram = 0x1517432C
 text = "{ extern void conker_depth_copy_probes(uint8_t*, recomp_context*); conker_depth_copy_probes(rdram, ctx); }"
+
+# Speech bubbles past the screen's left edge (func_15095D34 draws each piece of one; issue #59). The
+# game clamps a rectangle at 0 and moves its texture on, which cut the bubble at the 4:3 edge in
+# widescreen. The piece is drawn shifted right, so nothing is clamped, then moved back as RT64's
+# extended rectangle (host/src/widescreen.cpp). Its extended GBI is enabled early in the frame, in
+# place of the pipe sync func_1501A490 writes for each camera's pass (func_15019464 at 0x150194F8,
+# $v0 just after that sync and the scissor); func_1501878C at 0x15018920 starts the frame's list.
+[[patches.hook]]
+func = "func_1501878C"
+before_vram = 0x15018920
+text = "{ extern void conker_frame_dl_begin(uint8_t*, recomp_context*); conker_frame_dl_begin(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15019464"
+before_vram = 0x150194F8
+text = "{ extern void conker_camera_pass_sync(uint8_t*, recomp_context*); conker_camera_pass_sync(rdram, ctx); }"
+
+# After the piece's left edge is loaded ($f12, D_800D2C78; its right edge is that plus a width),
+# and where both of its returns meet ($v0 the end of what it wrote).
+[[patches.hook]]
+func = "func_15095D34"
+before_vram = 0x15095D5C
+text = "{ extern void conker_bubble_begin(uint8_t*, recomp_context*); conker_bubble_begin(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_15095D34"
+before_vram = 0x15096294
+text = "{ extern void conker_bubble_end(uint8_t*, recomp_context*); conker_bubble_end(rdram, ctx); }"

@@ -253,6 +253,12 @@ the same three commands as the game's `G_TEXRECT`. The enable goes where the
 sprite's pipe sync was, so the display lists don't grow; they're allocated to
 fit what the game writes.
 
+Cutscene speech bubbles (`func_15095D34`, issue #59) are clamped at the screen's
+left edge the same way. A piece near or past it is drawn that many whole pixels
+to the right, so the game doesn't clamp it, and moved back as an extended
+rectangle. They write no sync to hold the enable, so it's put early in the
+frame, in place of the pipe sync each camera's pass starts with.
+
 The patch also changes frame interpolation (a frame rate above the game's 30).
 RT64 draws frames between the game's by pairing each transform with last
 frame's; without help it guesses, from draw calls that look alike. Conker's
