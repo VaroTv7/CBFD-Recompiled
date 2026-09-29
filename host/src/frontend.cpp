@@ -329,7 +329,13 @@ namespace {
         return controller_field_analog(controller, field) > 0.0f;
     }
 
-    // One controller (or none) and/or the keyboard, through the single-player bindings.
+    // The keyboard and the mouse are player 1's: their bindings count on port 1 only. Mouse buttons
+    // can be bound with the keyboard's controls or, in single player, the controller's.
+    bool is_keyboard_or_mouse(const recompinput::InputField& field) {
+        return field.input_type == recompinput::InputType::Keyboard || field.input_type == recompinput::InputType::Mouse;
+    }
+
+    // One controller (or none) and/or the keyboard and mouse, through the single-player bindings.
     void read_port(SDL_GameController* controller, bool keyboard, uint16_t* buttons, float* x, float* y) {
         using recompinput::GameInput;
         static constexpr uint16_t button_values[] = {
@@ -346,7 +352,13 @@ namespace {
         auto cont_analog = [&](GameInput input) {
             float v = 0.0f;
             for (size_t i = 0; i < recompinput::num_bindings_per_input; i++) {
-                v += controller_field_analog(controller, binding(cont_profile, input, i));
+                const recompinput::InputField& field = binding(cont_profile, input, i);
+                if (field.input_type == recompinput::InputType::Mouse) {
+                    v += keyboard ? recompinput::get_input_analog(0, field) : 0.0f;
+                }
+                else if (controller != nullptr) {
+                    v += controller_field_analog(controller, field);
+                }
             }
             return std::clamp(v, 0.0f, 1.0f);
         };
@@ -354,7 +366,7 @@ namespace {
             float v = 0.0f;
             for (size_t i = 0; i < recompinput::num_bindings_per_input; i++) {
                 const recompinput::InputField& field = binding(kb_profile, input, i);
-                if (field.input_type == recompinput::InputType::Keyboard) {
+                if (is_keyboard_or_mouse(field)) {
                     v += recompinput::get_input_analog(0, field);
                 }
             }
@@ -368,12 +380,18 @@ namespace {
             GameInput input = (GameInput)((size_t)GameInput::N64_BUTTON_START + b);
             bool pressed = false;
             for (size_t i = 0; i < recompinput::num_bindings_per_input; i++) {
-                if (controller != nullptr && cont_profile >= 0) {
-                    pressed |= controller_field_digital(controller, binding(cont_profile, input, i));
+                if (cont_profile >= 0) {
+                    const recompinput::InputField& field = binding(cont_profile, input, i);
+                    if (field.input_type == recompinput::InputType::Mouse) {
+                        pressed |= keyboard && recompinput::get_input_digital(0, field);
+                    }
+                    else if (controller != nullptr) {
+                        pressed |= controller_field_digital(controller, field);
+                    }
                 }
                 if (keyboard && kb_profile >= 0) {
                     const recompinput::InputField& field = binding(kb_profile, input, i);
-                    if (field.input_type == recompinput::InputType::Keyboard) {
+                    if (is_keyboard_or_mouse(field)) {
                         pressed |= recompinput::get_input_digital(0, field);
                     }
                 }

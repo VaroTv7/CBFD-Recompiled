@@ -62,6 +62,7 @@ reviewed and applied with credit to you, as #37 and #47 were.
 | Hooks into the game's code (a call to host code at a given instruction) | `conker.toml`, with the code in `host/src/` |
 | The host: frontend, input, audio, settings, widescreen fixes | `host/src/` |
 | Changes to RT64 (the renderer) | `recomp/rt64.patch` |
+| Changes to RecompFrontend (menus, input binding) | `recomp/recompfrontend.patch` |
 | Changes to N64Recomp / N64ModernRuntime | `recomp/n64recomp.patch`, `recomp/n64modernruntime.patch` |
 | The game's symbols (names, addresses, sizes) | `recomp/conker.us.syms.toml`, `mods/syms/`, generated from the decompilation |
 | The decompilation | `conker/` |

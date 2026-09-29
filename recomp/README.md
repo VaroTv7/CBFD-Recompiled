@@ -283,6 +283,16 @@ coordinates, by least squares) and takes each vertex's coordinates last frame
 from it, if the fit is close, covers the texture and moves no vertex more than
 a quarter of the texture.
 
+RecompFrontend (`recompfrontend.patch`): mouse buttons can be bound, with the
+keyboard's controls (and in single player with the controller's too, as both are
+read then). recompinput already had a mouse input type, but reading it
+was left to do (`// TODO mouse support`). While binding a keyboard control, a
+mouse button press is bound (the click that starts binding has gone by by then;
+Escape still cancels). The buttons' state is read with the keyboard's each poll
+(`SDL_GetMouseState`), so, like the keyboard, they don't reach the game while a
+menu is open. They're shown as PromptFont's mouse glyphs: left, middle and
+right, and numbers from the side buttons (4, 5) on.
+
 ## Audio
 
 Conker's audio microcode is an ABI-style ucode like libultra's `aspMain`
