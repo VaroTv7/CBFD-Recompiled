@@ -377,6 +377,22 @@ index 0000000..99ef5c2
 +        void setup(GBI *gbi);
 +    };
 +};
+diff --git a/src/hle/rt64_application.cpp b/src/hle/rt64_application.cpp
+index ee8bc1f..428208c 100644
+--- a/src/hle/rt64_application.cpp
++++ b/src/hle/rt64_application.cpp
+@@ -245,6 +245,11 @@ namespace RT64 {
+                         // We don't know yet what driver will fix the issue for RDNA4, so if it's newer than BrokenRDNA4DriverD3D12, we only force Vulkan if it's in Automatic mode.
+                         forceVulkanForCompatibility = true;
+                     }
++                    else if (device->getCapabilities().uma) {
++                        // Integrated AMD graphics (sharing system memory) crashed at start in D3D12: a Ryzen 5 5560U (Vega) failed to create
++                        // its render targets and upload buffers, and nothing got drawn. Vulkan runs on the same machine, so it's the automatic choice here.
++                        forceVulkanForCompatibility = true;
++                    }
+                     else {
+                         // Wireframe artifacts have been reported when using a high-precision color format on RDNA3 GPUs in D3D12. The workaround is to switch to Vulkan if this is the case.
+                         const bool isRX7 = deviceDescription.name.find("AMD Radeon RX 7") != std::string::npos;
 diff --git a/src/hle/rt64_framebuffer_manager.cpp b/src/hle/rt64_framebuffer_manager.cpp
 index d7caa12..60112aa 100644
 --- a/src/hle/rt64_framebuffer_manager.cpp
