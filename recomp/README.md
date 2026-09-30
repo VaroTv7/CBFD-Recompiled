@@ -343,7 +343,10 @@ window, recompui's renderer (RT64 plus the menus drawn over it), recompinput for
 the keyboard and controllers, and the launcher entry (`supported_games`, which
 recompui declares extern). `conker_config.cpp` sets up the settings tabs and
 Conker's control descriptions, and `audio_output.cpp` plays the sound at the
-Sound tab's volume. `patches/` holds the headers recompui includes for the
+Sound tab's volume. `cutscene_aspect.cpp` is the Graphics tab's Cutscene Aspect
+Ratio: with 4:3, full cutscenes (those whose script marks them unskippable, and
+the opening with the N64 logo) set the renderer's aspect ratio to Original while
+they play. `patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
 `--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input
 or sound). On Linux the window build creates the SDL window with

@@ -29,6 +29,15 @@ namespace conker {
     // mod_api.cpp: functions the game exports to mods.
     void register_mod_exports();
 
+    // cutscene_aspect.cpp: the Cutscene Aspect Ratio setting, full cutscenes in 4:3.
+    namespace cutscene_aspect {
+        // Every frame, as the game starts its display list: sets the renderer's aspect ratio for a
+        // full cutscene, and back after it.
+        void update(uint8_t* rdram);
+        // conker_config.cpp: whether the setting is 4:3.
+        bool in_4x3();
+    }
+
     // rom_versions.cpp: the ROMs the game accepts, and the versions of them kept for the
     // launcher to switch between.
     namespace roms {

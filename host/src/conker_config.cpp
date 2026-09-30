@@ -1,7 +1,10 @@
 // The settings menu (recompui's config tabs) for the RT64 build.
 
 #include <filesystem>
+#include <string>
+#include <vector>
 
+#include "ultramodern/config.hpp"
 #include "recompui/config.h"
 #include "recompinput/recompinput.h"
 #include "util/file.h"
@@ -9,6 +12,26 @@
 #include "conker.hpp"
 
 namespace {
+    // Cutscene Aspect Ratio (cutscene_aspect.cpp), on the Graphics tab.
+    const std::string cutscene_aspect_id = "cutscene_aspect";
+    enum class CutsceneAspect : uint32_t { Expand, Original };
+
+    void add_graphics_options(recomp::config::Config& config) {
+        static const std::vector<recomp::config::ConfigOptionEnumOption> choices = {
+            {CutsceneAspect::Expand, "Expand", "Expand"},
+            {CutsceneAspect::Original, "Original", "4:3"},
+        };
+        config.add_enum_option(cutscene_aspect_id, "Cutscene Aspect Ratio",
+            "The aspect ratio of full cutscenes (story scenes, such as the new game's opening). "
+            "<recomp-color primary>Expand</recomp-color> shows them as wide as the rest of the game, where characters "
+            "waiting for their cue can sometimes be seen beside the original picture. "
+            "<recomp-color primary>4:3</recomp-color> shows them as on the N64, with black bars at the sides, and "
+            "switches back after each one. Conversations and B pads stay as wide as the game.",
+            choices, CutsceneAspect::Expand);
+        config.add_option_disable_dependency(cutscene_aspect_id,
+            recompui::config::graphics::options::ar_option, ultramodern::renderer::AspectRatio::Original);
+    }
+
     void set_control_descriptions() {
         using recompinput::GameInput;
         using recompinput::set_game_input_description;
@@ -53,7 +76,7 @@ void conker::init_config() {
     conker::rumble::add_options(general_config);
     conker::look_aim::add_options(general_config);
 
-    recompui::config::create_graphics_tab();
+    add_graphics_options(recompui::config::create_graphics_tab());
 
     set_control_descriptions();
     recompui::config::create_controls_tab();
@@ -63,4 +86,9 @@ void conker::init_config() {
     recompui::config::create_mods_tab();
 
     recompui::config::finalize();
+}
+
+bool conker::cutscene_aspect::in_4x3() {
+    const auto value = recompui::config::get_graphics_config().get_option_value(cutscene_aspect_id);
+    return static_cast<CutsceneAspect>(std::get<uint32_t>(value)) == CutsceneAspect::Original;
 }
