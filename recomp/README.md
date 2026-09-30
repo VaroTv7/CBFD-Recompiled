@@ -229,9 +229,14 @@ text and data. Conker's two builds ("F3DEXBG.NoN fifo 2.08" and "F3DEX.NoN fifo
 
 RT64's shaders can't see those normals, so lighting is computed on the CPU into
 the vertex colours (`RSP::lightVerticesCBFD`), and `G_LIGHTING` is hidden from
-the shaders. Texture generation (`G_TEXTURE_GEN`, environment mapping: the gold
-of the Rareware logo, glass), which needs the same normals, is done on the CPU
-too (`RSP::textureGenVerticesCBFD`): each vertex's normal against the look-at
+the shaders. The point lights' positions are in clip space, as GLideN64 has
+them: each vertex is transformed by the modelview and projection, then scaled by
+the coordinate modifier, before its distance to a light is measured (with the
+untransformed position, the lights missed what they light: the lantern and walls
+outside the bar, the bar's inside, the N64 logo). Texture generation
+(`G_TEXTURE_GEN`, environment mapping: the gold of the Rareware logo, glass),
+which needs the same normals, is done on the CPU too
+(`RSP::textureGenVerticesCBFD`): each vertex's normal against the look-at
 vectors, turned into model space as the lights' directions are, gives its texture
 coordinates, written into the vertex's s and t (32 times the generated
 coordinate, so the texture scale then applies as it does with texture

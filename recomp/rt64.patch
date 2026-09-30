@@ -792,7 +792,7 @@ index 778e08b..f53d597 100644
          void updatePerspective(const hlslpp::float4x4 &prevTransform, const hlslpp::float4x4 &curTransform, uint8_t perspInterpolation);
  
 diff --git a/src/hle/rt64_rsp.cpp b/src/hle/rt64_rsp.cpp
-index 1da2550..32e0a63 100644
+index 1da2550..ba78568 100644
 --- a/src/hle/rt64_rsp.cpp
 +++ b/src/hle/rt64_rsp.cpp
 @@ -4,7 +4,9 @@
@@ -805,7 +805,7 @@ index 1da2550..32e0a63 100644
  
  #include "../include/rt64_extended_gbi.h"
  #include "common/rt64_common.h"
-@@ -427,6 +429,207 @@ namespace RT64 {
+@@ -427,6 +429,215 @@ namespace RT64 {
          setVertexCommon<false, sizeof(VertexEXV1)>(rdramAddress, dstIndex, dstIndex + vtxCount);
      }
  
@@ -949,6 +949,13 @@ index 1da2550..32e0a63 100644
 +            lightDirs[l] = (len > 0.0f) ? (d3 / len) : hlslpp::float3(0.0f, 0.0f, 0.0f);
 +        }
 +
++        // The point lights' positions are in clip space (before the divide), as GLideN64 has them: a vertex
++        // is transformed by the modelview and projection first, then scaled by the coordinate modifier.
++        // The modelview-projection is only computed when the vertices are submitted (setVertexCommon),
++        // after the lighting, so it's computed here when it's out of date.
++        const hlslpp::float4x4 modelViewProj = modelViewProjChanged ?
++            hlslpp::mul(modelView, viewProjMatrixStack[projectionMatrixStackSize - 1]) : modelViewProjMatrix;
++
 +        const uint8_t *rdram = state->fromRDRAM(0);
 +        for (uint32_t i = dstIndex; i < dstIndex + vtxCount; i++) {
 +            Vertex &vtx = vertices[i];
@@ -956,9 +963,10 @@ index 1da2550..32e0a63 100644
 +                continue;
 +            }
 +
-+            const float px = (vtx.x + mod[8]) * mod[12];
-+            const float py = (vtx.y + mod[9]) * mod[13];
-+            const float pz = (vtx.z + mod[10]) * mod[14];
++            const hlslpp::float4 clip = hlslpp::mul(hlslpp::float4(float(vtx.x), float(vtx.y), float(vtx.z), 1.0f), modelViewProj);
++            const float px = (float(clip.x) + mod[8]) * mod[12];
++            const float py = (float(clip.y) + mod[9]) * mod[13];
++            const float pz = (float(clip.z) + mod[10]) * mod[14];
 +
 +            // The ambient colour follows the last light.
 +            float r = cbfd.lights[numLights].r;
@@ -1013,7 +1021,7 @@ index 1da2550..32e0a63 100644
      void RSP::setVertexColorPD(uint32_t address) {
          vertexColorPDAddress = fromSegmentedMasked(address);
      }
-@@ -506,13 +709,18 @@ namespace RT64 {
+@@ -506,13 +717,18 @@ namespace RT64 {
          const int workloadCursor = state->ext.workloadQueue->writeCursor;
          Workload &workload = state->ext.workloadQueue->workloads[workloadCursor];
  
@@ -1033,7 +1041,7 @@ index 1da2550..32e0a63 100644
          // ModelViewProj is only updated when a vertex is processed and the flag is enabled.
          auto &worldTransforms = workload.drawData.worldTransforms;
          auto &worldTransformGroups = workload.drawData.worldTransformGroups;
-@@ -520,6 +728,12 @@ namespace RT64 {
+@@ -520,6 +736,12 @@ namespace RT64 {
          auto &worldTransformPhysicalAddresses = workload.drawData.worldTransformPhysicalAddresses;
          auto &worldTransformVertexIndices = workload.drawData.worldTransformVertexIndices;
          bool addWorldTransform = (modelViewProjChanged || modelViewProjInserted);
@@ -1046,7 +1054,7 @@ index 1da2550..32e0a63 100644
          if (modelViewProjChanged) {
              computeModelViewProj();
              curTransformIndex = static_cast<uint16_t>(worldTransforms.size());
-@@ -841,7 +1055,12 @@ namespace RT64 {
+@@ -841,7 +1063,12 @@ namespace RT64 {
          const uint32_t globalIndex = indices[vtxIndex];
          const float screenZ = workload.drawData.posScreen[globalIndex][2] * DepthRange;
          const float zValueFloat = zValue / 65536.0f;
@@ -1060,7 +1068,7 @@ index 1da2550..32e0a63 100644
              const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
              *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
          }
-@@ -1152,6 +1371,16 @@ namespace RT64 {
+@@ -1152,6 +1379,16 @@ namespace RT64 {
  
              const interop::RSPViewport &viewport = viewportStack[viewportStackSize - 1];
              const FixedRect viewportClipRect = viewport.rect(clipRatios.data());
