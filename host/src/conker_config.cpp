@@ -77,6 +77,7 @@ void conker::init_config() {
     conker::look_aim::add_options(general_config);
 
     add_graphics_options(recompui::config::create_graphics_tab());
+    conker::texture_packs::add_tab();
 
     set_control_descriptions();
     recompui::config::create_controls_tab();

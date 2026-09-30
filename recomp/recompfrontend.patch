@@ -119,3 +119,112 @@ index c6786e6..7db1735 100644
      default:
          return recompinput::unknown_device_input;
      }
+diff --git a/recompui/include/recompui/recompui.h b/recompui/include/recompui/recompui.h
+index 30c463b..a49d54d 100644
+--- a/recompui/include/recompui/recompui.h
++++ b/recompui/include/recompui/recompui.h
+@@ -90,6 +90,12 @@ namespace recompui {
+     void close_prompt();
+     bool is_prompt_open();
+     void update_mod_list(bool scan_mods = true);
++    // A kind of file (its extension, e.g. ".htc") the game handles itself: the mod installer copies it
++    // into the mods folder as it is, instead of rejecting it as not a mod.
++    void register_mod_file_extension(const std::string& extension);
++    // Called when the Mods menu rescans the mods folder (its refresh button, or after installing mods),
++    // before the runtime scans it.
++    void register_mod_scan_callback(std::function<void()> callback);
+     void process_game_started();
+ 
+     void apply_color_hack();
+diff --git a/recompui/src/composites/ui_mod_installer.cpp b/recompui/src/composites/ui_mod_installer.cpp
+index 1f98b3c..c91df6f 100644
+--- a/recompui/src/composites/ui_mod_installer.cpp
++++ b/recompui/src/composites/ui_mod_installer.cpp
+@@ -1,6 +1,9 @@
+ #include "ui_mod_installer.h"
+ 
+ #include "librecomp/mods.hpp"
++#include "recompui/recompui.h"
++
++#include <algorithm>
+ 
+ namespace recompui {
+     static const std::string ManifestFilename = "mod.json";
+@@ -20,6 +23,37 @@ namespace recompui {
+ #endif
+     }
+ 
++    // Extensions of files the game handles itself (register_mod_file_extension).
++    static std::vector<std::string> game_file_extensions;
++
++    void register_mod_file_extension(const std::string &extension) {
++        game_file_extensions.push_back(extension);
++    }
++
++    static bool is_game_file(const std::filesystem::path &file_path) {
++        const std::string extension = file_path.extension().string();
++        return std::find(game_file_extensions.begin(), game_file_extensions.end(), extension) != game_file_extensions.end();
++    }
++
++    // A file the game handles itself is copied into the mods folder as it is.
++    void start_game_file_installation(const std::filesystem::path &file_path, ModInstaller::Result &result) {
++        std::filesystem::path target_path = recomp::mods::get_mods_directory() / file_path.filename();
++        std::filesystem::path target_write_path = target_path.u8string() + NewExtension;
++        std::error_code ec;
++        std::filesystem::copy_file(file_path, target_write_path, std::filesystem::copy_options::overwrite_existing, ec);
++        if (ec) {
++            result.error_messages.emplace_back("Unable to install " + file_path.filename().string() + " to mod directory.");
++            std::filesystem::remove(target_write_path, ec);
++            return;
++        }
++
++        ModInstaller::Installation installation;
++        installation.display_name = file_path.filename().string();
++        installation.mod_version = recomp::Version{0, 0, 0, ""};
++        installation.mod_file = target_path;
++        result.pending_installations.emplace_back(installation);
++    }
++
+     size_t zip_write_func(void *opaque, mz_uint64 offset, const void *bytes, size_t count) {
+         std::ofstream &stream = *(std::ofstream *)(opaque);
+         stream.seekp(offset, std::ios::beg);
+@@ -313,6 +347,11 @@ namespace recompui {
+         }
+ 
+         for (const std::filesystem::path &path : file_paths) {
++            if (is_game_file(path)) {
++                start_game_file_installation(path, result);
++                continue;
++            }
++
+             recomp::mods::ModOpenError open_error;
+             recomp::mods::ZipModFileHandle file_handle(path, open_error);
+             if (open_error != recomp::mods::ModOpenError::Good) {
+diff --git a/recompui/src/composites/ui_mod_menu.cpp b/recompui/src/composites/ui_mod_menu.cpp
+index 02455fd..35a9952 100644
+--- a/recompui/src/composites/ui_mod_menu.cpp
++++ b/recompui/src/composites/ui_mod_menu.cpp
+@@ -30,6 +30,13 @@ static bool is_mod_enabled_or_auto(const std::string &mod_id) {
+     return recomp::mods::is_mod_enabled(mod_id) || recomp::mods::is_mod_auto_enabled(mod_id);
+ }
+ 
++// The game's callback before a rescan of the mods folder (register_mod_scan_callback).
++static std::function<void()> mod_scan_callback;
++
++void register_mod_scan_callback(std::function<void()> callback) {
++    mod_scan_callback = std::move(callback);
++}
++
+ Modal *mod_config_modal = nullptr;
+ void create_mod_config_modal() {
+     if (mod_config_modal == nullptr) {
+@@ -281,6 +288,9 @@ void ModMenu::refresh_mods(bool scan_mods) {
+ 
+     // Prevent scanning mods after starting the game.
+     if (scan_mods && !ultramodern::is_game_started()) {
++        if (mod_scan_callback) {
++            mod_scan_callback();
++        }
+         recomp::mods::scan_mods();
+     }
+     mod_details = recomp::mods::get_all_mod_details(game_mod_id);

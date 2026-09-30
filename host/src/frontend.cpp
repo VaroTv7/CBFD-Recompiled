@@ -115,6 +115,7 @@ namespace {
 
     void update_gfx(void*) {
         recompinput::handle_events();
+        conker::texture_packs::update_unpacking();
         std::string title;
         {
             std::lock_guard lock(title_mutex);
@@ -197,6 +198,10 @@ namespace {
         // would reach up into the title.
         options->set_bottom(10.0f, recompui::Unit::Percent);
         recompui::update_game_mod_id(game.mod_game_id);
+        // The runtime has opened the mods by now: turn on the texture pack chosen in the settings.
+        conker::texture_packs::apply();
+        // And unpack the GLideN64 packs not unpacked yet, showing the progress over the launcher.
+        conker::texture_packs::unpack_gliden64_packs();
         options->add_start_game_or_load_rom_option();
         version_option = options->add_option("Version", on_version_selected);
         add_rom_option = options->add_option("Add ROM", on_add_rom_selected);
@@ -482,6 +487,9 @@ void conker::frontend::init(recomp::GameEntry& game) {
     recompui::register_ui_exports();
     recompinput::players::set_single_player_mode(true);
     conker::init_config();
+
+    // Texture packs (texture_packs.cpp).
+    conker::texture_packs::register_type();
 }
 
 void conker::frontend::set_callbacks(recomp::Configuration& cfg) {

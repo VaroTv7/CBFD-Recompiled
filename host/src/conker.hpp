@@ -88,6 +88,27 @@ namespace conker {
         int port_controllers(std::array<_SDL_GameController*, 4>& out);
     }
 
+    // texture_packs.cpp: RT64 texture packs (issue #63).
+    namespace texture_packs {
+        // Registers the texture pack content type and .rtz files with the mod loader, and has the mod
+        // installer take .htc files.
+        void register_type();
+        // gliden64_packs.cpp: unpacks each GLideN64 texture cache (.htc) in the mods folder not unpacked
+        // yet into a pack folder, on a thread of its own, and has the runtime open it.
+        void unpack_gliden64_packs();
+        // gliden64_packs.cpp: on the main thread (update_gfx), shows the unpacking's progress, and once
+        // it's done has the runtime open the packs.
+        void update_unpacking();
+        // gliden64_packs.cpp: the mod id of the pack a .htc unpacks into.
+        std::string gliden64_pack_id(const std::filesystem::path& htc);
+        // The Texture Packs settings tab, listing the packs in the mods folder (a .htc as the pack it
+        // unpacks into).
+        void add_tab();
+        // Turns on the pack chosen in the settings and the others off (unless it's left to the
+        // Mods menu). Needs the runtime to have opened the mods.
+        void apply();
+    }
+
     // rumble.cpp: the Rumble Pak, sent to each port's controller.
     namespace rumble {
         // Its settings (motor, style), on the General tab.

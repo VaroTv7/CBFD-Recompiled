@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 79dfc38..aef4a58 100644
+index 79dfc38..237a00d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -327,6 +327,7 @@ set (SOURCES
@@ -10,6 +10,14 @@ index 79dfc38..aef4a58 100644
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dgolden.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dpd.cpp"
      "${PROJECT_SOURCE_DIR}/src/gbi/rt64_gbi_f3dwave.cpp"
+@@ -359,6 +360,7 @@ set (SOURCES
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_projection.cpp"
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_rdp.cpp"
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_rdp_tmem.cpp"
++    "${PROJECT_SOURCE_DIR}/src/hle/rt64_rice_hash.cpp"
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_rigid_body.cpp"
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_rsp.cpp"
+     "${PROJECT_SOURCE_DIR}/src/hle/rt64_state.cpp"
 diff --git a/include/rt64_extended_gbi.h b/include/rt64_extended_gbi.h
 index d387090..75ab87d 100644
 --- a/include/rt64_extended_gbi.h
@@ -147,6 +155,54 @@ index 1450565..032ed28 100644
 +
  #include "hlsl++.h"
 \ No newline at end of file
+diff --git a/src/common/rt64_replacement_database.cpp b/src/common/rt64_replacement_database.cpp
+index 9f331c9..1d3f107 100644
+--- a/src/common/rt64_replacement_database.cpp
++++ b/src/common/rt64_replacement_database.cpp
+@@ -145,7 +145,7 @@ namespace RT64 {
+         }
+     }
+     
+-    void ReplacementDatabase::resolvePaths(const FileSystem *fileSystem, uint32_t fileSystemIndex, std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap, bool onlyDDS, std::vector<uint64_t> *hashesMissing, std::unordered_set<std::string> *pathsToPreload) {
++    void ReplacementDatabase::resolvePaths(const FileSystem *fileSystem, uint32_t fileSystemIndex, std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap, bool onlyDDS, std::vector<uint64_t> *hashesMissing, std::unordered_set<std::string> *pathsToPreload, std::unordered_map<std::string, ReplacementResolvedPath> *ricePathMap) {
+         std::unordered_map<std::string, std::string> autoPathMap;
+         for (const std::string &relativePath : *fileSystem) {
+             const std::filesystem::path relativePathFs = std::filesystem::u8path(relativePath);
+@@ -172,6 +172,19 @@ namespace RT64 {
+             }
+         }
+ 
++        if ((ricePathMap != nullptr) && (config.autoPath == ReplacementAutoPath::Rice)) {
++            const ReplacementTexture defaultTexture;
++            for (const auto &[riceHash, relativePath] : autoPathMap) {
++                ReplacementResolvedPath &resolvedPath = (*ricePathMap)[riceHash];
++                resolvedPath.fileSystemIndex = fileSystemIndex;
++                resolvedPath.relativePath = relativePath;
++                resolvedPath.originalOperation = defaultTexture.operation;
++                resolvedPath.originalShift = defaultTexture.shift;
++                resolvedPath.resolvedOperation = resolveOperation(relativePath, defaultTexture.operation);
++                resolvedPath.resolvedShift = resolveShift(relativePath, defaultTexture.shift);
++            }
++        }
++
+         auto addResolvedPath = [&](uint64_t hash, const std::string &relativePath, ReplacementOperation operation, ReplacementShift shift) {
+             // Do not modify the entry if it's already in the map.
+             if (resolvedPathMap.find(hash) != resolvedPathMap.end()) {
+diff --git a/src/common/rt64_replacement_database.h b/src/common/rt64_replacement_database.h
+index 3f74ea2..3988595 100644
+--- a/src/common/rt64_replacement_database.h
++++ b/src/common/rt64_replacement_database.h
+@@ -126,7 +126,9 @@ namespace RT64 {
+         void buildHashMaps();
+         ReplacementOperation resolveOperation(const std::string &relativePath, ReplacementOperation operation);
+         ReplacementShift resolveShift(const std::string &relativePath, ReplacementShift shift);
+-        void resolvePaths(const FileSystem *fileSystem, uint32_t fileSystemIndex, std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap, bool onlyDDS, std::vector<uint64_t> *hashesMissing = nullptr, std::unordered_set<std::string> *pathsToPreload = nullptr);
++        // With ricePathMap, a database whose auto path is Rice also gives each file found by its Rice hash, resolved as an
++        // entry without a path would be: for textures matched by their Rice hash as they're loaded (hle/rt64_rice_hash.h).
++        void resolvePaths(const FileSystem *fileSystem, uint32_t fileSystemIndex, std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap, bool onlyDDS, std::vector<uint64_t> *hashesMissing = nullptr, std::unordered_set<std::string> *pathsToPreload = nullptr, std::unordered_map<std::string, ReplacementResolvedPath> *ricePathMap = nullptr);
+         void resolveOperations(std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap);
+         void resolveShifts(std::unordered_map<uint64_t, ReplacementResolvedPath> &resolvedPathMap);
+         static uint64_t stringToHash(const std::string &str);
 diff --git a/src/gbi/rt64_gbi.cpp b/src/gbi/rt64_gbi.cpp
 index 7006549..4984e7c 100644
 --- a/src/gbi/rt64_gbi.cpp
@@ -705,6 +761,384 @@ index 87392d0..db00961 100644
              const std::vector<float> &curTcFloats = curWorkload.drawData.tcFloats;
              const std::vector<float> &prevTcFloats = prevWorkload.drawData.tcFloats;
              std::vector<float> &curVelFloats = curWorkload.drawData.tcVelFloats;
+diff --git a/src/hle/rt64_rdp_tmem.cpp b/src/hle/rt64_rdp_tmem.cpp
+index 6051f4e..8f00934 100644
+--- a/src/hle/rt64_rdp_tmem.cpp
++++ b/src/hle/rt64_rdp_tmem.cpp
+@@ -11,6 +11,7 @@
+ 
+ #include "common/rt64_tmem_hasher.h"
+ 
++#include "rt64_rice_hash.h"
+ #include "rt64_state.h"
+ 
+ namespace RT64 {
+@@ -52,6 +53,7 @@ namespace RT64 {
+     uint64_t TextureManager::uploadTexture(State *state, const LoadTile &loadTile, TextureCache *textureCache, uint64_t creationFrame, uint16_t width, uint16_t height, uint32_t tlut) {
+         const uint8_t *TMEM = reinterpret_cast<const uint8_t *>(state->rdp->TMEM);
+         uint64_t hash = TMEMHasher::hash(TMEM, loadTile, width, height, tlut, TMEMHasher::CurrentHashVersion);
++        checkRiceReplacement(state, loadTile, textureCache, hash, width, height, tlut);
+         if (hashSet.find(hash) == hashSet.end()) {
+             hashSet.insert(hash);
+             textureCache->queueGPUUploadTMEM(hash, creationFrame, TMEM, RDP_TMEM_BYTES, width, height, tlut, loadTile, true);
+@@ -189,6 +191,27 @@ namespace RT64 {
+         }
+     }
+ 
++    void TextureManager::checkRiceReplacement(State *state, const LoadTile &loadTile, TextureCache *textureCache, uint64_t hash, uint16_t width, uint16_t height, uint32_t tlut) {
++        if (!textureCache->hasRiceReplacements() || (width == 0) || (height == 0)) {
++            return;
++        }
++
++        const uint32_t generation = textureCache->getRiceGeneration();
++        if (generation != riceCheckedGeneration) {
++            riceCheckedSet.clear();
++            riceCheckedGeneration = generation;
++        }
++
++        if (!riceCheckedSet.insert(hash).second) {
++            return;
++        }
++
++        const std::vector<std::string> riceKeys = riceTextureKeys(state, loadTile, width, height, tlut);
++        if (!riceKeys.empty()) {
++            textureCache->addRiceReplacement(hash, riceKeys);
++        }
++    }
++
+     void TextureManager::removeHashes(const std::vector<uint64_t> &hashes) {
+         for (uint64_t hash : hashes) {
+             hashSet.erase(hash);
+diff --git a/src/hle/rt64_rdp_tmem.h b/src/hle/rt64_rdp_tmem.h
+index 3708220..5416d68 100644
+--- a/src/hle/rt64_rdp_tmem.h
++++ b/src/hle/rt64_rdp_tmem.h
+@@ -16,6 +16,14 @@ namespace RT64 {
+         std::set<uint64_t> hashSet;
+         std::set<uint64_t> dumpedSet;
+ 
++        // Textures already matched against the Rice-named packs (TextureCache::getRiceGeneration: since they last changed).
++        std::set<uint64_t> riceCheckedSet;
++        uint32_t riceCheckedGeneration = 0;
++
++        // With a Rice-named pack loaded, the first time a texture is seen, its Rice names are worked out (rt64_rice_hash.h)
++        // for the texture cache to find its replacement by.
++        void checkRiceReplacement(State *state, const LoadTile &loadTile, TextureCache *textureCache, uint64_t hash, uint16_t width, uint16_t height, uint32_t tlut);
++
+         void uploadEmpty(State *state, TextureCache *textureCache, uint64_t creationFrame, uint16_t width, uint16_t height, uint64_t replacementHash);
+         uint64_t uploadTMEM(State *state, const LoadTile &loadTile, TextureCache *textureCache, uint64_t creationFrame, uint16_t byteOffset, uint16_t byteCount, uint16_t width, uint16_t height, uint32_t tlut);
+         uint64_t uploadTexture(State *state, const LoadTile &loadTile, TextureCache *textureCache, uint64_t creationFrame, uint16_t width, uint16_t height, uint32_t tlut);
+diff --git a/src/hle/rt64_rice_hash.cpp b/src/hle/rt64_rice_hash.cpp
+new file mode 100644
+index 0000000..b50bf1f
+--- /dev/null
++++ b/src/hle/rt64_rice_hash.cpp
+@@ -0,0 +1,272 @@
++//
++// RT64
++//
++// SPDX-License-Identifier: GPL-2.0-or-later
++//
++// Rice texture hashes, worked out live from RDRAM. This file is under the GNU General Public License,
++// version 2 or later, unlike the rest of RT64 (MIT). Its hashing is RT64's texture_hasher tool's
++// (src/tools/texture_hasher/texture_hasher.cpp), which "has been referenced from GlideN64 and RiceVideo
++// to imitate their hashing algorithms" and is under the GPL to comply with their licenses:
++// - the Rice CRC (RiceCRC32, the palette CRC over cimax + 1 entries) is GlideHQ's, in GLideN64's
++//   src/GLideNHQ/TxUtil.cpp, copyright (C) 2007 Hiroshi Morii, GPL version 2 or later;
++// - the sizes hashed (ReverseDXT, CalculateMaxCI, the tile and block dimensions) are Rice Video's
++//   (Rice1964; mupen64plus-video-rice, GPL version 2 or later), as GLideN64 also uses them. GLideN64
++//   (Sergey Lipskiy and contributors) is under the GPL version 2: src/tools/texture_hasher/GLIDEN64-LICENSE.
++// Which RDRAM a load read follows TextureManager::dumpTexture (rt64_rdp_tmem.cpp), whose dumps
++// texture_hasher reads.
++//
++// This program is free software; you can redistribute it and/or modify it under the terms of the GNU
++// General Public License as published by the Free Software Foundation; either version 2 of the License,
++// or (at your option) any later version. This program is distributed in the hope that it will be
++// useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
++// FOR A PARTICULAR PURPOSE. See the GNU General Public License (https://www.gnu.org/licenses/) for
++// more details.
++//
++
++#include "rt64_rice_hash.h"
++
++#include <algorithm>
++#include <cstdio>
++#include <cstring>
++
++#include "shared/rt64_f3d_defines.h"
++
++#include "rt64_state.h"
++
++namespace RT64 {
++    namespace {
++        // RDRAM as RT64 sees it (State::RDRAMSize is its last byte).
++        constexpr uint32_t RiceRDRAMBytes = 0x800000;
++
++        uint32_t CalculateDXT(uint32_t txl2words) {
++            if (txl2words == 0) {
++                return 1U;
++            }
++            else {
++                return (2048 + txl2words - 1) / txl2words;
++            }
++        }
++
++        uint32_t Txl2Words(uint32_t width, uint32_t size) {
++            static const uint32_t sizeBytes[4] = { 0, 1, 2, 4 };
++            if (size == 0) {
++                return std::max(1U, width / 16);
++            }
++            else {
++                return std::max(1U, width * sizeBytes[size] / 8);
++            }
++        }
++
++        int ReverseDXT(uint32_t val, uint32_t width, uint32_t size) {
++            if (val == 0x800) {
++                return 1;
++            }
++
++            int low = 2047 / val;
++            if (CalculateDXT(low) > val) {
++                low++;
++            }
++
++            int high = 2047 / (val - 1);
++            if (low == high) {
++                return low;
++            }
++
++            for (int i = low; i <= high; i++) {
++                if (Txl2Words(width, size) == (uint32_t)i) {
++                    return i;
++                }
++            }
++
++            return (low + high) / 2;
++        }
++
++        uint8_t CalculateMaxCI8b(const uint8_t *src, uint32_t width, uint32_t height, uint32_t rowStride) {
++            uint8_t val = 0;
++            for (uint32_t y = 0; y < height; ++y) {
++                const uint8_t *buf = src + rowStride * y;
++                for (uint32_t x = 0; x < width; ++x) {
++                    if (buf[x] > val) {
++                        val = buf[x];
++                    }
++
++                    if (val == 0xFF) {
++                        return uint8_t(0xFF);
++                    }
++                }
++            }
++
++            return val;
++        }
++
++        uint8_t CalculateMaxCI4b(const uint8_t *src, uint32_t width, uint32_t height, uint32_t rowStride) {
++            uint8_t val = 0;
++            width >>= 1;
++            for (uint32_t y = 0; y < height; ++y) {
++                const uint8_t *buf = src + rowStride * y;
++                for (uint32_t x = 0; x < width; ++x) {
++                    const uint8_t val1 = buf[x] >> 4;
++                    const uint8_t val2 = buf[x] & 0xF;
++                    val = std::max(val, std::max(val1, val2));
++                    if (val == 0xF) {
++                        return uint8_t(0xF);
++                    }
++                }
++            }
++
++            return val;
++        }
++
++        uint32_t RiceCRC32(const uint8_t *src, int width, int height, int size, int rowStride) {
++            uint32_t crc32Ret = 0;
++            const uint32_t bytesPerLine = width << size >> 1;
++            int y = height - 1;
++            while (y >= 0) {
++                uint32_t esi = 0;
++                int x = bytesPerLine - 4;
++                while (x >= 0) {
++                    std::memcpy(&esi, src + x, sizeof(esi));
++                    esi ^= x;
++
++                    crc32Ret = (crc32Ret << 4) + ((crc32Ret >> 28) & 15);
++                    crc32Ret += esi;
++                    x -= 4;
++                }
++
++                esi ^= y;
++                crc32Ret += esi;
++                src += rowStride;
++                --y;
++            }
++
++            return crc32Ret;
++        }
++
++        std::string hashString(uint32_t hash) {
++            char hexStr[16];
++            snprintf(hexStr, sizeof(hexStr), "%08x", hash);
++            return std::string(hexStr);
++        }
++    }
++
++    std::vector<std::string> riceTextureKeys(const State *state, const LoadTile &loadTile, uint16_t width, uint16_t height, uint32_t tlut) {
++        const LoadTile &drawTile = loadTile;
++        const LoadOperation &loadOp = state->rdp->rice.lastLoadOpByTMEM[loadTile.tmem];
++
++        // The RDRAM the load read (TextureManager::dumpTexture).
++        uint32_t rdramStart = loadOp.texture.address;
++        uint32_t rdramCount = 0;
++        const uint32_t commonBytesOffset = (loadOp.tile.uls >> 2) << loadOp.texture.siz >> 1;
++        uint32_t commonBytesPerRow = loadOp.texture.width << loadOp.texture.siz >> 1;
++        if (loadOp.type == LoadOperation::Type::Block) {
++            const uint32_t wordCount = ((loadOp.tile.lrs - loadOp.tile.uls) >> (4 - loadOp.tile.siz)) + 1;
++            rdramStart = loadOp.texture.address + commonBytesOffset + commonBytesPerRow * loadOp.tile.ult;
++            rdramCount = (wordCount << 3);
++            commonBytesPerRow = std::max(commonBytesPerRow, uint32_t(loadTile.line) << 3U);
++        }
++        else if (loadOp.type == LoadOperation::Type::Tile) {
++            const uint32_t rowCount = 1 + ((loadOp.tile.lrt >> 2) - (loadOp.tile.ult >> 2));
++            rdramStart = loadOp.texture.address + commonBytesOffset + commonBytesPerRow * (loadOp.tile.ult >> 2);
++            rdramCount = rowCount * commonBytesPerRow;
++        }
++        else {
++            return {};
++        }
++
++        const uint32_t loadTileBpr = width << loadTile.siz >> 1;
++        rdramCount = std::max(rdramCount, std::max(loadTileBpr, commonBytesPerRow) * height);
++        if ((rdramCount == 0) || (rdramStart >= RiceRDRAMBytes) || (rdramCount > (RiceRDRAMBytes - rdramStart))) {
++            return {};
++        }
++
++        const uint8_t *rdramBytes = state->RDRAM + rdramStart;
++
++        // The size Rice hashes (texture_hasher's addRiceHash).
++        int bpl;
++        int hashWidth, hashHeight;
++        if (loadOp.type == LoadOperation::Type::Tile) {
++            uint16_t tileWidth = (std::max((loadOp.tile.lrs >> 2) - (loadOp.tile.uls >> 2), 0) + 1) & 0x03FF;
++            uint16_t tileHeight = (std::max((loadOp.tile.lrt >> 2) - (loadOp.tile.ult >> 2), 0) + 1) & 0x03FF;
++            tileWidth = (loadOp.tile.masks != 0) ? std::min(tileWidth, uint16_t(1U << loadOp.tile.masks)) : tileWidth;
++            bpl = loadOp.texture.width << loadOp.texture.siz >> 1;
++            hashWidth = std::min(tileWidth, loadOp.texture.width);
++            if (loadOp.tile.siz > drawTile.siz) {
++                hashWidth <<= loadOp.tile.siz - drawTile.siz;
++            }
++
++            hashHeight = (loadOp.tile.maskt != 0) ? std::min(tileHeight, uint16_t(1U << loadOp.tile.maskt)) : tileHeight;
++        }
++        else {
++            const int tileWidth = std::max((drawTile.lrs >> 2) - (drawTile.uls >> 2), 0) + 1;
++            const int tileHeight = std::max((drawTile.lrt >> 2) - (drawTile.ult >> 2), 0) + 1;
++            const int maskWidth = (drawTile.masks == 0) ? tileWidth : (1 << drawTile.masks);
++            const int maskHeight = (drawTile.maskt == 0) ? tileHeight : (1 << drawTile.maskt);
++            const bool clamps = (drawTile.masks == 0) || (drawTile.cms & G_TX_CLAMP);
++            const bool clampt = (drawTile.maskt == 0) || (drawTile.cmt & G_TX_CLAMP);
++            hashWidth = (clamps && (tileWidth <= 256)) ? std::min(maskWidth, tileWidth) : maskWidth;
++            hashHeight = ((clampt && (tileHeight <= 256)) || (maskHeight > 256)) ? std::min(maskHeight, tileHeight) : maskHeight;
++            if (drawTile.siz == G_IM_SIZ_32b) {
++                bpl = drawTile.line << 4;
++            }
++            else if (loadOp.tile.lrt == 0) {
++                bpl = drawTile.line << 3;
++            }
++            else {
++                uint32_t dxt = loadOp.tile.lrt;
++                if (dxt > 1) {
++                    dxt = ReverseDXT(dxt, loadOp.texture.width, loadOp.texture.siz);
++                }
++
++                bpl = dxt << 3;
++            }
++        }
++
++        // Rice hashes at least this many bytes; texture_hasher skips a texture whose dump is shorter.
++        if ((hashWidth <= 0) || (hashHeight <= 0) || (bpl <= 0)) {
++            return {};
++        }
++
++        const uint32_t expectedSize = (hashHeight - 1) * bpl + (hashWidth << drawTile.siz >> 1);
++        if (expectedSize > rdramCount) {
++            return {};
++        }
++
++        const uint32_t riceCrc = RiceCRC32(rdramBytes, hashWidth, hashHeight, drawTile.siz, bpl);
++        const std::string key = hashString(riceCrc) + "#" + std::to_string(drawTile.fmt) + "#" + std::to_string(drawTile.siz);
++        if (tlut == 0) {
++            return { key };
++        }
++
++        // The palette, as loaded last into the TLUT half of TMEM (TextureManager::dumpTexture).
++        const bool CI4 = (drawTile.siz == G_IM_SIZ_4b);
++        const int32_t paletteTMEM = (RDP_TMEM_WORDS >> 1) + (CI4 ? (drawTile.palette << 4) : 0);
++        const LoadOperation &paletteLoadOp = state->rdp->rice.lastLoadOpByTMEM[paletteTMEM];
++        const uint32_t paletteBytesOffset = (paletteLoadOp.tile.uls >> 2) << paletteLoadOp.texture.siz >> 1;
++        const uint32_t paletteBytesPerRow = paletteLoadOp.texture.width << paletteLoadOp.texture.siz >> 1;
++        const uint32_t paletteRowCount = 1 + ((paletteLoadOp.tile.lrt >> 2) - (paletteLoadOp.tile.ult >> 2));
++        const uint32_t paletteWordsPerRow = ((paletteLoadOp.tile.lrs >> 2) - (paletteLoadOp.tile.uls >> 2)) + 1;
++        const uint32_t paletteRdramStart = paletteLoadOp.texture.address + paletteBytesOffset + paletteBytesPerRow * (paletteLoadOp.tile.ult >> 2);
++        const uint32_t paletteRdramCount = (paletteRowCount - 1) * paletteBytesPerRow + (paletteWordsPerRow << 3);
++        if ((paletteRdramCount == 0) || (paletteRdramStart >= RiceRDRAMBytes) || (paletteRdramCount > (RiceRDRAMBytes - paletteRdramStart))) {
++            return { key };
++        }
++
++        const uint8_t *paletteBytes = state->RDRAM + paletteRdramStart;
++        const uint8_t cimax = CI4 ? CalculateMaxCI4b(rdramBytes, hashWidth, hashHeight, bpl) : CalculateMaxCI8b(rdramBytes, hashWidth, hashHeight, bpl);
++
++        // The palette CRC hashes cimax + 1 entries of two bytes: make sure they're in RDRAM.
++        if ((uint32_t(cimax) + 1) * 2 > (RiceRDRAMBytes - paletteRdramStart)) {
++            return { key };
++        }
++
++        const uint32_t ricePaletteCrc = RiceCRC32(paletteBytes, cimax + 1, 1, 2, CI4 ? 32 : 512);
++
++        const std::string paletteKey = key + "#" + hashString(ricePaletteCrc);
++        if (drawTile.fmt == G_IM_FMT_CI) {
++            return { paletteKey, key };
++        }
++        else {
++            return { key, paletteKey };
++        }
++    }
++};
+diff --git a/src/hle/rt64_rice_hash.h b/src/hle/rt64_rice_hash.h
+new file mode 100644
+index 0000000..a4c715c
+--- /dev/null
++++ b/src/hle/rt64_rice_hash.h
+@@ -0,0 +1,27 @@
++//
++// RT64
++//
++// SPDX-License-Identifier: GPL-2.0-or-later
++//
++// Rice texture hashes, worked out live from RDRAM so texture packs named for GLideN64 and Rice Video
++// (<name>#<crc>#<format>#<size>[#<palette crc>]_all.png) replace textures without a dumped database.
++// The hashing imitates GLideN64's and Rice Video's, as RT64's texture_hasher tool does, and is under
++// the GPL, version 2 or later, like its sources (see rt64_rice_hash.cpp for them).
++//
++
++#pragma once
++
++#include <string>
++#include <vector>
++
++#include "common/rt64_load_types.h"
++
++namespace RT64 {
++    struct State;
++
++    // The Rice names a pack could give the texture loadTile samples (as width x height, with this TLUT):
++    // "crc#format#size" and, with a palette, "crc#format#size#palette crc" (GLideN64 only names the
++    // palette of CI textures, so for others the name without it comes first). Empty if the load isn't
++    // one Rice hashes.
++    std::vector<std::string> riceTextureKeys(const State *state, const LoadTile &loadTile, uint16_t width, uint16_t height, uint32_t tlut);
++};
 diff --git a/src/hle/rt64_rigid_body.cpp b/src/hle/rt64_rigid_body.cpp
 index fd8b3eb..7f54303 100644
 --- a/src/hle/rt64_rigid_body.cpp
@@ -1547,3 +1981,182 @@ index e842dcc..c0e4b44 100644
  
                  // We only interpolate the projection if the view matrix has been interpolated.
                  const bool interpolateProjection = rigidBody->lerpTranslation || rigidBody->lerpRotation;
+diff --git a/src/render/rt64_texture_cache.cpp b/src/render/rt64_texture_cache.cpp
+index 0848f3e..a153536 100644
+--- a/src/render/rt64_texture_cache.cpp
++++ b/src/render/rt64_texture_cache.cpp
+@@ -1298,6 +1298,7 @@ namespace RT64 {
+             }
+         }
+ 
++        bool found = false;
+         for (int32_t i = int32_t(textureMap.replacementMap.fileSystemResolvedPaths.size()) - 1; i >= 0; i--) {
+             const auto &fsResolvedPaths = textureMap.replacementMap.fileSystemResolvedPaths[i];
+             uint32_t hashVersion = textureMap.replacementMap.fileSystemHashVersions[i];
+@@ -1306,10 +1307,20 @@ namespace RT64 {
+                 if (it != fsResolvedPaths.end()) {
+                     // Stop searching for replacements as soon as we find one.
+                     resolvedPaths.emplace_back(it->second);
++                    found = true;
+                     break;
+                 }
+             }
+         }
++
++        // Otherwise, a texture matched to a Rice-named pack as it was loaded.
++        if (!found && (exclusiveDbHash == 0) && riceReplacementsLoaded) {
++            std::unique_lock riceLock(riceMutex);
++            auto it = riceMatchedPaths.find(hash);
++            if (it != riceMatchedPaths.end()) {
++                resolvedPaths.emplace_back(it->second);
++            }
++        }
+     }
+ 
+     bool TextureCache::useTexture(uint64_t hash, uint64_t submissionFrame, uint32_t &textureIndex, interop::float2 &textureScale, interop::float3 &textureDimensions, bool &textureReplaced, bool &hasMipmaps, bool &shiftedByHalf) {
+@@ -1394,6 +1405,56 @@ namespace RT64 {
+         return true;
+     }
+ 
++    bool TextureCache::hasRiceReplacements() const {
++        return riceReplacementsLoaded;
++    }
++
++    uint32_t TextureCache::getRiceGeneration() const {
++        return riceGeneration;
++    }
++
++    void TextureCache::addRiceReplacement(uint64_t hash, const std::vector<std::string> &riceKeys) {
++        // A pack's database replacing the texture comes first.
++        {
++            std::unique_lock lock(textureMapMutex);
++            for (const auto &fsResolvedPaths : textureMap.replacementMap.fileSystemResolvedPaths) {
++                if (fsResolvedPaths.find(hash) != fsResolvedPaths.end()) {
++                    return;
++                }
++            }
++        }
++
++        // The last pack with a file for one of its names, as with the databases.
++        ReplacementResolvedPath resolvedPath;
++        bool found = false;
++        {
++            std::unique_lock riceLock(riceMutex);
++            for (int32_t i = int32_t(riceFileSystemPaths.size()) - 1; (i >= 0) && !found; i--) {
++                for (const std::string &riceKey : riceKeys) {
++                    auto it = riceFileSystemPaths[i].find(riceKey);
++                    if (it != riceFileSystemPaths[i].end()) {
++                        resolvedPath = it->second;
++                        resolvedPath.textureHash = hash;
++                        riceMatchedPaths[hash] = resolvedPath;
++                        found = true;
++                        break;
++                    }
++                }
++            }
++        }
++
++        if (!found) {
++            return;
++        }
++
++        // A texture uploaded already (it was loaded before the pack) is checked for its replacement again. One not uploaded
++        // yet finds it in riceMatchedPaths when it is (addResolvedPaths), and this check does nothing to it (TextureMap::replace).
++        uploadQueueMutex.lock();
++        resolvedPathQueue.emplace_back(resolvedPath);
++        uploadQueueMutex.unlock();
++        uploadQueueChanged.notify_all();
++    }
++
+     bool TextureCache::hasReplacement(uint64_t hash) {
+         std::unique_lock lock(textureMapMutex);
+         const auto &resolvedPaths = textureMap.replacementMap.fileSystemResolvedPaths;
+@@ -1426,6 +1487,15 @@ namespace RT64 {
+         // Clear the current set of textures that were sent to streaming threads.
+         textureMap.replacementMap.fileSystemStreamSets.clear();
+ 
++        // Forget the Rice-named packs and the textures matched to them.
++        {
++            std::unique_lock riceLock(riceMutex);
++            riceFileSystemPaths.clear();
++            riceMatchedPaths.clear();
++            riceReplacementsLoaded = false;
++            riceGeneration++;
++        }
++
+         // Clear the pending replacement checks for streamed textures.
+         textureMap.replacementMap.fileSystemStreamResolvedPaths.clear();
+ 
+@@ -1502,6 +1572,9 @@ namespace RT64 {
+             }
+         }
+ 
++        // Each file system's files by Rice hash, if its database's auto path is Rice.
++        std::vector<std::unordered_map<std::string, ReplacementResolvedPath>> ricePaths(fileSystems.size());
++
+         // Load databases and low mipmap caches from the filesystems in reverse order.
+         {
+             loaderCommandList->begin();
+@@ -1518,7 +1591,7 @@ namespace RT64 {
+                         db = json::parse(databaseBytes.begin(), databaseBytes.end(), nullptr, true);
+ 
+                         if (db.config.hashVersion <= TMEMHasher::CurrentHashVersion) {
+-                            db.resolvePaths(fileSystems[i].get(), uint32_t(i), fileSystemResolvedPaths[i], false, nullptr, &fileSystemStreamSets[i]);
++                            db.resolvePaths(fileSystems[i].get(), uint32_t(i), fileSystemResolvedPaths[i], false, nullptr, &fileSystemStreamSets[i], &ricePaths[i]);
+                             fileSystemHashVersions[i] = db.config.hashVersion;
+                             knownHashVersions.insert(db.config.hashVersion);
+ 
+@@ -1564,6 +1637,19 @@ namespace RT64 {
+         textureMap.replacementMap.fileSystemStreamSets = std::move(fileSystemStreamSets);
+         textureMap.replacementMap.fileSystemStreamResolvedPaths.resize(fileSystemCount);
+ 
++        {
++            std::unique_lock riceLock(riceMutex);
++            riceFileSystemPaths = std::move(ricePaths);
++            riceMatchedPaths.clear();
++            bool anyRicePaths = false;
++            for (const auto &fsRicePaths : riceFileSystemPaths) {
++                anyRicePaths = anyRicePaths || !fsRicePaths.empty();
++            }
++
++            riceReplacementsLoaded = anyRicePaths;
++            riceGeneration++;
++        }
++
+         // Queue all textures that must be preloaded to the stream queues.
+         bool texturesPreloaded = false;
+         {
+diff --git a/src/render/rt64_texture_cache.h b/src/render/rt64_texture_cache.h
+index 9131697..488e5be 100644
+--- a/src/render/rt64_texture_cache.h
++++ b/src/render/rt64_texture_cache.h
+@@ -220,6 +220,14 @@ namespace RT64 {
+         uint64_t streamLoadCount = 0;
+         TextureMap textureMap;
+         std::mutex textureMapMutex;
++
++        // Packs named for Rice (auto path Rice): each file system's files by Rice hash, and the textures matched to them
++        // as they were loaded (hle/rt64_rice_hash.h), looked up when a texture has no other replacement.
++        std::mutex riceMutex;
++        std::vector<std::unordered_map<std::string, ReplacementResolvedPath>> riceFileSystemPaths;
++        std::unordered_map<uint64_t, ReplacementResolvedPath> riceMatchedPaths;
++        std::atomic<bool> riceReplacementsLoaded = false;
++        std::atomic<uint32_t> riceGeneration = 0;
+         RenderWorker *directWorker;
+         RenderWorker *copyWorker;
+         std::unique_ptr<RenderCommandList> loaderCommandList;
+@@ -240,6 +248,14 @@ namespace RT64 {
+         bool useTexture(uint64_t hash, uint64_t submissionFrame, uint32_t &textureIndex);
+         bool addReplacement(uint64_t hash, const std::string &relativePath, ReplacementShift shift);
+         bool hasReplacement(uint64_t hash);
++
++        // Whether a loaded pack is named for Rice, and a count that changes whenever the packs do.
++        bool hasRiceReplacements() const;
++        uint32_t getRiceGeneration() const;
++
++        // The texture with this hash has these Rice names (the most likely first): replace it with the file a Rice-named
++        // pack has for one of them, unless a pack's database already replaces it.
++        void addRiceReplacement(uint64_t hash, const std::vector<std::string> &riceKeys);
+         void clearReplacementDirectories();
+         void reloadReplacements(bool clearQueue, uint64_t exclusiveDbHash = 0);
+         bool loadReplacementDirectory(const ReplacementDirectory &replacementDirectory);

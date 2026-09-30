@@ -313,6 +313,31 @@ coordinates, by least squares) and takes each vertex's coordinates last frame
 from it, if the fit is close, covers the texture and moves no vertex more than
 a quarter of the texture.
 
+Texture packs named for Rice (issue #63): GLideN64 and Rice Video name each
+replacement by its texture's Rice hash (`<name>#<crc>#<format>#<size>[#<palette
+crc>]_all.png`), which RT64 can only use through an `rt64.json` pairing it with
+RT64's own hash, made from textures dumped while playing (its `texture_hasher`
+tool). The patch works the Rice hash out live instead
+(`src/hle/rt64_rice_hash.cpp`): a pack whose database's auto path is Rice keeps
+its files by Rice hash (`ReplacementDatabase::resolvePaths`), and the first time
+a texture is seen while one is loaded (`TextureManager::checkRiceReplacement`),
+its Rice names are worked out from the RDRAM its load read, as `dumpTexture`
+dumps it and `texture_hasher` hashes it. The texture cache
+(`TextureCache::addRiceReplacement`) then gives the texture that file, unless a
+database already replaces it; a texture uploaded before the pack was loaded is
+checked again. GLideN64 names a palette only for CI textures, but Conker loads a
+palette for some RGBA ones too, so both names are tried. The host unpacks a
+GLideN64 cache (`.htc`) in the mods folder into such a pack when the launcher
+opens or the Mods menu rescans the folder (`host/src/gliden64_packs.cpp`).
+
+`rt64_rice_hash.cpp` is under the **GPL, version 2 or later**, unlike the rest of
+RT64 (MIT): its hashing is `texture_hasher`'s, which RT64 keeps under the GPL
+because it imitates GLideN64's and Rice Video's. The Rice CRC is GlideHQ's
+(Hiroshi Morii, in GLideN64's `TxUtil.cpp`, GPL 2 or later), and the sizes it
+hashes (`ReverseDXT`, `CalculateMaxCI`, the tile and block dimensions) are Rice
+Video's (mupen64plus-video-rice, GPL 2 or later). Its header says so; see
+[the licenses](../README.md#license) for what that means for builds.
+
 RecompFrontend (`recompfrontend.patch`): mouse buttons can be bound, with the
 keyboard's controls (and in single player with the controller's too, as both are
 read then). recompinput already had a mouse input type, but reading it
@@ -322,6 +347,14 @@ Escape still cancels). The buttons' state is read with the keyboard's each poll
 (`SDL_GetMouseState`), so, like the keyboard, they don't reach the game while a
 menu is open. They're shown as PromptFont's mouse glyphs: left, middle and
 right, and numbers from the side buttons (4, 5) on.
+
+RecompFrontend also lets the game take files the mod loader doesn't, for the
+GLideN64 texture packs: `register_mod_file_extension` has the mod installer
+(Install Mods, or files dropped on the Mods menu) copy a file with that extension
+(`.htc`) into the mods folder as it is, where it rejected anything but a zip, and
+`register_mod_scan_callback` is called before the Mods menu rescans the mods
+folder (its refresh button, which also follows an install), where the game starts
+unpacking a new `.htc`.
 
 ## Audio
 
@@ -355,7 +388,11 @@ Conker's control descriptions, and `audio_output.cpp` plays the sound at the
 Sound tab's volume. `cutscene_aspect.cpp` is the Graphics tab's Cutscene Aspect
 Ratio: with 4:3, full cutscenes (those whose script marks them unskippable, and
 the opening with the N64 logo) set the renderer's aspect ratio to Original while
-they play. `patches/` holds the headers recompui includes for the
+they play. `texture_packs.cpp` registers RT64 texture packs (`.rtz`
+files and folders with an `rt64.json`) with the mod loader and adds the Texture
+Packs settings tab, and `gliden64_packs.cpp` unpacks GLideN64 texture caches
+(`.htc`) in the mods folder into packs RT64 matches by their Rice names (see RT64's
+changes above). `patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
 `--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input
 or sound). On Linux the window build creates the SDL window with
