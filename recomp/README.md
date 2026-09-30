@@ -229,9 +229,13 @@ text and data. Conker's two builds ("F3DEXBG.NoN fifo 2.08" and "F3DEX.NoN fifo
 
 RT64's shaders can't see those normals, so lighting is computed on the CPU into
 the vertex colours (`RSP::lightVerticesCBFD`), and `G_LIGHTING` is hidden from
-the shaders. Texture generation (`G_TEXTURE_GEN`), which needs the same normals,
-is disabled for now, so environment-mapped surfaces render without their
-reflection texture.
+the shaders. Texture generation (`G_TEXTURE_GEN`, environment mapping: the gold
+of the Rareware logo, glass), which needs the same normals, is done on the CPU
+too (`RSP::textureGenVerticesCBFD`): each vertex's normal against the look-at
+vectors, turned into model space as the lights' directions are, gives its texture
+coordinates, written into the vertex's s and t (32 times the generated
+coordinate, so the texture scale then applies as it does with texture
+generation), and `G_TEXTURE_GEN` is hidden from the shaders as well.
 
 The patch also changes widescreen. RT64 widens a projection only if its
 scissor covers the whole width of its framebuffer's combined scissor. Conker's
@@ -395,7 +399,6 @@ health, infinite lives and a full wallet, each an option.
 
 ## Next steps
 
-1. Texture generation for CBFD (pass the CPU-computed normals through to RT64).
-2. Play further into the game: saves (EEPROM), rumble, the other microcode build.
-3. Play-testing on Linux with a real GPU driver (so far only WSL with software
+1. Play further into the game: saves (EEPROM), rumble, the other microcode build.
+2. Play-testing on Linux with a real GPU driver (so far only WSL with software
    Vulkan, where the sound crackles while rendering loads the CPU).
