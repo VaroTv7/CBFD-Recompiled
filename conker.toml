@@ -145,6 +145,20 @@ func = "func_100095A0"
 before_vram = 0x100095D0
 text = "{ extern void osAiGetLength_recomp(uint8_t*, recomp_context*); osAiGetLength_recomp(rdram, ctx); ctx->r3 = ctx->r2; }"
 
+# func_10008CE8 (start a song on a sequence player) busy-waits for the audio thread
+# to stop the player, which on the N64 preempts it; here the loop has to yield for the
+# audio thread to run (issue #66). A hook at the head of each of its two wait loops,
+# before the n_alCSPGetState call (host/src/ultra_extras.cpp, conker_spin_wait_pass).
+[[patches.hook]]
+func = "func_10008CE8"
+before_vram = 0x10008D44
+text = "{ extern void conker_spin_wait_pass(uint8_t*, recomp_context*); conker_spin_wait_pass(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_10008CE8"
+before_vram = 0x10008D98
+text = "{ extern void conker_spin_wait_pass(uint8_t*, recomp_context*); conker_spin_wait_pass(rdram, ctx); }"
+
 # func_1000480C: Rare's PIO copy from cartridge ROM (used by the ROM loader
 # func_10004514). It polls PI_STATUS, then reads the cartridge word by word
 # through (osRomBase | addr | 0xA0000000).

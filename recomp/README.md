@@ -174,6 +174,16 @@ Runs before N64Recomp.
   low, and the camera code's saved registers came back as garbage (a spinning
   camera, then a crash in `func_1512BB10` shortly after Hungover starts).
   `prepare_elf.py` warns about any such fall-through entry.
+- Makes `func_10008CE8`'s busy-wait yield (issue #66). It starts a song on a
+  sequence player: it stops the player, then counts up to 2,000,000 (and then
+  4,000,000) until the audio thread reports it stopped. On the N64 the audio
+  thread preempts the loop; the runtime switches game threads only when one
+  waits or yields, so the loop ran out with the player still playing, and the
+  new song went unplayed (the bar's music and chatter played on after loading a
+  save from the menu a game over returns to). A hook at the head of each loop
+  (`conker_spin_wait_pass`, `host/src/ultra_extras.cpp`) yields for up to 1 ms
+  and counts it as the ~3,000 passes the N64 would make in that time, so the
+  loop still gives up after about as long.
 
 ## Local changes to the tools
 

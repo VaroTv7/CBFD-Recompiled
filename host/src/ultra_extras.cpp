@@ -31,6 +31,27 @@ namespace {
     }
 }
 
+// A pass of a busy-wait loop in the game (issue #66): func_10008CE8, which starts a
+// song on a sequence player, stops the player and then counts up to 2,000,000 (then
+// 4,000,000) while it waits for the audio thread to report it stopped. On the N64
+// the audio thread preempts the loop; here game threads switch only when one waits
+// or yields, so the loop ran out without the audio thread running, and the new song
+// went to a player still playing the old one (the bar's music played on after
+// loading a save from the menu the game over leads to). conker.toml calls this at
+// the head of both loops: it yields for up to 1 ms, letting the audio thread run,
+// and counts that as the passes the N64 would have made in the time (about 3,000;
+// a pass is some 30 cycles at 93.75 MHz), so the loop still gives up after about as
+// long as it would there. The count ($s0) is kept at or under the loop's bound
+// ($s1), which both loops end on.
+extern "C" void yield_self_1ms(uint8_t* rdram);
+extern "C" void conker_spin_wait_pass(uint8_t* rdram, recomp_context* ctx) {
+    constexpr uint32_t passes_per_ms = 3000;
+    yield_self_1ms(rdram);
+    const uint32_t count = (uint32_t)ctx->r16;
+    const uint32_t bound = (uint32_t)ctx->r17;
+    ctx->r16 = (count < bound && bound - count > passes_per_ms) ? count + passes_per_ms : bound;
+}
+
 // Reads a word through a KSEG1 (uncached) address, for game code that reads
 // cartridge ROM or RDRAM that way directly. The runtime maps only KSEG0 RDRAM,
 // so conker.toml replaces those loads with a hook that calls this.
