@@ -420,6 +420,8 @@ Free Camera, the right stick, which then presses no C-buttons while it turns it
 (`frontend.cpp`); its settings, with Camera: Field of View, are in
 `look_aim.cpp`. `field_of_view.cpp` widens the normal camera's field of view as
 func_1510B128 sets it, and works the level's cull scales out for the wider view.
+`fps_counter.cpp` is the Graphics tab's Show FPS: a corner counter of the frames
+RT64 presented and the game's own, a context of its own that takes no input.
 `patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
 `--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input

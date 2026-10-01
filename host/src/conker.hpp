@@ -152,6 +152,18 @@ namespace conker {
         float camera_field_of_view();
     }
 
+    // fps_counter.cpp: Show FPS, the frame rate counter.
+    namespace fps_counter {
+        // conker_config.cpp: whether the setting is on.
+        bool enabled();
+        // From the launcher's init (frontend.cpp): recompui's UI exists now, so the counter can be made.
+        void on_ui_ready();
+        // On the main thread (update_gfx): shows or hides the counter, and updates it.
+        void update();
+        // From the game thread, as the game starts a frame's display list.
+        void game_frame();
+    }
+
     // field_of_view.cpp: Camera: Field of View.
     namespace field_of_view {
         // From updateCullScales_1510B958's return (widescreen.cpp): with the setting widening the

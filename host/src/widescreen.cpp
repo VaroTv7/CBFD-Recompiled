@@ -178,6 +178,9 @@ namespace {
 extern "C" void conker_frame_dl_begin(uint8_t* rdram, recomp_context* ctx) {
     extended_enabled = false;
     conker::cutscene_aspect::update(rdram);
+#if defined(CONKER_RT64)
+    conker::fps_counter::game_frame();
+#endif
 }
 
 // func_15019464, just after func_1501A490 wrote a pipe sync and the camera's scissor ($v0 after them).

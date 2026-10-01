@@ -761,6 +761,49 @@ index 87392d0..db00961 100644
              const std::vector<float> &curTcFloats = curWorkload.drawData.tcFloats;
              const std::vector<float> &prevTcFloats = prevWorkload.drawData.tcFloats;
              std::vector<float> &curVelFloats = curWorkload.drawData.tcVelFloats;
+diff --git a/src/hle/rt64_present_queue.cpp b/src/hle/rt64_present_queue.cpp
+index 7de5b69..2ef2ef5 100644
+--- a/src/hle/rt64_present_queue.cpp
++++ b/src/hle/rt64_present_queue.cpp
+@@ -9,7 +9,16 @@
+ 
+ #include "rt64_workload_queue.h"
+ 
++#include <atomic>
++
+ namespace RT64 {
++    // Frames presented to the screen so far (Conker: its FPS counter reads it, host/src/fps_counter.cpp).
++    static std::atomic<uint64_t> presentedFrames = 0;
++
++    uint64_t presentedFrameCount() {
++        return presentedFrames.load(std::memory_order_relaxed);
++    }
++
+     // PresentQueue
+ 
+     PresentQueue::PresentQueue() {
+@@ -402,6 +411,7 @@ namespace RT64 {
+                 RenderCommandSemaphore *waitSemaphore = drawSemaphores[swapChainIndex].get();
+                 presentTimestamp = Timer::current();
+                 swapChainValid = ext.swapChain->present(swapChainIndex, &waitSemaphore, 1);
++                presentedFrames.fetch_add(1, std::memory_order_relaxed);
+                 presentProfiler.logAndRestart();
+             }
+         }
+diff --git a/src/hle/rt64_present_queue.h b/src/hle/rt64_present_queue.h
+index e08b02c..084ccfd 100644
+--- a/src/hle/rt64_present_queue.h
++++ b/src/hle/rt64_present_queue.h
+@@ -17,6 +17,9 @@
+ namespace RT64 {
+     struct WorkloadQueue;
+ 
++    // The number of frames presented to the screen so far, from any thread (Conker's FPS counter).
++    uint64_t presentedFrameCount();
++
+     struct PresentQueue {
+         struct External {
+             ApplicationWindow *appWindow = nullptr;
 diff --git a/src/hle/rt64_rdp_tmem.cpp b/src/hle/rt64_rdp_tmem.cpp
 index 6051f4e..8f00934 100644
 --- a/src/hle/rt64_rdp_tmem.cpp

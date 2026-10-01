@@ -15,6 +15,9 @@ namespace {
     // Cutscene Aspect Ratio (cutscene_aspect.cpp), on the Graphics tab.
     const std::string cutscene_aspect_id = "cutscene_aspect";
     enum class CutsceneAspect : uint32_t { Expand, Original };
+    // Show FPS (fps_counter.cpp), on the Graphics tab.
+    const std::string show_fps_id = "show_fps";
+    enum class ShowFps : uint32_t { Off, On };
 
     void add_graphics_options(recomp::config::Config& config) {
         static const std::vector<recomp::config::ConfigOptionEnumOption> choices = {
@@ -31,6 +34,18 @@ namespace {
             choices, CutsceneAspect::Expand);
         config.add_option_disable_dependency(cutscene_aspect_id,
             recompui::config::graphics::options::ar_option, ultramodern::renderer::AspectRatio::Original);
+
+        static const std::vector<recomp::config::ConfigOptionEnumOption> fps_choices = {
+            {ShowFps::Off, "Off", "Off"},
+            {ShowFps::On, "On", "On"},
+        };
+        config.add_enum_option(show_fps_id, "Show FPS",
+            "Shows the frame rate in the top-right corner while playing, to spot slowdowns. "
+            "<recomp-color primary>FPS</recomp-color> is the frames drawn to the screen each second (with interpolation, "
+            "more than the game makes): a drop there is the PC falling behind. "
+            "<recomp-color primary>Game</recomp-color> is the frames the game itself makes, up to 30: a drop there with FPS "
+            "steady is the game's own slowdown, as on the N64.",
+            fps_choices, ShowFps::Off);
     }
 
     void set_control_descriptions() {
@@ -93,4 +108,9 @@ void conker::init_config() {
 bool conker::cutscene_aspect::in_4x3() {
     const auto value = recompui::config::get_graphics_config().get_option_value(cutscene_aspect_id);
     return static_cast<CutsceneAspect>(std::get<uint32_t>(value)) == CutsceneAspect::Original;
+}
+
+bool conker::fps_counter::enabled() {
+    const auto value = recompui::config::get_graphics_config().get_option_value(show_fps_id);
+    return static_cast<ShowFps>(std::get<uint32_t>(value)) == ShowFps::On;
 }

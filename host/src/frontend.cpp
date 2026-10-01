@@ -171,6 +171,7 @@ namespace {
     void update_gfx(void*) {
         recompinput::handle_events();
         conker::texture_packs::update_unpacking();
+        conker::fps_counter::update();
         std::string title;
         {
             std::lock_guard lock(title_mutex);
@@ -257,6 +258,8 @@ namespace {
         conker::texture_packs::apply();
         // And unpack the GLideN64 packs not unpacked yet, showing the progress over the launcher.
         conker::texture_packs::unpack_gliden64_packs();
+        // recompui's UI exists now: the FPS counter can make its own.
+        conker::fps_counter::on_ui_ready();
         options->add_start_game_or_load_rom_option();
         version_option = options->add_option("Version", on_version_selected);
         add_rom_option = options->add_option("Add ROM", on_add_rom_selected);
