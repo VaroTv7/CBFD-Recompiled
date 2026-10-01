@@ -288,6 +288,14 @@ to the right, so the game doesn't clamp it, and moved back as an extended
 rectangle. They write no sync to hold the enable, so it's put early in the
 frame, in place of the pipe sync each camera's pass starts with.
 
+A camera's background fill (`func_151103C8`, its colour under everything it
+draws) ends exactly at the scissor's right edge, and RT64 lines such a rectangle
+up with the window's: its last column went out to the window's right side. The
+widened 3D covers it in play, but on the screens before the N64 logo, which draw
+only a picture over the 4:3 frame, it showed as a thin blue line near the right
+edge. In widescreen that fill ends a pixel short, inside the frame
+(`conker_camera_background_fill`).
+
 The patch also changes frame interpolation (a frame rate above the game's 30).
 RT64 draws frames between the game's by pairing each transform with last
 frame's; without help it guesses, from draw calls that look alike. Conker's

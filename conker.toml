@@ -368,6 +368,15 @@ func = "func_1501B22C"
 before_vram = 0x1501B308
 text = "{ extern void conker_widen_frustum(uint8_t*, recomp_context*); conker_widen_frustum(rdram, ctx); }"
 
+# Widescreen: func_151103C8 fills the camera's view with its background colour up to the scissor's
+# edge, which RT64 lines up with the window's, leaving a thin line at the right edge where nothing
+# covers it (the screens before the N64 logo). Just before the fill ($a3 its right edge), it ends a
+# pixel short (host/src/widescreen.cpp).
+[[patches.hook]]
+func = "func_151103C8"
+before_vram = 0x15110458
+text = "{ extern void conker_camera_background_fill(uint8_t*, recomp_context*); conker_camera_background_fill(rdram, ctx); }"
+
 # Widescreen: the scale the level's culls compare view-space x with is set for
 # the 4:3 view too. Widen it to the window (host/src/widescreen.cpp).
 [[patches.hook]]

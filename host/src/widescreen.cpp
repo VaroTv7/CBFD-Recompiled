@@ -531,6 +531,25 @@ extern "C" void conker_widen_frustum(uint8_t* rdram, recomp_context* ctx) {
     write_float(rdram, camera, 0x9C, -s);
 }
 
+// func_151103C8 fills the camera's view with its background colour (D_800DBEA8) before it's drawn:
+// from its left bound to its right one less a pixel (290 - 1 for a camera across the frame, 289 in
+// fill mode's inclusive coordinates, so the fill ends just at the scissor's edge). RT64 lines a
+// rectangle that reaches the scissor's edge up with the window's, so in widescreen its last column
+// went out to the window's right side. In play the widened 3D covers it; on the screens before the
+// N64 logo, which draw only a picture over the 4:3 frame, it showed as a thin blue line near the
+// right edge. At 0x15110458, just before the fill ($a3 its right edge), a fill that reaches the edge
+// ends a pixel short, inside the frame: the picture or the 3D drawn over it covers that pixel.
+extern "C" void conker_camera_background_fill(uint8_t* rdram, recomp_context* ctx) {
+    if (widescreen_ratio() <= 1.0f) {
+        return;
+    }
+    const int32_t frame_width = MEM_W(0, (gpr)(int32_t)0x800BE620); // D_800BE620
+    const int32_t right = (int32_t)ctx->r7;
+    if (right >= frame_width - 3) {
+        ctx->r7 = (gpr)(int64_t)(frame_width - 4);
+    }
+}
+
 // updateCullScales_1510B958 sets the scale that the game's other culls (the level's
 // pieces among them: func_150A5378, func_150A6210, func_1510AEE0) multiply a
 // view-space x by before comparing it with the depth: a point is kept while
