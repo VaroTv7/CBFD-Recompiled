@@ -556,6 +556,8 @@ extern "C" void conker_camera_background_fill(uint8_t* rdram, recomp_context* ct
 // |x| * scale <= depth, the 4:3 view. At its return, divide it by how much wider
 // the window is, so they keep what the widened view shows.
 extern "C" void conker_widen_cull_scale(uint8_t* rdram, recomp_context* ctx) {
+    // Camera: Field of View first ($v0 is the camera).
+    conker::field_of_view::adjust_cull_scales(rdram, ctx->r2);
     const float ratio = widescreen_ratio();
     if (ratio <= 1.0f || no_cull_widen()) {
         return;

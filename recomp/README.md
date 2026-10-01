@@ -414,7 +414,13 @@ fullscreen at 4K (issue #21). `texture_packs.cpp` registers RT64 texture packs (
 files and folders with an `rt64.json`) with the mod loader and adds the Texture
 Packs settings tab, and `gliden64_packs.cpp` unpacks GLideN64 texture caches
 (`.htc`) in the mods folder into packs RT64 matches by their Rice names (see RT64's
-changes above). `patches/` holds the headers recompui includes for the
+changes above). `mouse_camera.cpp`
+is a free orbit camera around Conker, turned by the mouse and, with Right Stick:
+Free Camera, the right stick, which then presses no C-buttons while it turns it
+(`frontend.cpp`); its settings, with Camera: Field of View, are in
+`look_aim.cpp`. `field_of_view.cpp` widens the normal camera's field of view as
+func_1510B128 sets it, and works the level's cull scales out for the wider view.
+`patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
 `--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input
 or sound). On Linux the window build creates the SDL window with

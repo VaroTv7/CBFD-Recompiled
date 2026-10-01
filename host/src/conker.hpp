@@ -138,6 +138,36 @@ namespace conker {
         void add_options(recomp::config::Config& config);
         // Called on every input poll: queues its mouse and gyro movement for the look mode.
         void on_input_poll();
+        // The Mouse: Turn the Camera setting: whether the mouse turns the third-person camera
+        // (mouse_camera.cpp).
+        bool mouse_turns_camera();
+        // The Right Stick: Free Camera setting (issue #65), in single player: whether the right stick
+        // turns the third-person camera (mouse_camera.cpp) instead of pressing the C-buttons.
+        bool stick_free_camera();
+        // Camera: Invert Turning, for the free camera's stick: turning (x) and tilting (y).
+        void free_camera_invert(bool& x, bool& y);
+        // Camera: Turning Speed, 1 at 100%.
+        float camera_turn_speed();
+        // Camera: Field of View: the normal camera's vertical field of view, degrees.
+        float camera_field_of_view();
+    }
+
+    // field_of_view.cpp: Camera: Field of View.
+    namespace field_of_view {
+        // From updateCullScales_1510B958's return (widescreen.cpp): with the setting widening the
+        // camera's view, works the cull scales out for the view it draws.
+        void adjust_cull_scales(uint8_t* rdram, uint64_t camera);
+    }
+
+    // mouse_camera.cpp: the free orbit camera, turned by the mouse and the right stick.
+    namespace mouse_camera {
+        // Whether last frame's camera update was the normal camera (where the C-buttons turn it: not
+        // R-Look, aiming, cutscenes or other special cameras).
+        bool normal_camera();
+        // Whether the right stick turned the orbit last frame's camera update could run (the setting
+        // on, the normal camera, not R-Look or aiming): the controller's input then leaves the right
+        // stick off the C-buttons (frontend.cpp). Safe from any thread.
+        bool stick_turns_camera();
     }
 
     // SDL sound output (audio_output.cpp).

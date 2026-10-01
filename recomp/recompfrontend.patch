@@ -120,10 +120,10 @@ index c6786e6..7db1735 100644
          return recompinput::unknown_device_input;
      }
 diff --git a/recompui/include/recompui/recompui.h b/recompui/include/recompui/recompui.h
-index 30c463b..a49d54d 100644
+index 30c463b..c64bc9e 100644
 --- a/recompui/include/recompui/recompui.h
 +++ b/recompui/include/recompui/recompui.h
-@@ -90,6 +90,12 @@ namespace recompui {
+@@ -90,6 +90,14 @@ namespace recompui {
      void close_prompt();
      bool is_prompt_open();
      void update_mod_list(bool scan_mods = true);
@@ -133,6 +133,8 @@ index 30c463b..a49d54d 100644
 +    // Called when the Mods menu rescans the mods folder (its refresh button, or after installing mods),
 +    // before the runtime scans it.
 +    void register_mod_scan_callback(std::function<void()> callback);
++    // A unit shown after a number option's value in the settings (e.g. a degree sign), by the option's id.
++    void set_number_option_suffix(const std::string& option_id, const std::string& suffix);
      void process_game_started();
  
      void apply_color_hack();
@@ -228,3 +230,82 @@ index 02455fd..35a9952 100644
          recomp::mods::scan_mods();
      }
      mod_details = recomp::mods::get_all_mod_details(game_mod_id);
+diff --git a/recompui/src/config/ui_config_option.cpp b/recompui/src/config/ui_config_option.cpp
+index 86428c9..39f7d0e 100644
+--- a/recompui/src/config/ui_config_option.cpp
++++ b/recompui/src/config/ui_config_option.cpp
+@@ -1,7 +1,18 @@
+ #include "ui_config_option.h"
+ 
++#include <unordered_map>
++
++#include "recompui/recompui.h"
++
+ namespace recompui {
+ 
++// Units shown after number options' values (set_number_option_suffix), by option id.
++static std::unordered_map<std::string, std::string> number_option_suffixes;
++
++void set_number_option_suffix(const std::string& option_id, const std::string& suffix) {
++    number_option_suffixes[option_id] = suffix;
++}
++
+ constexpr float config_option_element_margin_vertical = 12.0f;
+ ConfigOptionElement::ConfigOptionElement(
+     ResourceId rid,
+@@ -206,6 +217,9 @@ ConfigOptionNumber::ConfigOptionNumber(
+     slider->set_max_value(num_opt.max);
+     slider->set_step_value(num_opt.step);
+     slider->set_precision(num_opt.precision);
++    if (auto suffix = number_option_suffixes.find(option_id); suffix != number_option_suffixes.end()) {
++        slider->set_suffix(suffix->second);
++    }
+     slider->add_value_changed_callback([this](double v){
+         this->set_option_value(this->option_id, v);
+     });
+diff --git a/recompui/src/elements/ui_slider.cpp b/recompui/src/elements/ui_slider.cpp
+index 7a50da4..c3d736d 100644
+--- a/recompui/src/elements/ui_slider.cpp
++++ b/recompui/src/elements/ui_slider.cpp
+@@ -44,6 +44,11 @@ namespace recompui {
+         set_value_internal(min_value + ratio * (max_value - min_value), false, true);
+     }
+ 
++    void Slider::set_suffix(const std::string& s) {
++        suffix = s;
++        update_label_text();
++    }
++
+     void Slider::update_circle_position() {
+         double ratio = std::clamp((value - min_value) / (max_value - min_value), 0.0, 1.0);
+         circle_element->set_left(ratio * 100.0, Unit::Percent);
+@@ -53,7 +58,7 @@ namespace recompui {
+         char text_buffer[32];
+ 
+         if (type == SliderType::Double) {
+-            std::snprintf(text_buffer, sizeof(text_buffer), "%.*f", precision, value);
++            std::snprintf(text_buffer, sizeof(text_buffer), "%.*f%s", precision, value, suffix.c_str());
+         } else if (type == SliderType::Percent) {
+             std::snprintf(text_buffer, sizeof(text_buffer), "%d%%", static_cast<int>(value));
+         } else {
+diff --git a/recompui/src/elements/ui_slider.h b/recompui/src/elements/ui_slider.h
+index 4d8c41e..da94d42 100644
+--- a/recompui/src/elements/ui_slider.h
++++ b/recompui/src/elements/ui_slider.h
+@@ -23,6 +23,7 @@ namespace recompui {
+         double max_value = 100.0;
+         double step_value = 0.0;
+         int precision = 0;
++        std::string suffix;
+         std::vector<std::function<void(double)>> value_changed_callbacks;
+         std::function<void(bool)> focus_callback = nullptr;
+ 
+@@ -53,6 +54,8 @@ namespace recompui {
+         double get_step_value() const;
+         void set_precision(int p);
+         int get_precision() const;
++        // Text shown after the value (Double sliders), e.g. a unit.
++        void set_suffix(const std::string& s);
+         void add_value_changed_callback(std::function<void(double)> callback);
+         void do_step(bool increment);
+         void set_focus_callback(std::function<void(bool)> callback);

@@ -36,7 +36,9 @@
 
 #if defined(CONKER_RT64)
 #include "recompinput/input_state.h"
+#include "recompinput/players.h"
 #include "recompui/config.h"
+#include "recompui/recompui.h"
 #include "util/steam_deck.h"
 #endif
 
@@ -105,9 +107,13 @@ namespace {
         const std::string gyro_invert = "look_gyro_invert";
         const std::string camera_turn_invert = "camera_invert_turning";
         const std::string camera_turn_speed = "camera_turn_speed";
+        const std::string mouse_camera = "mouse_turns_camera";
+        const std::string stick_camera = "stick_free_camera";
+        const std::string camera_fov = "camera_field_of_view_degrees";
     }
 
     enum class Response : uint32_t { Smooth, Direct };
+    enum class Toggle : uint32_t { On, Off };
     enum class Invert : uint32_t { None, X, Y, Both };
 
     template <typename T>
@@ -145,6 +151,12 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
     static EnumOptions turn_invert = {
         {Invert::None, "None", "None"},
         {Invert::X, "InvertX", "Invert X"},
+        {Invert::Y, "InvertY", "Invert Y"},
+        {Invert::Both, "InvertBoth", "Invert Both"},
+    };
+    static EnumOptions toggle = {
+        {Toggle::On, "On", "On"},
+        {Toggle::Off, "Off", "Off"},
     };
 
     // Grouped by what they're about, each group's names starting alike: the camera, then aiming with
@@ -152,12 +164,26 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
     // saved values carry over), added here instead of by its General tab to sit with their group.
     config.add_enum_option(options::camera_turn_invert, "Camera: Invert Turning",
         "Inverts the camera's left and right turning in single player, with the right stick or C-Left and C-Right. "
-        "<recomp-color primary>None</recomp-color> matches the original game. Strafing in multiplayer isn't affected.",
+        "<recomp-color primary>None</recomp-color> matches the original game. Strafing in multiplayer isn't affected. "
+        "Y inverts tilting up and down, with the right stick when Right Stick: Free Camera is on.",
         turn_invert, Invert::None);
     config.add_number_option(options::camera_turn_speed, "Camera: Turning Speed",
         "Sets how fast the camera turns left and right in single player, with the right stick or C-Left and C-Right. "
         "Strafing in multiplayer isn't affected.",
         50.0, 300.0, 5.0, 0, true, 100.0);
+    config.add_enum_option(options::stick_camera, "Right Stick: Free Camera",
+        "A modern third-person camera in single player: the right stick turns the camera around Conker and tilts it up "
+        "and down, instead of pressing the C-buttons, and the left stick moves Conker. The C-buttons' other controls "
+        "stay: by default C-Up (first person) on the right stick's click and C-Down on RB. <recomp-color primary>Off</recomp-color> matches the "
+        "original game. Only the normal camera: in R-Look, aiming and cutscenes, the right stick is the C-buttons as usual.",
+        toggle, Toggle::Off);
+    config.add_number_option(options::camera_fov, "Camera: Field of View",
+        "How wide the normal camera sees, as its vertical field of view (the same whatever the aspect ratio). "
+        "<recomp-color primary>50\xC2\xB0</recomp-color> matches the original game (60.6\xC2\xB0 across at 4:3). More shows more "
+        "around Conker, less brings the view in closer; the camera stays as far away. Only the normal camera: R-Look, "
+        "aiming (so the scope's zoom), cutscenes and other special cameras stay as the game has them.",
+        35.0, 80.0, 1.0, 0, false, 50.0);
+    recompui::set_number_option_suffix(options::camera_fov, "\xC2\xB0");
 
     config.add_enum_option(options::stick_response, "Stick: Aiming Response",
         "How the view follows the stick in R-Look (hold R and look around)." + about +
@@ -172,6 +198,12 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
         "(e.g. the sniper scope). <b>Zero turns mouse control off</b> and leaves the cursor free. "
         "Mouse buttons can be bound to controls with the keyboard's controls.",
         recompui::is_steam_deck() ? 50.0 : 0.0);
+    config.add_enum_option(options::mouse_camera, "Mouse: Turn the Camera",
+        "Whether the mouse turns the camera around Conker, outside R-Look and aiming. Needs Mouse: Sensitivity above zero. "
+        "<recomp-color primary>Off</recomp-color> leaves that camera to the stick and C-buttons; the mouse still aims in "
+        "R-Look and the second aiming mode (e.g. the sniper scope). Gyro that Steam Input or a controller's own software "
+        "sends as mouse movement counts as the mouse.",
+        toggle, Toggle::On);
     config.add_enum_option(options::mouse_response, "Mouse: Aiming Response",
         "How the view follows the mouse in R-Look (hold R and look around). Needs Mouse: Sensitivity above zero." + about,
         response, Response::Smooth);
@@ -205,6 +237,26 @@ void conker::look_aim::on_input_poll() {
     }
 #endif
 }
+
+#if defined(CONKER_RT64)
+bool conker::look_aim::mouse_turns_camera() {
+    return option<Toggle>(options::mouse_camera) == Toggle::On;
+}
+
+bool conker::look_aim::stick_free_camera() {
+    return option<Toggle>(options::stick_camera) == Toggle::On && recompinput::players::is_single_player_mode();
+}
+
+float conker::look_aim::camera_field_of_view() {
+    return (float)std::get<double>(recompui::config::get_general_config().get_option_value(options::camera_fov));
+}
+
+void conker::look_aim::free_camera_invert(bool& x, bool& y) {
+    const Invert invert = option<Invert>(options::camera_turn_invert);
+    x = invert == Invert::X || invert == Invert::Both;
+    y = invert == Invert::Y || invert == Invert::Both;
+}
+#endif
 
 #if defined(CONKER_RT64)
 namespace {
@@ -252,17 +304,16 @@ extern "C" void conker_look_stick_pitch(uint8_t* rdram, recomp_context* ctx) {
 // C-buttons' turn direction, 1 (C-Right) or -1 (C-Left), at + 0x6B0.
 extern "C" void conker_camera_turn_invert(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
-    if (option<Invert>(options::camera_turn_invert) == Invert::X) {
+    const Invert invert = option<Invert>(options::camera_turn_invert);
+    if (invert == Invert::X || invert == Invert::Both) {
         MEM_W(0x6B0, ctx->r16) = -MEM_W(0x6B0, ctx->r16);
     }
 #endif
 }
 
 #if defined(CONKER_RT64)
-namespace {
-    float camera_turn_speed() {
-        return (float)(std::get<double>(recompui::config::get_general_config().get_option_value(options::camera_turn_speed)) / 100.0);
-    }
+float conker::look_aim::camera_turn_speed() {
+    return (float)(std::get<double>(recompui::config::get_general_config().get_option_value(options::camera_turn_speed)) / 100.0);
 }
 #endif
 
@@ -271,13 +322,13 @@ namespace {
 // Only the turn applied is scaled, not the speed the game keeps, so it eases in and out as before.
 extern "C" void conker_camera_turn_speed_held(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
-    ctx->f18.fl *= camera_turn_speed();
+    ctx->f18.fl *= conker::look_aim::camera_turn_speed();
 #endif
 }
 
 extern "C" void conker_camera_turn_speed_released(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
-    ctx->f4.fl *= camera_turn_speed();
+    ctx->f4.fl *= conker::look_aim::camera_turn_speed();
 #endif
 }
 

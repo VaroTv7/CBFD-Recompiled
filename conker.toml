@@ -377,6 +377,14 @@ func = "func_151103C8"
 before_vram = 0x15110458
 text = "{ extern void conker_camera_background_fill(uint8_t*, recomp_context*); conker_camera_background_fill(rdram, ctx); }"
 
+# Camera: Field of View (host/src/field_of_view.cpp): func_1510B128 has just stored
+# the camera's horizontal and vertical fields of view ($v0 the camera, $s0 its offset);
+# the projection, frustum and culls are worked out from them after this.
+[[patches.hook]]
+func = "func_1510B128"
+before_vram = 0x1510B1A8
+text = "{ extern void conker_field_of_view(uint8_t*, recomp_context*); conker_field_of_view(rdram, ctx); }"
+
 # Widescreen: the scale the level's culls compare view-space x with is set for
 # the 4:3 view too. Widen it to the window (host/src/widescreen.cpp).
 [[patches.hook]]

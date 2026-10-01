@@ -87,6 +87,7 @@ add_executable(ConkerRecomp
     src/rom_versions.cpp
     src/widescreen.cpp
     src/cutscene_aspect.cpp
+    src/field_of_view.cpp
     src/interpolation.cpp
     src/render_fixes.cpp
     src/look_aim.cpp

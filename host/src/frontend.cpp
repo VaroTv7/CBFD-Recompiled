@@ -396,8 +396,19 @@ namespace {
         return field.input_type == recompinput::InputType::Keyboard || field.input_type == recompinput::InputType::Mouse;
     }
 
+    // A binding to the right stick (either axis, either way).
+    bool is_right_stick(const recompinput::InputField& field) {
+        if (field.input_type != recompinput::InputType::ControllerAnalog) {
+            return false;
+        }
+        const int axis = std::abs(field.input_id) - 1;
+        return axis == SDL_CONTROLLER_AXIS_RIGHTX || axis == SDL_CONTROLLER_AXIS_RIGHTY;
+    }
+
     // One controller (or none) and/or the keyboard and mouse, through the single-player bindings.
-    void read_port(SDL_GameController* controller, bool keyboard, uint16_t* buttons, float* x, float* y) {
+    // With free_stick (Right Stick: Free Camera, while the stick turns the camera), the controller's
+    // right stick presses no button: it turns the camera instead (mouse_camera.cpp).
+    void read_port(SDL_GameController* controller, bool keyboard, bool free_stick, uint16_t* buttons, float* x, float* y) {
         using recompinput::GameInput;
         static constexpr uint16_t button_values[] = {
             0x8000, 0x4000, 0x2000, 0x0020, 0x0010, 0x1000, 0x0008,
@@ -446,7 +457,7 @@ namespace {
                     if (field.input_type == recompinput::InputType::Mouse) {
                         pressed |= keyboard && recompinput::get_input_digital(0, field);
                     }
-                    else if (controller != nullptr) {
+                    else if (controller != nullptr && !(free_stick && is_right_stick(field))) {
                         pressed |= controller_field_digital(controller, field);
                     }
                 }
@@ -495,7 +506,8 @@ namespace {
         }
         if (!recompinput::game_input_disabled()) {
             // Port 1 has the keyboard, and its controller once one has pressed a button.
-            read_port(port < count ? controllers[port] : nullptr, port == 0, buttons, x, y);
+            read_port(port < count ? controllers[port] : nullptr, port == 0,
+                port == 0 && conker::mouse_camera::stick_turns_camera(), buttons, x, y);
         }
         return true;
     }
