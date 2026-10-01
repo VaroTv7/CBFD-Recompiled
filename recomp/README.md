@@ -184,6 +184,16 @@ Runs before N64Recomp.
   (`conker_spin_wait_pass`, `host/src/ultra_extras.cpp`) yields for up to 1 ms
   and counts it as the ~3,000 passes the N64 would make in that time, so the
   loop still gives up after about as long.
+- Makes a song just started read as playing (issue #66). Starting one only
+  queues an event for the audio thread, and the player reads as stopped until
+  the audio thread has taken it up, which here can be a frame or more later. The
+  game's music manager then took the player for free while its song played on:
+  the outside ambience went on in the bar, later songs went to the wrong
+  players, and in the stone dragon's mouth the level's music played on, very
+  loud. Waiting for the audio thread when the song starts doesn't work (it takes
+  the song up only once the game goes on), so a player whose song was just
+  started reads as playing until it plays, is stopped, or 500 ms pass
+  (`conker_song_started`, `conker_song_state`, `conker_song_stopped`).
 
 ## Local changes to the tools
 

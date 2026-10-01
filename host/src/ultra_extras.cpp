@@ -1,6 +1,7 @@
 // libultra functions the recompiled code calls that neither N64Recomp's output
 // nor N64ModernRuntime provides.
 
+#include <chrono>
 #include <csetjmp>
 #include <cstdio>
 
@@ -50,6 +51,57 @@ extern "C" void conker_spin_wait_pass(uint8_t* rdram, recomp_context* ctx) {
     const uint32_t count = (uint32_t)ctx->r16;
     const uint32_t bound = (uint32_t)ctx->r17;
     ctx->r16 = (count < bound && bound - count > passes_per_ms) ? count + passes_per_ms : bound;
+}
+
+// A song just started still reads as stopped (issue #66). Starting a song (func_10008CE8) only queues
+// an event for the audio thread, and the player says it's stopped (its state, +0x2C, AL_STOPPED)
+// until the audio thread has handled it. On the N64 the audio thread runs before the game looks
+// again; here it can run later, as threads switch only when one waits. The music manager
+// (func_1000D2F8) asked the player a frame later (func_1000853C), found it stopped, took the song
+// for finished and freed its channel while it played on: the next song went to that player as if it
+// were free, the old one was never stopped (the wind outside the bar went on inside it, after
+// skipping the walk in), and the mix-up carried on (the stone dragon's mouth faded the wrong player
+// and the level's music played on, very loud). Waiting for the audio thread there doesn't work: it
+// takes the song up only once the game goes on. So until it has, the player reads as playing:
+// marked as just started when func_10008CE8 starts its song, and the mark cleared once the player
+// plays, when the game stops it, or after 500 ms (should the song never start).
+namespace {
+    constexpr int sequence_players = 3; // D_8003C900
+    std::chrono::steady_clock::time_point song_started_at[sequence_players];
+    bool song_just_started[sequence_players] = {};
+}
+
+// func_10008CE8 at 0x10008EC4, just after it starts the song: its player number is its first
+// argument, the byte at $sp + 0x43.
+extern "C" void conker_song_started(uint8_t* rdram, recomp_context* ctx) {
+    const uint32_t player = MEM_BU(0x43, ctx->r29);
+    if (player >= sequence_players) {
+        return;
+    }
+    song_just_started[player] = true;
+    song_started_at[player] = std::chrono::steady_clock::now();
+}
+
+// func_10008F24 (stop a player) at its start: $a0 the player number.
+extern "C" void conker_song_stopped(uint8_t* rdram, recomp_context* ctx) {
+    const uint32_t player = (uint32_t)ctx->r4 & 0xFF;
+    if (player < sequence_players) {
+        song_just_started[player] = false;
+    }
+}
+
+// func_1000853C (a player's state) at 0x10008560, after reading it: $v0 the state, $a1 the player.
+extern "C" void conker_song_state(uint8_t* rdram, recomp_context* ctx) {
+    constexpr auto start_limit = std::chrono::milliseconds(500);
+    const uint32_t player = (uint32_t)ctx->r5 & 0xFF;
+    if (player >= sequence_players || !song_just_started[player]) {
+        return;
+    }
+    if ((int32_t)ctx->r2 != 0 || std::chrono::steady_clock::now() - song_started_at[player] > start_limit) {
+        song_just_started[player] = false;
+        return;
+    }
+    ctx->r2 = 1; // AL_PLAYING
 }
 
 // Reads a word through a KSEG1 (uncached) address, for game code that reads
