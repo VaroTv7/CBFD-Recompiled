@@ -577,6 +577,14 @@ func = "func_1501878C"
 before_vram = 0x15018920
 text = "{ extern void conker_frame_dl_begin(uint8_t*, recomp_context*); conker_frame_dl_begin(rdram, ctx); }"
 
+# Cutscene Aspect Ratio at 4:3 (host/src/cutscene_aspect.cpp): at the end of the frame's display
+# list, just before func_1501878C writes its full sync ($s1 points to the list's pointer), a call to
+# a list of our own that draws black bars over the picture beyond the 4:3 frame.
+[[patches.hook]]
+func = "func_1501878C"
+before_vram = 0x15018C8C
+text = "{ extern void conker_frame_dl_end(uint8_t*, recomp_context*); conker_frame_dl_end(rdram, ctx); }"
+
 [[patches.hook]]
 func = "func_15019464"
 before_vram = 0x150194F8

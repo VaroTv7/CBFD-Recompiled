@@ -386,9 +386,13 @@ the keyboard and controllers, and the launcher entry (`supported_games`, which
 recompui declares extern). `conker_config.cpp` sets up the settings tabs and
 Conker's control descriptions, and `audio_output.cpp` plays the sound at the
 Sound tab's volume. `cutscene_aspect.cpp` is the Graphics tab's Cutscene Aspect
-Ratio: with 4:3, full cutscenes (those whose script marks them unskippable, and
-the opening with the N64 logo) set the renderer's aspect ratio to Original while
-they play. `texture_packs.cpp` registers RT64 texture packs (`.rtz`
+Ratio: with 4:3, cutscenes (anything the cutscene system plays, during which the
+player can't move: the game marks no difference between a story scene and a B
+pad's hint) get black bars over the picture beyond the 4:3 frame, drawn at the
+end of the frame's display list by a call to a list of its own. The picture
+itself stays widescreen: switching the renderer's aspect ratio instead made RT64
+remake every framebuffer at each switch, and a player's game crashed there in
+fullscreen at 4K (issue #21). `texture_packs.cpp` registers RT64 texture packs (`.rtz`
 files and folders with an `rt64.json`) with the mod loader and adds the Texture
 Packs settings tab, and `gliden64_packs.cpp` unpacks GLideN64 texture caches
 (`.htc`) in the mods folder into packs RT64 matches by their Rice names (see RT64's

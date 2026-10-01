@@ -22,11 +22,12 @@ namespace {
             {CutsceneAspect::Original, "Original", "4:3"},
         };
         config.add_enum_option(cutscene_aspect_id, "Cutscene Aspect Ratio",
-            "The aspect ratio of full cutscenes (story scenes, such as the new game's opening). "
+            "The aspect ratio of cutscenes: story scenes, conversations, B pads' hints and Conker's thoughts, "
+            "whenever the game plays one and you can't move. "
             "<recomp-color primary>Expand</recomp-color> shows them as wide as the rest of the game, where characters "
             "waiting for their cue can sometimes be seen beside the original picture. "
-            "<recomp-color primary>4:3</recomp-color> shows them as on the N64, with black bars at the sides, and "
-            "switches back after each one. Conversations and B pads stay as wide as the game.",
+            "<recomp-color primary>4:3</recomp-color> shows them as on the N64, with black bars at the sides, "
+            "and the game goes on in widescreen after each one.",
             choices, CutsceneAspect::Expand);
         config.add_option_disable_dependency(cutscene_aspect_id,
             recompui::config::graphics::options::ar_option, ultramodern::renderer::AspectRatio::Original);
