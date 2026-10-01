@@ -222,6 +222,11 @@ Run `host/build/ConkerRecomp` (Linux and macOS) or `host\build-win\ConkerRecomp.
 - Default keyboard controls: move with WASD, A = Space, B = Left Shift,
   Z = Q, L = E, R = R, Start = Enter, C buttons = arrow keys, D-pad = IJKL.
   Everything can be remapped in Controls.
+- N64 pads and adapters for real N64 controllers (raphnet-tech's, Mayflash,
+  Hyperkin, the NSO and 8BitDo 64 controllers) are mapped from
+  `assets/controllerdb.txt`, with the C buttons as the right stick. A controller
+  SDL doesn't know can be given a mapping in the `SDL_GAMECONTROLLERCONFIG`
+  environment variable, which takes precedence.
 
 ## ROM hacks
 

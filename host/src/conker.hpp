@@ -88,6 +88,16 @@ namespace conker {
         int port_controllers(std::array<_SDL_GameController*, 4>& out);
     }
 
+    // pad_mappings.cpp: C-buttons SDL maps as face buttons made the right stick (issue #28).
+    namespace pad_mappings {
+        // Rewrites the mapping of each such controller connected.
+        void fix_all();
+        // From SDL's event watch: a controller was connected (fixed at the next update).
+        void on_device_added();
+        // Every VI: fixes the controllers connected since the last one.
+        void update();
+    }
+
     // texture_packs.cpp: RT64 texture packs (issue #63).
     namespace texture_packs {
         // Registers the texture pack content type and .rtz files with the mod loader, and has the mod
