@@ -110,6 +110,7 @@ namespace {
         const std::string mouse_camera = "mouse_turns_camera";
         const std::string stick_camera = "stick_free_camera";
         const std::string camera_fov = "camera_field_of_view_degrees";
+        const std::string aim_reticle = "aim_reticle";
     }
 
     enum class Response : uint32_t { Smooth, Direct };
@@ -192,6 +193,12 @@ void conker::look_aim::add_options(recomp::config::Config& config) {
     config.add_enum_option(options::stick_invert, "Stick: Invert Aiming",
         "Inverts the stick in R-Look (hold R and look around) and in the second aiming mode (e.g. the sniper scope, the magnum, throwables), separately from the mouse and gyro. <recomp-color primary>Invert Y</recomp-color> is the default and matches the original game: pushing the stick up looks down.",
         invert, Invert::Y);
+    config.add_enum_option(options::aim_reticle, "Aiming: Reticle",
+        "Shows a green ring in the middle of the screen while aiming the slingshot, the throwing knives or the magnum, "
+        "like Conker: Live & Reloaded's, where what you aim at is. Not in plain R-Look, zoomed in (the sniper scope has "
+        "its own crosshair) or in split screen. <recomp-color primary>Off</recomp-color> matches the original game, "
+        "where you aim by eye.",
+        toggle, Toggle::Off);
 
     config.add_percent_number_option(recompui::config::general::options::mouse_sensitivity, "Mouse: Sensitivity",
         "How fast the mouse turns the camera and aims, in R-Look (hold R and look around) and the second aiming mode "
@@ -239,6 +246,10 @@ void conker::look_aim::on_input_poll() {
 }
 
 #if defined(CONKER_RT64)
+bool conker::reticle::enabled() {
+    return option<Toggle>(options::aim_reticle) == Toggle::On;
+}
+
 bool conker::look_aim::mouse_turns_camera() {
     return option<Toggle>(options::mouse_camera) == Toggle::On;
 }
@@ -376,6 +387,9 @@ namespace {
 // as func_1510B128 sets it.
 extern "C" void conker_aim_stick(uint8_t* rdram, recomp_context* ctx) {
 #if defined(CONKER_RT64)
+    // Aiming: Reticle (reticle.cpp): this camera aims this frame.
+    conker::reticle::aim_frame(rdram, ctx->r16);
+
     if (turn_stick_x()) {
         ctx->f14.fl = -ctx->f14.fl;
     }
@@ -419,6 +433,11 @@ extern "C" void conker_look_yaw_from_facing_scaled(uint8_t* rdram, recomp_contex
 // Before the pitch clamp: $s0 is the look state, $t0 the targets (reloaded at 0x15120B40).
 extern "C" void conker_look_targets(uint8_t* rdram, recomp_context* ctx) {
     frame = Frame{};
+#if defined(CONKER_RT64)
+    // Aiming: Reticle (reticle.cpp): the look mode's state ($v0 saved at 0xA0($sp) as it starts,
+    // what picks its paths) says whether it's aiming something.
+    conker::reticle::look_frame(rdram, ctx->r16, (uint32_t)MEM_W(0xA0, ctx->r29));
+#endif
     const float units_per_degree = aim_units_per_degree;
     aim_units_per_degree = 0.0f;
 #if defined(CONKER_RT64)
