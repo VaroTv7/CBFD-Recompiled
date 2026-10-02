@@ -22,6 +22,8 @@
 
 #if defined(CONKER_RT64)
 namespace RT64 {
+    // rt64.patch: how much of the picture's width to crop off each side as it's shown (Overscan Borders).
+    void setPresentationCrop(float shareEachSide);
     // rt64.patch: whether the frames the game makes from now on are drawn without frames between them.
     void setInterpolationPaused(bool paused);
 }
@@ -191,6 +193,15 @@ extern "C" void conker_frame_dl_begin(uint8_t* rdram, recomp_context* ctx) {
     extended_enabled = false;
     conker::cutscene_aspect::update(rdram);
 #if defined(CONKER_RT64)
+    // Overscan Borders: the game's 3D and its rectangles stop 2 pixels short of each side of the frame
+    // (its camera scissor, and func_1501A6CC clamps its fill rectangles the same), a black border the N64
+    // left for the TV's overscan. RT64 widens the picture about its middle, so in widescreen too the border
+    // is 2 of the frame's width in pixels on each side (issue #72). Hidden crops that share off each side
+    // as the picture is shown (rt64.patch, RT64::setPresentationCrop), zoomed as much both ways.
+    {
+        const int32_t frame_width = MEM_W(0, (gpr)(int32_t)0x800BE620); // D_800BE620
+        RT64::setPresentationCrop((conker::overscan_borders::hidden() && frame_width > 4) ? 2.0f / (float)frame_width : 0.0f);
+    }
     // The motion blur ran in this frame: no frames drawn between it and the next (conker_motion_blur).
     RT64::setInterpolationPaused(motion_blur_this_frame);
     motion_blur_this_frame = false;

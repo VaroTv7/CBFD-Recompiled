@@ -296,6 +296,17 @@ only a picture over the 4:3 frame, it showed as a thin blue line near the right
 edge. In widescreen that fill ends a pixel short, inside the frame
 (`conker_camera_background_fill`).
 
+The game's 3D and its fill rectangles stop 2 pixels short of each side of its
+292-pixel frame (its camera scissor, and `func_1501A6CC` clamps its fills the
+same): a black border the N64 left for the TV's overscan, which showed down
+both sides of the picture (issue #72). The Graphics tab's Overscan Borders
+(Hidden by default, or Shown) hides it as the picture is shown: the game sets
+how much of the picture's width to crop off each side each frame
+(`RT64::setPresentationCrop`, 2 of the frame's width in pixels), and the VI
+renderer zooms the picture about its middle by as much both ways, so it isn't
+stretched and as much comes off its top and bottom. Widening the 3D scissor to
+the full frame instead pillarboxed the picture.
+
 The patch also changes frame interpolation (a frame rate above the game's 30).
 RT64 draws frames between the game's by pairing each transform with last
 frame's; without help it guesses, from draw calls that look alike. Conker's
@@ -427,6 +438,8 @@ Free Camera, the right stick, which then presses no C-buttons while it turns it
 func_1510B128 sets it, and works the level's cull scales out for the wider view.
 `fps_counter.cpp` is the Graphics tab's Show FPS: a corner counter of the frames
 RT64 presented and the game's own, a context of its own that takes no input.
+Overscan Borders, in the same tab, crops the N64's black border off each side
+of the picture (`widescreen.cpp`, with RT64's changes above).
 `patches/` holds the headers recompui includes for the
 game-side patch code that mods will use. `null_renderer.cpp` is used with
 `--headless`, and in a build configured with `-DCONKER_RT64=OFF` (no window, input

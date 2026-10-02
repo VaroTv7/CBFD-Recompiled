@@ -152,6 +152,12 @@ namespace conker {
         float camera_field_of_view();
     }
 
+    // Graphics: Overscan Borders (conker_config.cpp; the crop is set in widescreen.cpp).
+    namespace overscan_borders {
+        // Hidden: the picture is zoomed so the game's black border at its sides is off the screen.
+        bool hidden();
+    }
+
     // fps_counter.cpp: Show FPS, the frame rate counter.
     namespace fps_counter {
         // conker_config.cpp: whether the setting is on.

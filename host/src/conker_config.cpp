@@ -18,6 +18,9 @@ namespace {
     // Show FPS (fps_counter.cpp), on the Graphics tab.
     const std::string show_fps_id = "show_fps";
     enum class ShowFps : uint32_t { Off, On };
+    // Overscan Borders (widescreen.cpp, RT64's presentation crop), on the Graphics tab.
+    const std::string overscan_borders_id = "overscan_borders";
+    enum class OverscanBorders : uint32_t { Hidden, Shown };
 
     void add_graphics_options(recomp::config::Config& config) {
         static const std::vector<recomp::config::ConfigOptionEnumOption> choices = {
@@ -46,6 +49,17 @@ namespace {
             "<recomp-color primary>Game</recomp-color> is the frames the game itself makes, up to 30: a drop there with FPS "
             "steady is the game's own slowdown, as on the N64.",
             fps_choices, ShowFps::Off);
+
+        static const std::vector<recomp::config::ConfigOptionEnumOption> border_choices = {
+            {OverscanBorders::Hidden, "Hidden", "Hidden"},
+            {OverscanBorders::Shown, "Shown", "Shown"},
+        };
+        config.add_enum_option(overscan_borders_id, "Overscan Borders",
+            "The game leaves a thin black border at the left and right of its picture, which a TV's overscan hid. "
+            "<recomp-color primary>Hidden</recomp-color> zooms the picture in just enough to push it off the screen, "
+            "the same amount both ways so nothing is stretched (a sliver of the top and bottom goes with it). "
+            "<recomp-color primary>Shown</recomp-color> shows the whole picture, border and all.",
+            border_choices, OverscanBorders::Hidden);
     }
 
     void set_control_descriptions() {
@@ -108,6 +122,11 @@ void conker::init_config() {
 bool conker::cutscene_aspect::in_4x3() {
     const auto value = recompui::config::get_graphics_config().get_option_value(cutscene_aspect_id);
     return static_cast<CutsceneAspect>(std::get<uint32_t>(value)) == CutsceneAspect::Original;
+}
+
+bool conker::overscan_borders::hidden() {
+    const auto value = recompui::config::get_graphics_config().get_option_value(overscan_borders_id);
+    return static_cast<OverscanBorders>(std::get<uint32_t>(value)) == OverscanBorders::Hidden;
 }
 
 bool conker::fps_counter::enabled() {

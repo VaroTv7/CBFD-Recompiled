@@ -2274,3 +2274,69 @@ index 9131697..488e5be 100644
          void clearReplacementDirectories();
          void reloadReplacements(bool clearQueue, uint64_t exclusiveDbHash = 0);
          bool loadReplacementDirectory(const ReplacementDirectory &replacementDirectory);
+diff --git a/src/render/rt64_vi_renderer.cpp b/src/render/rt64_vi_renderer.cpp
+index b4ff4e9..3edef2f 100644
+--- a/src/render/rt64_vi_renderer.cpp
++++ b/src/render/rt64_vi_renderer.cpp
+@@ -4,10 +4,24 @@
+ 
+ #include "rt64_vi_renderer.h"
+ 
++#include <algorithm>
++#include <atomic>
++
+ #include "shared/rt64_hlsl.h"
+ #include "shared/rt64_video_interface.h"
+ 
+ namespace RT64 {
++    // Conker: the presentation crop (see rt64_vi_renderer.h), set from the game's thread and read on the renderer's.
++    static std::atomic<float> presentationCropShare{ 0.0f };
++
++    void setPresentationCrop(float shareEachSide) {
++        presentationCropShare = std::clamp(shareEachSide, 0.0f, 0.25f);
++    }
++
++    float presentationCrop() {
++        return presentationCropShare;
++    }
++
+     // VIRenderer
+ 
+     VIRenderer::VIRenderer() { }
+@@ -108,6 +122,18 @@ namespace RT64 {
+         hlslpp::float4 viViewRect = vi.viewRectangle() * sdSize.xyxy;
+         hlslpp::float4 viCropRect = vi.cropRectangle() * sdSize.xyxy;
+ 
++        // Conker: zoom the picture about its middle by as much both ways, so the share set to crop goes off each
++        // side; the scissor stays the picture's area, so what's zoomed past it is cut off.
++        const float crop = presentationCrop();
++        if (crop > 0.0f) {
++            const float zoom = 1.0f / (1.0f - 2.0f * crop);
++            const float width = float(viViewRect.z) * zoom;
++            const float height = float(viViewRect.w) * zoom;
++            const float x = float(viViewRect.x) - (width - float(viViewRect.z)) / 2.0f;
++            const float y = float(viViewRect.y) - (height - float(viViewRect.w)) / 2.0f;
++            viViewRect = hlslpp::float4(x, y, width, height);
++        }
++
+         // Scale all the rectangles to the space of the Window.
+         hlslpp::float2 topLeftViewport = fromSDtoHD({ float(viViewRect.x), float(viViewRect.y) }, sdSize, hdSize);
+         hlslpp::float2 bottomRightViewport = fromSDtoHD({ float(viViewRect.x + viViewRect.z), float(viViewRect.y + viViewRect.w) }, sdSize, hdSize);
+diff --git a/src/render/rt64_vi_renderer.h b/src/render/rt64_vi_renderer.h
+index 8a3782a..6fd46b1 100644
+--- a/src/render/rt64_vi_renderer.h
++++ b/src/render/rt64_vi_renderer.h
+@@ -11,6 +11,13 @@
+ #include "rt64_shader_library.h"
+ 
+ namespace RT64 {
++    // Conker: how much of the picture's width to crop off each side when it's shown, as a share of that
++    // width (0 for none). The picture is zoomed about its middle by as much both ways, so it isn't stretched:
++    // as much comes off its top and bottom. Conker's 3D stops 2 of its frame's 292 pixels short of each side,
++    // a black border the N64 left for the TV's overscan (issue #72). Set by the game's host.
++    void setPresentationCrop(float shareEachSide);
++    float presentationCrop();
++
+     struct VIRenderer {
+         std::unique_ptr<VideoInterfaceDescriptorSet> descriptorSet;
+         const RenderSampler *descriptorSetSampler = nullptr;
