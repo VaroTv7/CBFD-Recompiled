@@ -315,9 +315,14 @@ triangles differently from frame to frame, so they vibrated and came apart. The
 game now tells RT64 which is which (`host/src/interpolation.cpp`): each object
 drawn by `func_1502CCFC` is wrapped in a matrix group naming it, matched in the
 order drawn. In RT64:
-- a group with a different number of transforms than last frame isn't matched
-  for that frame (pairing in order would pair the parts after a change with
-  their neighbours'); the object is drawn as it is, and snaps once.
+- a group with a different number of transforms than last frame can't be paired
+  in order (the parts after a change would pair with their neighbours', and the
+  model flew apart for a frame). Each transform is paired with last frame's
+  closest instead (`GameFrame::alignTransforms`: its position moved on by its
+  velocity, plus how differently it's turned), several with the same one if need
+  be, and its vertices aren't interpolated. A character's mesh is drawn in
+  chunks, one bone's matrix each, cut differently as its animation changes; left
+  unmatched, Conker snapped each time it did (issue #76).
 - pushing or popping a group starts a new transform, even with the same matrix,
   so the vertices drawn after a group don't count as its own.
 - a change of direction alone no longer counts as a teleport (`RigidBody`):

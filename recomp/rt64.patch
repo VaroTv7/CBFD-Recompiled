@@ -519,22 +519,23 @@ index d7caa12..60112aa 100644
              }
  
 diff --git a/src/hle/rt64_game_frame.cpp b/src/hle/rt64_game_frame.cpp
-index 87392d0..db00961 100644
+index 87392d0..1f5e54a 100644
 --- a/src/hle/rt64_game_frame.cpp
 +++ b/src/hle/rt64_game_frame.cpp
-@@ -296,7 +296,10 @@ namespace RT64 {
+@@ -296,7 +296,11 @@ namespace RT64 {
                  prevWorkloadMap = &prevFrame.frameMap.workloads[workloadMap.prevWorkloadIndex];
              }
  
 -            // Match the transforms linearly in the order they were submitted.
 +            // Match the transforms linearly in the order they were submitted. An ID with a different number of
-+            // transforms than last frame isn't matched at all: pairing them in order would pair each transform after
-+            // the first one added or removed with its neighbour's, and the model would fly apart for a frame (Conker's
-+            // characters, whose parts change as their animation does). Unmatched, it's drawn as it is for that frame.
++            // transforms than last frame can't be paired in order: each transform after the first one added or removed
++            // would be paired with its neighbour's, and the model would fly apart for a frame (Conker's characters,
++            // cut into chunks differently as their animation changes). Each is paired with last frame's closest instead
++            // (alignTransforms). Matching none of them made the whole model snap each time (issue #76).
              ModifiedBuffers modifiedBuffers;
              auto curIt = curWorkload.transformIdMap.begin();
              auto prevIt = prevWorkload.transformIdMap.begin();
-@@ -309,9 +312,20 @@ namespace RT64 {
+@@ -309,9 +313,31 @@ namespace RT64 {
                      prevIt++;
                  }
                  else {
@@ -545,8 +546,19 @@ index 87392d0..db00961 100644
 +                    const size_t curCount = curWorkload.transformIdMap.count(id);
 +                    const size_t prevCount = prevWorkload.transformIdMap.count(id);
 +                    if (curCount != prevCount) {
-+                        std::advance(curIt, curCount);
-+                        std::advance(prevIt, prevCount);
++                        thread_local std::vector<uint32_t> curIndices;
++                        thread_local std::vector<uint32_t> prevIndices;
++                        curIndices.clear();
++                        prevIndices.clear();
++                        for (size_t i = 0; i < curCount; i++, curIt++) {
++                            curIndices.push_back(curIt->second);
++                        }
++
++                        for (size_t i = 0; i < prevCount; i++, prevIt++) {
++                            prevIndices.push_back(prevIt->second);
++                        }
++
++                        alignTransforms(curWorkload, prevWorkload, curWorkloadMap, prevWorkloadMap, curIndices, prevIndices, modifiedBuffers);
 +                        continue;
 +                    }
 +
@@ -558,7 +570,7 @@ index 87392d0..db00961 100644
                  }
              }
  
-@@ -486,6 +500,17 @@ namespace RT64 {
+@@ -486,6 +512,17 @@ namespace RT64 {
                          viewProjMap.rigidBody = prevViewProjMap.rigidBody;
                      }
  
@@ -576,7 +588,63 @@ index 87392d0..db00961 100644
                      viewProjMap.rigidBody.updateLinear(prevView, curView, projectionLinearComponent);
                      viewProjMap.rigidBody.updateAngular(prevView, curView, projectionAngularComponent, projectionScaleComponent, projectionSkewComponent);
                      viewProjMap.rigidBody.updateDecomposition(curView, projectionDecompose);
-@@ -744,17 +769,178 @@ namespace RT64 {
+@@ -709,7 +746,45 @@ namespace RT64 {
+         }
+     }
+ 
+-    void GameFrame::matchTransform(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap, uint32_t curTransformIndex, uint32_t prevTransformIndex, ModifiedBuffers &modifiedBuffers) {
++    void GameFrame::alignTransforms(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap,
++        const std::vector<uint32_t> &curIndices, const std::vector<uint32_t> &prevIndices, ModifiedBuffers &modifiedBuffers)
++    {
++        // Conker's characters are skinned meshes drawn in chunks, a few vertices each with one bone's matrix, the same
++        // bone's matrix loaded again for each of its chunks. When the animation changes, the mesh is cut into chunks
++        // differently: their number, sizes and order change, but the bones they're drawn with are the same ones. So each
++        // transform is paired with last frame's closest (its position moved on by its velocity, plus OrientationWeight
++        // times how differently it's turned; mirrored ones aren't), however many vertices either draws, and several may
++        // pair with the same one: those are the same bone. None further than MaxAlignCost is paired: that one snaps. The
++        // chunks paired aren't the same geometry, so their vertices aren't interpolated (in a frame with the same chunks,
++        // a character's vertices don't move: the bones do).
++        const float OrientationWeight = 32.0f;
++        const float MaxAlignCost = 64.0f;
++        const hlslpp::float4x4 identity = hlslpp::float4x4::identity();
++        for (uint32_t curIndex : curIndices) {
++            const hlslpp::float4x4 &curTransform = curWorkload.drawData.worldTransforms[curIndex];
++            float bestCost = MaxAlignCost;
++            uint32_t bestPrev = UINT32_MAX;
++            for (uint32_t prevIndex : prevIndices) {
++                const RigidBody *prevRigidBody = (prevWorkloadMap != nullptr) ? &prevWorkloadMap->transforms[prevIndex].rigidBody : nullptr;
++                const TransformMatchResult result = computeTransformMatch(curTransform, identity, prevWorkload.drawData.worldTransforms[prevIndex], identity, prevRigidBody);
++                if (!result.valid) {
++                    continue;
++                }
++
++                const float cost = result.positionDifference + OrientationWeight * result.orientationDifference;
++                if (cost < bestCost) {
++                    bestCost = cost;
++                    bestPrev = prevIndex;
++                }
++            }
++
++            if (bestPrev != UINT32_MAX) {
++                matchTransform(curWorkload, prevWorkload, curWorkloadMap, prevWorkloadMap, curIndex, bestPrev, modifiedBuffers, false);
++            }
++        }
++    }
++
++    void GameFrame::matchTransform(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap, uint32_t curTransformIndex, uint32_t prevTransformIndex, ModifiedBuffers &modifiedBuffers, bool interpolateVertices) {
+         GameFrameMap::TransformMap &curTransformMap = curWorkloadMap.transforms[curTransformIndex];
+         if (prevWorkloadMap != nullptr) {
+             curTransformMap.rigidBody = prevWorkloadMap->transforms[prevTransformIndex].rigidBody;
+@@ -733,7 +808,7 @@ namespace RT64 {
+         uint32_t curVertexCount = curWorkload.drawData.worldTransformVertexCount(curTransformIndex);
+         uint32_t prevVertexIndex = prevWorkload.drawData.worldTransformVertexIndices[prevTransformIndex];
+         uint32_t prevVertexCount = prevWorkload.drawData.worldTransformVertexCount(prevTransformIndex);
+-        if (((curGroup.vertexInterpolation != G_EX_COMPONENT_SKIP) || (curGroup.texcoordInterpolation == G_EX_COMPONENT_AUTO)) && (curVertexCount == prevVertexCount)) {
++        if (interpolateVertices && ((curGroup.vertexInterpolation != G_EX_COMPONENT_SKIP) || (curGroup.texcoordInterpolation == G_EX_COMPONENT_AUTO)) && (curVertexCount == prevVertexCount)) {
+             const std::vector<float> &curPosFloats = curWorkload.drawData.posFloats;
+             const std::vector<float> &prevPosFloats = prevWorkload.drawData.posFloats;
+             std::vector<float> &curVelFloats = curWorkload.drawData.velFloats;
+@@ -744,17 +819,178 @@ namespace RT64 {
                  const float *curPosFloatsRef = &curPosFloats[curVertexIndex * 3];
                  const float *prevPosFloatsRef = &prevPosFloats[prevVertexIndex * 3];
                  float *curVelFloatsRef = &curVelFloats[curVertexIndex * 3];
@@ -761,6 +829,22 @@ index 87392d0..db00961 100644
              const std::vector<float> &curTcFloats = curWorkload.drawData.tcFloats;
              const std::vector<float> &prevTcFloats = prevWorkload.drawData.tcFloats;
              std::vector<float> &curVelFloats = curWorkload.drawData.tcVelFloats;
+diff --git a/src/hle/rt64_game_frame.h b/src/hle/rt64_game_frame.h
+index 00a72f6..32e9300 100644
+--- a/src/hle/rt64_game_frame.h
++++ b/src/hle/rt64_game_frame.h
+@@ -127,7 +127,10 @@ namespace RT64 {
+         void set(WorkloadQueue &workloadQueue, const uint32_t *workloadIndices, uint32_t indicesCount);
+         void match(RenderWorker *worker, WorkloadQueue &workloadQueue, const GameFrame &prevFrame, BufferUploader *velocityUploader, bool &velocityUploaderUsed, bool &tileInterpolationUsed, bool &lookAtInterpolationUsed);
+         void matchScene(WorkloadQueue &workloadQueue, const GameFrame &prevFrame, const GameScene &curScene, const GameScene &prevScene, std::unordered_map<uint32_t, ModifiedBuffers> &workloadsModified, bool &tileInterpolationUsed, bool &lookAtInterpolationUsed);
+-        void matchTransform(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap, uint32_t curTransformIndex, uint32_t prevTransformIndex, ModifiedBuffers &modifiedBuffers);
++        void matchTransform(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap, uint32_t curTransformIndex, uint32_t prevTransformIndex, ModifiedBuffers &modifiedBuffers, bool interpolateVertices = true);
++        // Conker: matches an ID's transforms when there are more or fewer than last frame, each with last frame's closest.
++        void alignTransforms(Workload &curWorkload, const Workload &prevWorkload, GameFrameMap::WorkloadMap &curWorkloadMap, const GameFrameMap::WorkloadMap *prevWorkloadMap,
++            const std::vector<uint32_t> &curIndices, const std::vector<uint32_t> &prevIndices, ModifiedBuffers &modifiedBuffers);
+         void buildCallHashMap(uint32_t sceneProjIndex, const Workload &workload, const Projection &proj, std::multimap<uint64_t, GameCallMap> &hashMap) const;
+         void buildTransformIdMap(const Workload &workload, std::multimap<uint32_t, uint32_t> &idMap, std::vector<uint32_t> &ignoredIdVector) const;
+         uint64_t hashFromCall(const GameCall &call, uint32_t matrixIdHash) const;
 diff --git a/src/hle/rt64_present_queue.cpp b/src/hle/rt64_present_queue.cpp
 index 7de5b69..2ef2ef5 100644
 --- a/src/hle/rt64_present_queue.cpp

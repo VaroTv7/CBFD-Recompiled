@@ -7,7 +7,10 @@
 // object (from gObjects) into a display list: its commands are wrapped in an RT64
 // matrix group whose ID names the object, with linear ordering, so the n-th matrix
 // of an object is always paired with the n-th of the same object last frame. An
-// object whose count of matrices changed isn't paired at all for that frame (RT64).
+// object whose count of matrices changed (a character's mesh is drawn in chunks, one
+// bone's matrix each, cut differently as its animation changes) has each matrix paired
+// with last frame's closest instead, its vertices left as they are (rt64.patch,
+// GameFrame::alignTransforms; pairing none of them made Conker snap, issue #76).
 //
 // A character's shadow (func_15186794) is the ground under it, clipped anew every
 // frame and drawn with the shadow's texture projected onto it: its own group asks RT64
