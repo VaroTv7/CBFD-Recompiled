@@ -20,6 +20,18 @@
 
 #include "conker.hpp"
 
+#if defined(CONKER_RT64)
+namespace RT64 {
+    // rt64.patch: whether the frames the game makes from now on are drawn without frames between them.
+    void setInterpolationPaused(bool paused);
+}
+#endif
+
+namespace {
+    // The motion blur ran in the frame being made (conker_motion_blur).
+    bool motion_blur_this_frame = false;
+}
+
 // The game window (frontend.cpp).
 extern SDL_Window* window;
 
@@ -179,6 +191,9 @@ extern "C" void conker_frame_dl_begin(uint8_t* rdram, recomp_context* ctx) {
     extended_enabled = false;
     conker::cutscene_aspect::update(rdram);
 #if defined(CONKER_RT64)
+    // The motion blur ran in this frame: no frames drawn between it and the next (conker_motion_blur).
+    RT64::setInterpolationPaused(motion_blur_this_frame);
+    motion_blur_this_frame = false;
     conker::fps_counter::game_frame();
 #endif
 }
@@ -272,6 +287,16 @@ namespace {
         uint32_t w0 = (uint32_t)MEM_W(0, cmd);
         return (w0 == 0xE6000000 || w0 == 0xE7000000 || w0 == 0xE8000000) && MEM_W(4, cmd) == 0;
     }
+}
+
+// The motion blur blends each frame with its copy of the last one. RT64's frames between the game's
+// (above 30 frames a second) are blended with that copy too, which is then a fraction of a frame old,
+// not a whole one: the ghosts all but covered the picture and the blur was nearly gone (issue #77, Conker
+// drunk). A frame the blur is drawn in is drawn without frames between it and the next (rt64.patch,
+// RT64::setInterpolationPaused), at the game's own rate as on the N64.
+// func_151D6778 (the motion blur), after its first instruction.
+extern "C" void conker_motion_blur(uint8_t* rdram, recomp_context* ctx) {
+    motion_blur_this_frame = true;
 }
 
 // At the start of the function: $a0 is where it writes its first command, $a1 the image it

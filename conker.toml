@@ -573,6 +573,14 @@ func = "func_15120158"
 before_vram = 0x1512015C
 text = "{ extern void conker_mouse_camera_look_mode(uint8_t*, recomp_context*); conker_mouse_camera_look_mode(rdram, ctx); }"
 
+# Motion blur (func_151D6778, Conker drunk): a frame it's drawn in is drawn without frames between it
+# and the next, so the blur blends with a whole frame's ghost as on the N64 (host/src/widescreen.cpp,
+# issue #77).
+[[patches.hook]]
+func = "func_151D6778"
+before_vram = 0x151D677C
+text = "{ extern void conker_motion_blur(uint8_t*, recomp_context*); conker_motion_blur(rdram, ctx); }"
+
 # Clear the frame to black before drawing it. func_1510FEA0 (starts each frame's display
 # list) clears the depth buffer, then clears the colour buffer only while D_800BE635 is
 # set, and level setup (func_1501A220) clears that flag: the game relies on the level and

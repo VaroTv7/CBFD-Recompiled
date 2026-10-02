@@ -1608,7 +1608,7 @@ index 61bb3b1..782ed13 100644
          void setVertexSegmentV1(bool isEnabled, uint32_t vertexElement, uint32_t vertexAddress, uint32_t baseSegmentAddress);
          template<uint32_t floatCount, uint32_t vertexSize>
 diff --git a/src/hle/rt64_state.cpp b/src/hle/rt64_state.cpp
-index 2970e71..34210a0 100644
+index 2970e71..9102bbf 100644
 --- a/src/hle/rt64_state.cpp
 +++ b/src/hle/rt64_state.cpp
 @@ -4,6 +4,8 @@
@@ -1699,8 +1699,70 @@ index 2970e71..34210a0 100644
              if (!differentFbs.empty()) {
                  RenderWorkerExecution execution(ext.framebufferGraphicsWorker);
                  framebufferManager.uploadRAM(ext.framebufferGraphicsWorker, differentFbs.data(), differentFbs.size(), workload.fbChangePool, RDRAM, true, drawFbOperations, drawFbDiscards, ext.shaderLibrary);
+@@ -1611,6 +1657,9 @@ namespace RT64 {
+         }
+ #   endif
+ 
++        // Conker: whether this frame is drawn without frames between it and the next (setInterpolationPaused).
++        workload.skipInterpolation = interpolationPaused();
++
+         // Store the presentation rate in the workload.
+         if (extended.refreshRate != UINT16_MAX) {
+             workload.viOriginalRate = extended.refreshRate;
+diff --git a/src/hle/rt64_workload.cpp b/src/hle/rt64_workload.cpp
+index b4c85f5..825c7c1 100644
+--- a/src/hle/rt64_workload.cpp
++++ b/src/hle/rt64_workload.cpp
+@@ -4,7 +4,20 @@
+ 
+ #include "rt64_workload.h"
+ 
++#include <atomic>
++
+ namespace RT64 {
++    // Conker: see rt64_workload.h.
++    static std::atomic<bool> interpolationPausedFlag{ false };
++
++    void setInterpolationPaused(bool paused) {
++        interpolationPausedFlag = paused;
++    }
++
++    bool interpolationPaused() {
++        return interpolationPausedFlag;
++    }
++
+     // Common functions.
+ 
+     static uint64_t roundUp(uint64_t value, uint64_t powerOf2Alignment) {
+diff --git a/src/hle/rt64_workload.h b/src/hle/rt64_workload.h
+index 8ea27d5..8f23c3e 100644
+--- a/src/hle/rt64_workload.h
++++ b/src/hle/rt64_workload.h
+@@ -23,6 +23,13 @@
+ #include "rt64_transform_group.h"
+ 
+ namespace RT64 {
++    // Conker: whether the frames the game makes from now on are drawn without frames between them, set by the
++    // game's host each frame and stored in each workload as it's made (Workload::skipInterpolation). Conker's
++    // motion blur (drunk) blends each frame with a copy of the last: with frames drawn between the game's, the
++    // last frame is a fraction of a frame old, and the blur was all but gone (issue #77).
++    void setInterpolationPaused(bool paused);
++    bool interpolationPaused();
++
+     struct DrawData {
+         std::vector<float> posFloats;
+         std::vector<float> velFloats;
+@@ -234,6 +241,8 @@ namespace RT64 {
+         uint64_t workloadId = 0;
+         uint64_t presentId = 0;
+         bool paused = false;
++        // Conker: drawn without frames between it and the next (setInterpolationPaused).
++        bool skipInterpolation = false;
+ 
+         struct {
+             uint32_t testZIndexCount = 0;
 diff --git a/src/hle/rt64_workload_queue.cpp b/src/hle/rt64_workload_queue.cpp
-index 5a331aa..3d4fca2 100644
+index 5a331aa..e6c0eae 100644
 --- a/src/hle/rt64_workload_queue.cpp
 +++ b/src/hle/rt64_workload_queue.cpp
 @@ -4,6 +4,8 @@
@@ -1843,6 +1905,15 @@ index 5a331aa..3d4fca2 100644
                              FramebufferChange *depthFbChange = depthFb->readChangeFromStorage(ext.workloadGraphicsWorker, workload.fbStorage, scratchFbChangePool, Framebuffer::Type::Depth,
                                  G_IM_FMT_DEPTH, f, depthFb->readHeight, readRowCount, ext.shaderLibrary);
  
+@@ -986,7 +1049,7 @@ namespace RT64 {
+                     matchingProfiler.log();
+ 
+                     const bool displayRateAboveOriginal = (workload.viOriginalRate > 0) && (workloadConfig.targetRate > workload.viOriginalRate);
+-                    generateInterpolatedFrames = !workload.paused && displayRateAboveOriginal && !interpolationTargetKey.isEmpty();
++                    generateInterpolatedFrames = !workload.paused && !workload.skipInterpolation && displayRateAboveOriginal && !interpolationTargetKey.isEmpty();
+ 
+                     const bool resetTicks = !generateInterpolatedFrames || (originalRateForTicks != workload.viOriginalRate) || (displayRateForTicks != workloadConfig.targetRate) || !displayRateAboveOriginal;
+                     if (resetTicks) {
 diff --git a/src/render/rt64_framebuffer_renderer.cpp b/src/render/rt64_framebuffer_renderer.cpp
 index 9fae0d4..8cac619 100644
 --- a/src/render/rt64_framebuffer_renderer.cpp

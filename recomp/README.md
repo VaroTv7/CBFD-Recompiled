@@ -321,6 +321,11 @@ order drawn. In RT64:
   two cutscene shots showed the camera partway from one to the other, inside the
   scenery (issue #59). A cut is a camera moving over 150 units or turning over 50
   degrees in one game frame, and four times as far as the frame before.
+- a frame the game's motion blur is drawn in (`func_151D6778`, Conker drunk)
+  isn't interpolated (`Workload::skipInterpolation`, set by the game each frame
+  through `RT64::setInterpolationPaused`). The blur blends each frame with a
+  copy of the last; blended on the frames drawn between the game's, that copy
+  was only a fraction of a frame old, and the blur was all but gone (issue #77).
 
 A character's shadow (`func_15186794`) is the ground under it, clipped anew
 every frame and drawn with the shadow's texture projected onto it from the
